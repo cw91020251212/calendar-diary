@@ -226,4 +226,298 @@
             <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
                 <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 歡迎使用日曆</div>
             </div>
-            <div class="modal-body" style="line
+            <div class="modal-body" style="line-height: 1.6;">
+                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
+                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border);">
+                    <ul style="padding-left: 20px; color: var(--text-main); font-size: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <li>點擊右下角 <strong style="color: var(--primary); font-size: 20px;">「+」</strong> 隨時新增記事。</li>
+                        <li>用手指 <strong>「左右撥動畫面」</strong> 或點擊頂部年月，可快速切換日子。</li>
+                        <li>需要詳細教學？隨時點擊右上角 <strong>「⚙️ 設定」</strong> 查看說明書。</li>
+                    </ul>
+                </div>
+                <div style="background: #fff5f5; border-left: 5px solid #fc8181; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                    <strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 資料安全聲明</strong>
+                    <p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>不會連上網</strong>，所有資料只會儲存在這部手機裡。請記得定期自己下載備份檔！</p>
+                </div>
+                <button class="action-btn primary" onclick="closeWelcomeModal(null, true)" style="width: 100%; font-size: 18px;">我明白了，開始使用！</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="helpModal" onclick="closeModal('helpModal', event)">
+        <div class="modal-content" style="max-height: 85dvh; height: auto;">
+            <div class="modal-header">
+                <div class="modal-title" style="color: var(--primary); font-size: 20px;"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> 詳細使用教學</div>
+                <button class="icon-btn" onclick="closeModal('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body" style="line-height: 1.6;">
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今天的記事。<br>想看其他月份？只需在畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想找回很久以前的紀錄，點擊最頂部的 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 2. 12 色標籤與自訂名稱</div><div class="tutorial-text">在編輯器上方，你可以左右滑動選擇 <strong>12 種不同的顏色</strong>。選擇顏色後，可以在下方的輸入框自由為它命名（例如：將黃色命名為「私人」、藍色為「工作」）。系統會永久記住你的設定！</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 3. 鬧鐘與「提提我」功能</div><div class="tutorial-text">輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆（如 Apple Calendar），你的手機就會在指定日子響鬧鐘提醒你！</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="image" style="color: #4299e1;"></i> 4. 照片壓縮與放大鏡</div><div class="tutorial-text">你可以隨意上載照片，系統會自動在背景將照片壓縮以節省手機空間。在閱讀時，<strong>點擊任何一張照片</strong>，就會啟動全螢幕黑色背景的放大鏡，讓你看清細節。</div></div>
+                <div style="background: #fff5f5; border-left: 5px solid #fc8181; padding: 16px; border-radius: 8px; margin-bottom: 24px;"><strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 5. 極重要：資料安全與備份</strong><p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>絕對不會連上網</strong>！你的所有私隱、文字和圖片，都只會安全地儲存在這部手機裡。<br><br>請務必定期點擊 <strong>「⚙️ 設定」</strong> 自己下載備份檔案。如果不小心清除了瀏覽器紀錄又沒有備份，資料是會永遠消失的哦！</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
+        <div class="modal-content" style="max-height: 80dvh; height: auto;">
+            <div class="modal-header">
+                <div class="modal-title" style="color: var(--primary);"><i data-lucide="sunrise"></i> 今日晨報</div>
+                <button class="icon-btn" onclick="closeModal('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:16px; color:var(--text-light); font-size:16px; font-weight: bold;">早晨！你今日有以下事項需要留意：</p>
+                <div class="entry-list" id="briefingList"></div>
+                <button class="action-btn primary" onclick="closeModal('briefingModal')" style="margin-top:24px;">開始今日日程</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dayModal" onclick="closeModal('dayModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title" id="dayModalTitle">日期</div><button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button></div><div class="modal-body"><div class="entry-list" id="dayEntryList"></div><button class="add-entry-btn" onclick="openEditorFromDayView()"><i data-lucide="pen-line"></i> 新增此日記事</button></div></div></div>
+    <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div><div><button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button><button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button></div></div><div class="modal-body"><div class="read-time"><span id="readTimeStr"></span></div><div><span class="read-tag-badge" id="readTagBadge"></span></div><div id="readText" class="read-text"></div><div id="readGallery" class="read-gallery"></div></div></div></div>
+    <div class="modal-overlay" id="editorModal" onclick="closeModal('editorModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title" id="editorTitle">編輯記事</div><button class="icon-btn" onclick="closeModal('editorModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button></div><div class="modal-body"><div class="color-picker-container"><div class="color-picker-scroll"><div class="color-picker" id="colorPickerUI"></div></div><div class="tag-name-editor"><i data-lucide="tag" style="width:20px; color:var(--text-light)"></i><input type="text" id="tagNameInput" class="tag-name-input" placeholder="自訂此顏色的代表意義..." oninput="saveTagName()"></div></div><div class="editor-toolbar"><button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button><button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button><button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button><input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)"></div><textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea><div class="photo-gallery" id="editorGallery"></div><div class="editor-footer"><button class="btn btn-cancel" onclick="closeModal('editorModal')">取消</button><button class="btn btn-save" onclick="saveEntry()"><i data-lucide="save"></i> 儲存記錄</button></div></div></div></div>
+    
+    <div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
+        <div class="modal-content" style="height: auto; max-height: 90dvh;">
+            <div class="modal-header">
+                <div class="modal-title"><i data-lucide="shield-check" style="width: 28px; height: 28px;"></i> 設定與備份</div>
+                <button class="icon-btn" onclick="closeModal('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="backup-info">
+                    <strong>🔐 關於您的資料安全</strong>
+                    您的所有紀錄都儲存在<b>這部手機的瀏覽器內部</b>，不會上傳上網。<br><br>
+                    <span style="color: #e53e3e;">⚠️ 若清除瀏覽器資料，紀錄將會遺失。請務必定期備份！</span>
+                </div>
+                
+                <div class="action-group">
+                    <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5;" onclick="openHelpModal()">
+                        <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
+                    </button>
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                    
+                    <button class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
+                        <i data-lucide="printer"></i> 🖨️ 列印空白月曆
+                    </button>
+                    
+                    <button class="action-btn primary" onclick="exportData()"><i data-lucide="download"></i> 下載備份檔案 (.json)</button>
+                    <button class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 備份至 App</button>
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                    
+                    <button class="action-btn" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 上傳並還原資料</button>
+                    <input type="file" id="importInput" accept=".json, application/json, text/plain, */*" onchange="importData(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged Image"></div></div>
+
+    <script>
+        lucide.createIcons();
+
+        const HK_HOLIDAYS_2026 = { "2026-01-01": "元旦", "2026-02-17": "農曆年初一", "2026-02-18": "農曆年初二", "2026-02-19": "農曆年初三", "2026-04-03": "耶穌受難節", "2026-04-04": "清明節 / 翌日", "2026-04-06": "復活節翌日", "2026-05-01": "勞動節", "2026-05-24": "佛誕", "2026-05-25": "佛誕翌日", "2026-06-19": "端午節", "2026-07-01": "特區成立日", "2026-09-25": "中秋節翌日", "2026-10-01": "國慶日", "2026-10-18": "重陽節", "2026-10-19": "重陽節翌日", "2026-12-25": "聖誕節", "2026-12-26": "聖誕節後首周日" };
+
+        const THEMES = [ { id: 'light', icon: 'sun', name: '明亮' }, { id: 'dark', icon: 'moon', name: '暗黑' }, { id: 'matcha', icon: 'leaf', name: '抹茶' }, { id: 'sakura', icon: 'flower', name: '櫻花' }, { id: 'ocean', icon: 'droplet', name: '海洋' }, { id: 'sunset', icon: 'sun-dim', name: '日落' } ];
+        let currentThemeIdx = 0;
+
+        const APP_COLORS = [ { id: 'red', hex: '#fc8181', def: '緊急' }, { id: 'orange', hex: '#f6ad55', def: '待辦' }, { id: 'yellow', hex: '#f6e05e', def: '私人' }, { id: 'green', hex: '#68d391', def: '健康' }, { id: 'teal', hex: '#4fd1c5', def: '休閒' }, { id: 'blue', hex: '#63b3ed', def: '工作' }, { id: 'indigo', hex: '#7f9cf5', def: '學習' }, { id: 'purple', hex: '#b794f4', def: '靈感' }, { id: 'pink', hex: '#f687b3', def: '感情' }, { id: 'brown', hex: '#c05621', def: '家庭' }, { id: 'gray', hex: '#a0aec0', def: '其他' }, { id: 'black', hex: '#2d3748', def: '重要' } ];
+        let tagNames = JSON.parse(localStorage.getItem('diary_tag_names')) || {};
+        APP_COLORS.forEach(c => { if(!tagNames[c.id]) tagNames[c.id] = c.def; });
+
+        const TEXT_SIZES = ['sm', 'md', 'lg'];
+        const TEXT_LABELS = ['大字', '特大', '巨無霸'];
+
+        let currentDate = new Date();
+        let editingDateStr = '';  
+        let currentEntryData = null;
+        let currentTextSizeIdx = 1;
+        let selectedColor = 'blue';
+        let currentImages = [];
+        let isAnimating = false; 
+
+        const DB_NAME = 'DiaryProDB'; 
+        const STORE_NAME = 'entries';
+        const db = {
+            dbInstance: null,
+            async init() { return new Promise((resolve, reject) => { const req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) { e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id' }); } }; req.onsuccess = (e) => { this.dbInstance = e.target.result; resolve(); }; req.onerror = (e) => reject(e.target.error); }); },
+            async getAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll(); req.onsuccess = () => resolve(req.result); }); },
+            async save(entry) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(entry); req.onsuccess = () => resolve(); }); },
+            async delete(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id); req.onsuccess = () => resolve(); }); },
+            async clearAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).clear(); req.onsuccess = () => resolve(); }); }
+        };
+
+        let touchStartX = 0; let touchStartY = 0;
+        function initSwipe() {
+            const calendarArea = document.getElementById('calendarMainArea');
+            calendarArea.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, {passive: true});
+            calendarArea.addEventListener('touchend', e => {
+                const xDiff = e.changedTouches[0].screenX - touchStartX;
+                const yDiff = e.changedTouches[0].screenY - touchStartY;
+                if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > 40) { if (xDiff > 0) changeMonth(-1); else changeMonth(1); }
+            }, {passive: true});
+        }
+
+        async function initApp() {
+            const savedThemeId = localStorage.getItem('diary_theme_github') || 'light';
+            currentThemeIdx = THEMES.findIndex(t => t.id === savedThemeId) >= 0 ? THEMES.findIndex(t => t.id === savedThemeId) : 0;
+            applyTheme(THEMES[currentThemeIdx]);
+            initColorPickerUI(); await db.init();
+            document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            await renderCalendar(); initSwipe(); 
+            
+            const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
+            if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
+        }
+
+        function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
+        function closeWelcomeModal(event, isButton = false) { if (event && event.target.id !== 'welcomeModal' && !isButton) return; document.getElementById('welcomeModal').classList.remove('active'); localStorage.setItem('diary_welcomed_v5', 'true'); checkTodayBriefing(); }
+
+        // 🖨️ 單一列印功能
+        function printBlankCalendar() {
+            closeModal('backupModal');
+            setTimeout(() => {
+                window.print(); 
+            }, 300);
+        }
+
+        async function changeMonth(delta) { 
+            if (isAnimating) return; isAnimating = true;
+            const grid = document.getElementById('calendarGrid');
+            if (delta > 0) grid.classList.add('sliding-out-left'); else grid.classList.add('sliding-out-right');
+            await new Promise(r => setTimeout(r, 200)); 
+            currentDate.setMonth(currentDate.getMonth() + delta); 
+            document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            await renderCalendar(); 
+            grid.className = 'days-grid'; 
+            if (delta > 0) grid.classList.add('sliding-in-right'); else grid.classList.add('sliding-in-left');
+            await new Promise(r => setTimeout(r, 200)); grid.className = 'days-grid'; isAnimating = false;
+        }
+
+        async function handleQuickDateSelect(event) {
+            const selectedVal = event.target.value; if (!selectedVal) return;
+            const [y, m, d] = selectedVal.split('-'); currentDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+            await renderCalendar();
+            const targetDateStr = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            const allEntries = await db.getAll(); const dayEntries = allEntries.filter(e => e.date === targetDateStr);
+            openDayView(targetDateStr, dayEntries);
+        }
+
+        async function checkTodayBriefing() {
+            const todayDateObj = new Date(); const todayStr = formatDate(todayDateObj.getFullYear(), todayDateObj.getMonth(), todayDateObj.getDate());
+            const lastBriefing = localStorage.getItem('diary_last_briefing'); if (lastBriefing === todayStr) return;
+            const allEntries = await db.getAll(); const todayEntries = allEntries.filter(e => e.date === todayStr);
+            if (todayEntries.length > 0) {
+                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="closeModal('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
+                document.getElementById('briefingModal').classList.add('active'); localStorage.setItem('diary_last_briefing', todayStr);
+            }
+        }
+
+        function cycleTheme() { currentThemeIdx = (currentThemeIdx + 1) % THEMES.length; applyTheme(THEMES[currentThemeIdx]); localStorage.setItem('diary_theme_github', THEMES[currentThemeIdx].id); }
+        function applyTheme(themeObj) { document.body.className = ''; if (themeObj.id !== 'light') document.body.classList.add(`theme-${themeObj.id}`); document.getElementById('themeIcon').setAttribute('data-lucide', themeObj.icon); lucide.createIcons(); }
+        function initColorPickerUI() { document.getElementById('colorPickerUI').innerHTML = APP_COLORS.map(c => `<div class="color-btn" style="background-color: ${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"></div>`).join(''); }
+
+        async function renderCalendar() {
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
+            document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const prevMonthDays = new Date(year, month, 0).getDate();
+            const allEntries = await db.getAll(); const entryMap = {}; allEntries.forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
+
+            for (let i = 0; i < 42; i++) {
+                const cell = document.createElement('div'); cell.className = 'day-cell'; let dayNum, dateStr = '';
+                if (i < firstDay) { dayNum = prevMonthDays - firstDay + i + 1; cell.classList.add('other-month'); dateStr = formatDate(year, month - 1, dayNum);
+                } else if (i >= firstDay && i < firstDay + daysInMonth) { dayNum = i - firstDay + 1; dateStr = formatDate(year, month, dayNum); const today = new Date(); if (year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate()) { cell.classList.add('today'); }
+                } else { dayNum = i - firstDay - daysInMonth + 1; cell.classList.add('other-month'); dateStr = formatDate(year, month + 1, dayNum); }
+
+                let lunarDisplay = ''; try { const lunarDayStr = Lunar.fromDate(new Date(dateStr)).getDayInChinese(); if (lunarDayStr === '初一' || lunarDayStr === '十五') { lunarDisplay = `<span class="lunar-subtext">${lunarDayStr}</span>`; } } catch(e) {}
+                let holidayDisplay = ''; let isHoliday = false;
+                if (HK_HOLIDAYS_2026[dateStr]) { holidayDisplay = `<div class="holiday-subtext">${HK_HOLIDAYS_2026[dateStr]}</div>`; isHoliday = true; }
+                const dayEntries = entryMap[dateStr] || [];
+                
+                let numClass = cell.classList.contains('today') ? 'day-num-circle' : 'day-num'; let numStyle = '';
+                if (isHoliday) { if (cell.classList.contains('today')) { numStyle = 'style="background: #e53e3e;"'; } else { numClass += ' holiday-num'; } }
+                
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 3).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 3 ? `<div class="event-chip" style="--event-color: transparent; color: var(--text-light); justify-content:center;">+${dayEntries.length - 3}</div>` : ''}</div>`;
+                cell.onclick = () => openDayView(dateStr, dayEntries); grid.appendChild(cell);
+            } lucide.createIcons();
+        }
+
+        function resetToToday() { currentDate = new Date(); renderCalendar(); }
+        function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+        function closeModal(id, event) { if (event && event.target.id !== id) return; document.getElementById(id).classList.remove('active'); }
+
+        function openDayView(dateStr, entries) {
+            editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+            const listEl = document.getElementById('dayEntryList');
+            if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
+            } else { listEl.innerHTML = entries.map(e => { const entryJson = encodeURIComponent(JSON.stringify(e)); const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="openReadView('${entryJson}')"><div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'})}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`}).join(''); }
+            document.getElementById('dayModal').classList.add('active');
+        }
+
+        function openReadView(entryJsonEncoded) {
+            currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded)); document.getElementById('dayModal').classList.remove('active');
+            const dateObj = new Date(currentEntryData.timestamp); document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
+            const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
+            document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
+            if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
+            document.getElementById('readModal').classList.add('active');
+        }
+
+        function backToDayView() { closeModal('readModal'); db.getAll().then(all => { openDayView(editingDateStr, all.filter(e => e.date === editingDateStr)); }); }
+        function openLightbox(imgSrc) { document.getElementById('lightboxImg').src = imgSrc; document.getElementById('lightbox').classList.add('active'); }
+        function closeLightbox(event) { if (event && event.target.id === 'lightboxImg') return; document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImg').src = ''; }
+        function openEditorForToday() { editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()); openEditor(null); }
+        function openEditorFromDayView() { closeModal('dayModal'); setTimeout(() => openEditor(null), 200); }
+        function editFromReadView() { closeModal('readModal'); setTimeout(() => openEditor(currentEntryData), 200); }
+
+        async function deleteFromReadView() { if (confirm('確定要刪除這份紀錄嗎？無法復原哦。')) { await db.delete(currentEntryData.id); closeModal('readModal'); renderCalendar(); } }
+
+        function openEditor(entryData) {
+            currentEntryData = entryData; const textarea = document.getElementById('editorText');
+            if (entryData) { document.getElementById('editorTitle').textContent = '編輯記事'; textarea.value = entryData.text || ''; selectColor(entryData.color || 'blue'); setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); currentImages = entryData.images ? [...entryData.images] : [];
+            } else { document.getElementById('editorTitle').textContent = '新增記事'; textarea.value = ''; selectColor('blue'); setTextSize(1); currentImages = []; }
+            renderEditorImages(); document.getElementById('editorModal').classList.add('active'); setTimeout(() => textarea.focus(), 400); 
+        }
+
+        function selectColor(colorId) { selectedColor = colorId; document.querySelectorAll('.color-btn').forEach(btn => { btn.classList.remove('selected'); if(btn.dataset.color === colorId) { btn.classList.add('selected'); btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } }); document.getElementById('tagNameInput').value = tagNames[colorId] || ''; }
+        function saveTagName() { tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤'; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); }
+        function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
+        function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
+
+        function addToNativeCalendar() {
+            const text = document.getElementById('editorText').value.trim() || '日曆事項'; const tagName = tagNames[selectedColor] || '事項'; const dateParts = editingDateStr.split('-'); const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`; const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2])); d.setDate(d.getDate() + 1); const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${startStr}\nDTEND;VALUE=DATE:${endStr}\nSUMMARY:【${tagName}】\nDESCRIPTION:${text}\nEND:VEVENT\nEND:VCALENDAR`;
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `reminder_${startStr}.ics`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            setTimeout(() => { alert("⏰ 已經為你製作好日曆檔案！\n\n如果系統彈出提示，請選擇「加入日曆」，就可以享用手機自帶嘅響鬧功能啦！"); }, 500);
+        }
+
+        function handleImageUpload(event) {
+            const files = event.target.files; if (!files || files.length === 0) return;
+            Array.from(files).forEach(file => {
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (e) => { const img = new Image(); img.src = e.target.result;
+                    img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width, height = img.height; if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); currentImages.push(canvas.toDataURL('image/jpeg', 0.6)); renderEditorImages(); };
+                };
+            }); event.target.value = ''; 
+        }
+
+        function renderEditorImages() { document.getElementById('editorGallery').innerHTML = currentImages.map((src, idx) => `<div class="photo-item"><img src="${src}" onclick="openLightbox('${src}')"><button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:20px;height:20px;"></i></button></div>`).join(''); lucide.createIcons(); }
+        function removeImage(idx) { currentImages.splice(idx, 1); renderEditorImages(); }
+
+        async function saveEntry() { const text = document.getElementById('editorText').value.trim(); if (!text && currentImages.length === 0) { alert('請輸入內容或加入圖片！'); return; } const entry = { id: currentEntryData ? currentEntryData.id : Date.now(), date: editingDateStr, timestamp: currentEntryData ? currentEntryData.timestamp : Date.now(), text: text, color: selectedColor, textSize: currentTextSizeIdx, images: currentImages }; await db.save(entry); closeModal('editorModal'); renderCalendar(); }
+        function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
+
+        async function exportData() { try { const entries = await db.getAll(); const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries }; const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); } catch (error) { alert("匯出失敗：" + error); } }
+
+        async function nativeShareBackup() { try { const entries = await db.getAll(); const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries }; const fileName = `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`; const file = new File([JSON.stringify(backupObj)], fileName, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ title: '日曆記事本備份', text: '這是我日曆記事本的備份檔案，請安全儲存。', files: [file] }); } else { alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n我哋而家會為你自動轉用「電郵備份」模式！'); emailBackupHelp(); } } catch (error) { if (error.name !== 'AbortError') { alert('⚠️ 分享功能被阻擋或發生錯誤。\n\n我哋而家會為你自動轉用「電郵備份」模式！'); emailBackupHelp(); } } }
+
+        function emailBackupHelp() { alert("💌 電郵備份教學：\n\n1. 請先點擊「下載備份檔案」。\n2. 系統會幫你準備一封新電郵。\n3. 請記得在電郵中【手動夾帶(Attach)】剛才下載的檔案，然後發送給自己！"); exportData().then(() => { setTimeout(() => { const subject = encodeURIComponent("📦 我的日曆記事本備份"); const body = encodeURIComponent("這是我日曆記事本的備份。\n\n⚠️ 【重要提示】：請記得點擊附件按鈕，將剛剛下載的「diary_backup_xxxx.json」檔案夾帶在此電郵中再寄出！"); window.location.href = `mailto:?subject=${subject}&body=${body}`; }, 1000); }); }
+
+        function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm('⚠️ 警告：還原資料將會「覆蓋」並清除您目前的所有紀錄。確定要繼續嗎？')) { event.target.value = ''; return; } const reader = new FileReader(); reader.onload = async function(e) { try { const importedData = JSON.parse(e.target.result); if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("備份檔案格式不正確"); await db.clearAll(); for (const entry of importedData.entries) await db.save(entry); if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } alert("🎉 資料還原成功！系統將重新整理畫面。"); closeModal('backupModal'); renderCalendar(); } catch (error) { alert("匯入失敗，檔案可能已損毀或格式錯誤。\n" + error); } }; reader.readAsText(file); event.target.value = ''; }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
