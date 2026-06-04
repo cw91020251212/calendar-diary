@@ -169,6 +169,10 @@
         .action-btn:hover { background: var(--hover); }
         .action-btn.primary { background: var(--primary); color: white; border: none; }
         .action-btn.primary:hover { background: var(--secondary); }
+        
+        .tutorial-box { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .tutorial-title { color: var(--text-main); font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .tutorial-text { color: var(--text-light); font-size: 15px; line-height: 1.6; }
 
         #fileInput, #importInput { display: none; }
     </style>
@@ -201,27 +205,47 @@
 
     <button class="fab" onclick="openEditorForToday()"><i data-lucide="plus" style="width: 32px; height: 32px;"></i></button>
 
-    <!-- ✨ 模態框 0：新手歡迎與聲明 (首次開啟顯示) -->
+    <!-- ✨ 模態框 0：詳細使用教學與聲明 -->
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
-                <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 歡迎使用日曆</div>
+                <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 詳細使用教學</div>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
-                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
+                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。以下是各項強大功能的詳細說明：</p>
 
-                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
-                    <strong style="color: var(--text-main); font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="book-open" style="width:20px;height:20px; color: var(--secondary);"></i> 快速上手教學：</strong>
-                    <ul style="margin-top: 10px; padding-left: 24px; color: var(--text-light); font-size: 15px; display: flex; flex-direction: column; gap: 6px;">
-                        <li>點擊右下角 <strong style="color: var(--primary);">「+」</strong> 隨時新增記事。</li>
-                        <li>內置 <strong>12色標籤</strong>，可自訂名稱分類，並支援 <strong>照片儲存</strong>。</li>
-                        <li>點擊 <strong>「🔔 提提我」</strong>，可將記事加入手機原生鬧鐘。</li>
-                        <li>點擊頂部調色盤可切換 <strong>6款護眼主題</strong>。</li>
-                    </ul>
+                <!-- 教學區塊 -->
+                <div class="tutorial-box">
+                    <div class="tutorial-title"><i data-lucide="plus-circle" style="color: var(--secondary);"></i> 1. 新增與查閱記事</div>
+                    <div class="tutorial-text">
+                        點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今天的記事。如果想查閱或補寫過去的日子，直接點擊日曆上的數字即可。所有記事在點擊後會進入「全螢幕閱讀模式」，文字與圖片都會清晰顯示，防止誤觸修改。
+                    </div>
                 </div>
 
+                <div class="tutorial-box">
+                    <div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 2. 12 色標籤與自訂名稱</div>
+                    <div class="tutorial-text">
+                        在編輯器上方，你可以左右滑動選擇 <strong>12 種不同的顏色</strong>。選擇顏色後，可以在下方的輸入框自由為它命名（例如：將黃色命名為「私人」、藍色為「工作」）。系統會永久記住你的設定！
+                    </div>
+                </div>
+
+                <div class="tutorial-box">
+                    <div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 3. 鬧鐘與「提提我」功能</div>
+                    <div class="tutorial-text">
+                        輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆（如 Apple Calendar），你的手機就會在指定日子響鬧鐘提醒你！
+                    </div>
+                </div>
+                
+                <div class="tutorial-box">
+                    <div class="tutorial-title"><i data-lucide="image" style="color: #4299e1;"></i> 4. 照片壓縮與放大鏡</div>
+                    <div class="tutorial-text">
+                        你可以隨意上載照片，系統會自動在背景將照片壓縮至最佳容量以節省手機空間。在閱讀時，<strong>點擊任何一張照片</strong>，就會啟動全螢幕黑色背景的放大鏡，讓你看清細節。
+                    </div>
+                </div>
+
+                <!-- 安全聲明區塊 -->
                 <div style="background: #fff5f5; border-left: 5px solid #fc8181; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                    <strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 極重要：資料安全與備份</strong>
+                    <strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 5. 極重要：資料安全與備份</strong>
                     <p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>絕對不會連上網</strong>！你的所有私隱、文字和圖片，都只會安全地儲存在這部手機裡。<br><br>請務必定期點擊右上角的 <strong>「⚙️ 設定」</strong> 自己下載備份檔案。如果不小心清除了瀏覽器紀錄又沒有備份，資料是會永遠消失的哦！</p>
                 </div>
 
@@ -330,9 +354,16 @@
                 </div>
                 
                 <div class="action-group">
+                    <!-- 全新加入的「打開說明書」按鈕 -->
+                    <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5;" onclick="openHelpModal()">
+                        <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
+                    </button>
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                    
                     <button class="action-btn primary" onclick="exportData()"><i data-lucide="download"></i> 下載備份檔案 (.json)</button>
                     <button class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 備份至 App</button>
-                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
+                    
                     <button class="action-btn" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 上傳並還原資料</button>
                     <input type="file" id="importInput" accept=".json, application/json, text/plain, */*" onchange="importData(event)">
                 </div>
@@ -351,33 +382,17 @@
 
         // 香港 2026 官方公眾假期清單
         const HK_HOLIDAYS_2026 = {
-            "2026-01-01": "元旦",
-            "2026-02-17": "農曆年初一",
-            "2026-02-18": "農曆年初二",
-            "2026-02-19": "農曆年初三",
-            "2026-04-03": "耶穌受難節",
-            "2026-04-04": "清明節 / 翌日",
-            "2026-04-06": "復活節翌日",
-            "2026-05-01": "勞動節",
-            "2026-05-24": "佛誕",
-            "2026-05-25": "佛誕翌日",
-            "2026-06-19": "端午節",
-            "2026-07-01": "特區成立日",
-            "2026-09-25": "中秋節翌日",
-            "2026-10-01": "國慶日",
-            "2026-10-18": "重陽節",
-            "2026-10-19": "重陽節翌日",
-            "2026-12-25": "聖誕節",
-            "2026-12-26": "聖誕節後首周日"
+            "2026-01-01": "元旦", "2026-02-17": "農曆年初一", "2026-02-18": "農曆年初二", "2026-02-19": "農曆年初三",
+            "2026-04-03": "耶穌受難節", "2026-04-04": "清明節 / 翌日", "2026-04-06": "復活節翌日", "2026-05-01": "勞動節",
+            "2026-05-24": "佛誕", "2026-05-25": "佛誕翌日", "2026-06-19": "端午節", "2026-07-01": "特區成立日",
+            "2026-09-25": "中秋節翌日", "2026-10-01": "國慶日", "2026-10-18": "重陽節", "2026-10-19": "重陽節翌日",
+            "2026-12-25": "聖誕節", "2026-12-26": "聖誕節後首周日"
         };
 
         const THEMES = [
-            { id: 'light', icon: 'sun', name: '明亮' },
-            { id: 'dark', icon: 'moon', name: '暗黑' },
-            { id: 'matcha', icon: 'leaf', name: '抹茶' },
-            { id: 'sakura', icon: 'flower', name: '櫻花' },
-            { id: 'ocean', icon: 'droplet', name: '海洋' },
-            { id: 'sunset', icon: 'sun-dim', name: '日落' }
+            { id: 'light', icon: 'sun', name: '明亮' }, { id: 'dark', icon: 'moon', name: '暗黑' },
+            { id: 'matcha', icon: 'leaf', name: '抹茶' }, { id: 'sakura', icon: 'flower', name: '櫻花' },
+            { id: 'ocean', icon: 'droplet', name: '海洋' }, { id: 'sunset', icon: 'sun-dim', name: '日落' }
         ];
         let currentThemeIdx = 0;
 
@@ -455,7 +470,7 @@
             renderCalendar();
             
             // 檢查是否首次使用
-            const hasWelcomed = localStorage.getItem('diary_welcomed_v1');
+            const hasWelcomed = localStorage.getItem('diary_welcomed_v2');
             if (!hasWelcomed) {
                 document.getElementById('welcomeModal').classList.add('active');
             } else {
@@ -463,12 +478,16 @@
             }
         }
 
-        // 新手歡迎視窗關閉邏輯
+        // 打開教學視窗
+        function openHelpModal() {
+            closeModal('backupModal'); // 先關閉設定視窗
+            document.getElementById('welcomeModal').classList.add('active');
+        }
+
         function closeWelcomeModal(event, isButton = false) {
             if (event && event.target.id !== 'welcomeModal' && !isButton) return;
             document.getElementById('welcomeModal').classList.remove('active');
-            localStorage.setItem('diary_welcomed_v1', 'true');
-            // 關閉歡迎視窗後，順便檢查今日晨報
+            localStorage.setItem('diary_welcomed_v2', 'true');
             checkTodayBriefing();
         }
 
