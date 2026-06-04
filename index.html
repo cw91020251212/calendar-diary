@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -16,7 +15,7 @@
             --bg: #f4f7f6; --surface: #ffffff;
             --text-main: #2d3748; --text-light: #718096;
             --border: #e2e8f0; --hover: #edf2f7;
-            --header-h: 60px; --weekday-h: 30px;
+            --header-h: 64px; --weekday-h: 36px;
         }
 
         body.dark {
@@ -28,36 +27,40 @@
         html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text-main); }
         .app-container { display: flex; flex-direction: column; height: 100dvh; }
 
-        /* --- 頂部導航 --- */
+        /* --- 頂部導航 (已放大) --- */
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-        .header-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: bold; }
+        .header-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: bold; }
         .month-selector { display: flex; align-items: center; gap: 6px; }
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .icon-btn:hover { background: var(--hover); }
-        .current-month { font-size: 16px; font-weight: 600; min-width: 90px; text-align: center; cursor: pointer; }
+        .current-month { font-size: 20px; font-weight: bold; min-width: 100px; text-align: center; cursor: pointer; }
 
-        /* --- 日曆主體 --- */
+        /* --- 日曆主體 (特大字體設計) --- */
         .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-bottom: 1px solid var(--border); }
-        .weekday { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-light); }
+        .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-light); }
         
         .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--border); gap: 1px; }
-        .day-cell { background: var(--surface); display: flex; flex-direction: column; padding: 4px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; }
+        .day-cell { background: var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; }
         .day-cell:active { background: var(--hover); }
         .day-cell.other-month { background: var(--bg); opacity: 0.5; }
-        .day-cell.today .day-num { background: var(--primary); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+        
+        /* 今天的日期圓圈同步放大 */
+        .day-cell.today .day-num { background: var(--primary); color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
         
         .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-        .day-num { font-size: 14px; font-weight: 500; }
-        .dots-container { display: flex; flex-wrap: wrap; gap: 3px; max-width: 60%; justify-content: flex-end; }
+        /* 日期數字特大化 */
+        .day-num { font-size: 22px; font-weight: bold; line-height: 1; }
+        
+        .dots-container { display: flex; flex-wrap: wrap; gap: 4px; max-width: 60%; justify-content: flex-end; }
         .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
         .events-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
-        .event-chip { font-size: 10px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--hover); color: var(--text-main); display: flex; align-items: center; gap: 4px;}
+        .event-chip { font-size: 11px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--hover); color: var(--text-main); display: flex; align-items: center; gap: 4px;}
         .event-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--event-color, var(--primary)); flex-shrink: 0; }
-        .has-photo-icon { width: 10px; height: 10px; color: var(--text-light); flex-shrink: 0;}
+        .has-photo-icon { width: 12px; height: 12px; color: var(--text-light); flex-shrink: 0;}
 
-        .fab { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; box-shadow: 0 4px 15px rgba(102,126,234,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; transition: transform 0.2s; }
+        .fab { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; box-shadow: 0 4px 15px rgba(102,126,234,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; transition: transform 0.2s; }
         .fab:active { transform: scale(0.95); }
 
         /* --- 模態框共用 --- */
@@ -67,28 +70,28 @@
         .modal-overlay.active .modal-content { transform: translateY(0); }
         
         .modal-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); border-radius: 20px 20px 0 0;}
-        .modal-title { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px;}
+        .modal-title { font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 8px;}
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         /* --- 1. 日期清單視圖 --- */
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
-        .entry-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; position: relative; overflow: hidden; }
+        .entry-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
         .entry-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--card-color, var(--primary)); }
-        .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center; }
-        .entry-card-time { font-size: 12px; color: var(--text-light); }
-        .entry-card-tag { font-size: 11px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--border); }
-        .entry-card-text { font-size: 14px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; }
-        .entry-card-img-preview { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-top: 8px; }
-        .add-entry-btn { width: 100%; padding: 14px; border: 2px dashed var(--border); border-radius: 12px; background: none; color: var(--text-main); font-weight: bold; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
+        .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold;}
+        .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--border); }
+        .entry-card-text { font-size: 16px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; line-height: 1.6;}
+        .entry-card-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-top: 12px; }
+        .add-entry-btn { width: 100%; padding: 16px; border: 2px dashed var(--border); border-radius: 12px; background: none; color: var(--text-main); font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;}
 
         /* --- 2. 閱讀模式視圖 (先閱後改) --- */
         #readModal .modal-content { height: 100dvh; border-radius: 0; } 
         #readModal .modal-header { border-radius: 0; }
-        .read-time { color: var(--text-light); font-size: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;}
-        .read-tag-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; color: white; margin-bottom: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .read-text { font-size: 16px; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; color: var(--text-main); }
-        .read-text.size-sm { font-size: 14px; }
-        .read-text.size-lg { font-size: 20px; }
+        .read-time { color: var(--text-light); font-size: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;}
+        .read-tag-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 15px; font-weight: bold; color: white; margin-bottom: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .read-text { font-size: 18px; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; color: var(--text-main); }
+        .read-text.size-sm { font-size: 16px; }
+        .read-text.size-lg { font-size: 24px; }
         .read-gallery { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; padding-bottom: 40px; }
         .read-image { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
@@ -97,49 +100,47 @@
         .lightbox-overlay.active { display: flex; opacity: 1; }
         .lightbox-img-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 20px; }
         .lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-out; transition: transform 0.3s; }
-        .lightbox-close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 301; }
+        .lightbox-close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 301; }
 
         /* --- 4. 編輯器視圖 (全螢幕) --- */
         #editorModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; }
         #editorModal .modal-header { border-radius: 0; }
         .color-picker-container { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; flex-shrink: 0; }
         
-        /* 橫向滑動調色盤 */
         .color-picker-scroll { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
         .color-picker { display: flex; gap: 12px; width: max-content; }
-        .color-btn { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .color-btn { width: 38px; height: 38px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .color-btn.selected { transform: scale(1.15); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main); }
         
-        .tag-name-editor { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-        .tag-name-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-main); font-size: 14px; outline: none; font-weight: bold; }
+        .tag-name-editor { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+        .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
         .tag-name-input:focus { border-color: var(--primary); }
 
         .editor-toolbar { display: flex; gap: 10px; margin-bottom: 12px; flex-shrink: 0; }
-        .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main);}
+        .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-main);}
         .tool-btn:hover { background: var(--border); }
 
-        /* 彈性延伸的文字框 */
         textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
         textarea:focus { border-color: var(--primary); background: var(--surface); box-shadow: inset 0 0 0 1px var(--primary); }
-        textarea.size-sm { font-size: 14px; line-height: 1.5; }
-        textarea.size-md { font-size: 16px; line-height: 1.6; }
-        textarea.size-lg { font-size: 20px; line-height: 1.7; }
+        textarea.size-sm { font-size: 16px; line-height: 1.5; }
+        textarea.size-md { font-size: 20px; line-height: 1.6; }
+        textarea.size-lg { font-size: 24px; line-height: 1.7; }
 
         .photo-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; flex-shrink: 0; }
         .photo-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg); border: 1px solid var(--border); cursor: zoom-in;}
         .photo-item img { width: 100%; height: 100%; object-fit: cover; }
-        .delete-photo-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .delete-photo-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         .editor-footer { display: flex; gap: 12px; margin-top: 16px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
-        .btn { flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn { flex: 1; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
         .btn-cancel { background: var(--bg); color: var(--text-main); border: 1px solid var(--border); }
         .btn-save { background: var(--primary); color: white; }
 
         /* --- 5. 備份與設定中心 --- */
-        .backup-info { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; line-height: 1.6; border-left: 4px solid var(--primary); }
-        .backup-info strong { color: var(--text-main); display: block; margin-bottom: 8px; font-size: 16px; }
+        .backup-info { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 15px; line-height: 1.6; border-left: 4px solid var(--primary); }
+        .backup-info strong { color: var(--text-main); display: block; margin-bottom: 8px; font-size: 18px; }
         .action-group { display: flex; flex-direction: column; gap: 12px; }
-        .action-btn { width: 100%; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); transition: all 0.2s; }
+        .action-btn { width: 100%; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); transition: all 0.2s; }
         .action-btn:hover { background: var(--hover); }
         .action-btn.primary { background: var(--primary); color: white; border: none; }
         .action-btn.primary:hover { background: var(--secondary); }
@@ -152,13 +153,13 @@
     <div class="app-container">
         <!-- 頂部導航 -->
         <header>
-            <div class="header-title"><i data-lucide="book-open"></i> <span>日曆 Pro</span></div>
+            <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>日曆 Pro</span></div>
             <div class="month-selector">
-                <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left"></i></button>
+                <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
                 <div class="current-month" id="currentMonthStr" onclick="resetToToday()"></div>
-                <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right"></i></button>
-                <button class="icon-btn" onclick="toggleTheme()"><i data-lucide="moon" id="themeIcon"></i></button>
-                <button class="icon-btn" onclick="openBackupModal()" style="margin-left: 8px;"><i data-lucide="settings"></i></button>
+                <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="toggleTheme()"><i data-lucide="moon" id="themeIcon" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="openBackupModal()" style="margin-left: 8px;"><i data-lucide="settings" style="width: 28px; height: 28px;"></i></button>
             </div>
         </header>
 
@@ -174,7 +175,7 @@
 
     <!-- 右下角浮動新增按鈕 -->
     <button class="fab" onclick="openEditorForToday()">
-        <i data-lucide="plus" style="width: 28px; height: 28px;"></i>
+        <i data-lucide="plus" style="width: 32px; height: 32px;"></i>
     </button>
 
     <!-- 模態框 1：日期清單 (預覽日) -->
@@ -182,7 +183,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="dayModalTitle">日期</div>
-                <button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x"></i></button>
+                <button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div class="entry-list" id="dayEntryList"></div>
@@ -196,12 +197,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">
-                    <button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left"></i></button>
+                    <button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button>
                     <span>閱讀記事</span>
                 </div>
                 <div>
-                    <button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2"></i></button>
-                    <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3"></i></button>
+                    <button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -222,30 +223,26 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="editorTitle">編輯記事</div>
-                <button class="icon-btn" onclick="closeModal('editorModal')"><i data-lucide="x"></i></button>
+                <button class="icon-btn" onclick="closeModal('editorModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
-                <!-- 12色橫向滑動調色盤 -->
                 <div class="color-picker-container">
                     <div class="color-picker-scroll">
                         <div class="color-picker" id="colorPickerUI">
-                            <!-- JS 動態生成 -->
                         </div>
                     </div>
                     <div class="tag-name-editor">
-                        <i data-lucide="tag" style="width:16px; color:var(--text-light)"></i>
+                        <i data-lucide="tag" style="width:20px; color:var(--text-light)"></i>
                         <input type="text" id="tagNameInput" class="tag-name-input" placeholder="自訂此顏色的代表意義..." oninput="saveTagName()">
                     </div>
                 </div>
 
-                <!-- 工具列 -->
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加入圖片</button>
                     <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
                 </div>
 
-                <!-- 全螢幕彈性文字框 -->
                 <textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea>
                 
                 <div class="photo-gallery" id="editorGallery"></div>
@@ -262,8 +259,8 @@
     <div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
-                <div class="modal-title"><i data-lucide="shield-check"></i> 設定與備份</div>
-                <button class="icon-btn" onclick="closeModal('backupModal')"><i data-lucide="x"></i></button>
+                <div class="modal-title"><i data-lucide="shield-check" style="width: 28px; height: 28px;"></i> 設定與備份</div>
+                <button class="icon-btn" onclick="closeModal('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div class="backup-info">
@@ -291,7 +288,7 @@
 
     <!-- 模態框 5：圖片放大鏡 -->
     <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
-        <button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x"></i></button>
+        <button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
         <div class="lightbox-img-container">
             <img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged Image">
         </div>
@@ -300,7 +297,6 @@
     <script>
         lucide.createIcons();
 
-        // --- 12 色彩系統定義 ---
         const APP_COLORS = [
             { id: 'red', hex: '#fc8181', def: '緊急' },
             { id: 'orange', hex: '#f6ad55', def: '待辦' },
@@ -317,11 +313,10 @@
         ];
         
         let tagNames = JSON.parse(localStorage.getItem('diary_tag_names')) || {};
-        // 若無設定，載入預設
         APP_COLORS.forEach(c => { if(!tagNames[c.id]) tagNames[c.id] = c.def; });
 
         const TEXT_SIZES = ['sm', 'md', 'lg'];
-        const TEXT_LABELS = ['細字', '中字', '特大'];
+        const TEXT_LABELS = ['大字', '特大', '巨無霸'];
 
         let currentDate = new Date();
         let editingDateStr = '';  
@@ -330,7 +325,6 @@
         let selectedColor = 'blue';
         let currentImages = [];
 
-        // --- IndexedDB 初始化 ---
         const DB_NAME = 'DiaryProDB';
         const STORE_NAME = 'entries';
         const db = {
@@ -373,7 +367,6 @@
             }
         };
 
-        // --- 初始化 UI ---
         async function initApp() {
             if(localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark');
@@ -399,7 +392,6 @@
             ).join('');
         }
 
-        // --- 日曆渲染 ---
         async function renderCalendar() {
             const year = currentDate.getFullYear(), month = currentDate.getMonth();
             document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
@@ -456,7 +448,7 @@
                             const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                             return `
                             <div class="event-chip" style="--event-color: ${colorHex}">
-                                ${e.text ? e.text.substring(0, 10) : '照片記錄'}
+                                ${e.text ? e.text.substring(0, 8) : '照片記錄'}
                                 ${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}
                             </div>
                         `}).join('')}
@@ -478,7 +470,6 @@
             document.getElementById(id).classList.remove('active');
         }
 
-        // --- 視圖 1：日期清單 ---
         function openDayView(dateStr, entries) {
             editingDateStr = dateStr;
             const parts = dateStr.split('-');
@@ -486,7 +477,7 @@
             
             const listEl = document.getElementById('dayEntryList');
             if (entries.length === 0) {
-                listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px;">這天沒有任何記事。</div>';
+                listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
             } else {
                 listEl.innerHTML = entries.map(e => {
                     const entryJson = encodeURIComponent(JSON.stringify(e));
@@ -506,7 +497,6 @@
             document.getElementById('dayModal').classList.add('active');
         }
 
-        // --- 視圖 2：閱讀模式 ---
         function openReadView(entryJsonEncoded) {
             currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded));
             document.getElementById('dayModal').classList.remove('active');
@@ -543,7 +533,6 @@
             });
         }
 
-        // --- 視圖 3：圖片放大鏡 ---
         function openLightbox(imgSrc) {
             document.getElementById('lightboxImg').src = imgSrc;
             document.getElementById('lightbox').classList.add('active');
@@ -554,7 +543,6 @@
             document.getElementById('lightboxImg').src = '';
         }
 
-        // --- 視圖 4：編輯器 ---
         function openEditorForToday() {
             editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
             openEditor(null);
@@ -598,17 +586,16 @@
             
             renderEditorImages();
             document.getElementById('editorModal').classList.add('active');
-            setTimeout(() => textarea.focus(), 400); // 等待全螢幕動畫完結後彈出鍵盤
+            setTimeout(() => textarea.focus(), 400); 
         }
 
-        // --- 標籤與顏色邏輯 ---
         function selectColor(colorId) {
             selectedColor = colorId;
             document.querySelectorAll('.color-btn').forEach(btn => {
                 btn.classList.remove('selected');
                 if(btn.dataset.color === colorId) {
                     btn.classList.add('selected');
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); // 自動置中選取顏色
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
                 }
             });
             document.getElementById('tagNameInput').value = tagNames[colorId] || '';
@@ -631,7 +618,6 @@
             document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx];
         }
 
-        // --- 相片邏輯 ---
         function handleImageUpload(event) {
             const files = event.target.files;
             if (!files || files.length === 0) return;
@@ -644,7 +630,7 @@
                     img.src = e.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 1200; // 放大保留更多細節
+                        const MAX_WIDTH = 1200; 
                         let width = img.width, height = img.height;
                         if (width > MAX_WIDTH) {
                             height = Math.round((height * MAX_WIDTH) / width);
@@ -667,7 +653,7 @@
             gallery.innerHTML = currentImages.map((src, idx) => `
                 <div class="photo-item">
                     <img src="${src}" onclick="openLightbox('${src}')">
-                    <button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+                    <button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
                 </div>
             `).join('');
             lucide.createIcons();
@@ -675,7 +661,6 @@
 
         function removeImage(idx) { currentImages.splice(idx, 1); renderEditorImages(); }
 
-        // --- 儲存資料 ---
         async function saveEntry() {
             const text = document.getElementById('editorText').value.trim();
             if (!text && currentImages.length === 0) {
@@ -698,7 +683,6 @@
             renderCalendar();
         }
 
-        // --- 5. 備份與還原系統 ---
         function openBackupModal() {
             document.getElementById('backupModal').classList.add('active');
         }
@@ -717,7 +701,7 @@
                 const downloadAnchorNode = document.createElement('a');
                 downloadAnchorNode.setAttribute("href",     dataStr);
                 downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`);
-                document.body.appendChild(downloadAnchorNode); // required for firefox
+                document.body.appendChild(downloadAnchorNode); 
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
                 
@@ -730,9 +714,7 @@
         function emailBackupHelp() {
             alert("💌 電郵備份教學：\n\n1. 請先點擊「下載備份檔案」。\n2. 系統會幫你準備一封新電郵。\n3. 請記得在電郵中【手動夾帶(Attach)】剛才下載的檔案，然後發送給自己！");
             
-            // 觸發下載
             exportData().then(() => {
-                // 延遲打開 Email，確保下載已觸發
                 setTimeout(() => {
                     const subject = encodeURIComponent("📦 我的日曆記事本備份");
                     const body = encodeURIComponent("這是我日曆記事本的備份。\n\n⚠️ 【重要提示】：請記得點擊附件按鈕，將剛剛下載的「diary_backup_xxxx.json」檔案夾帶在此電郵中再寄出！");
@@ -759,15 +741,12 @@
                         throw new Error("備份檔案格式不正確");
                     }
 
-                    // 1. 清空舊資料
                     await db.clearAll();
                     
-                    // 2. 導入新資料
                     for (const entry of importedData.entries) {
                         await db.save(entry);
                     }
                     
-                    // 3. 還原自訂標籤名稱
                     if(importedData.tagNames) {
                         tagNames = importedData.tagNames;
                         localStorage.setItem('diary_tag_names', JSON.stringify(tagNames));
@@ -789,6 +768,3 @@
     </script>
 </body>
 </html>
-
-
-```
