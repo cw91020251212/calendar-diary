@@ -162,32 +162,22 @@
 
         #fileInput, #importInput { display: none; }
 
-        /* 🖨️ 智能滿版列印排版 (修正版：防止底部出界) */
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; }
-            
-            /* 隱藏所有不需要列印嘅 UI 元素 */
             .fab, .modal-overlay, .events-preview, .dots-container, .header-title, .icon-btn, .month-selector button { display: none !important; }
-            
-            /* 調整容器，預留空間給瀏覽器的頁首頁尾，防止出界 */
             .app-container { height: 95vh !important; display: flex !important; flex-direction: column !important; box-sizing: border-box !important; page-break-inside: avoid; }
             header { justify-content: center !important; padding: 10px 0 !important; border: none !important; height: auto !important; }
-            
             .current-month-wrapper { pointer-events: none; display: block !important; text-align: center !important; width: 100% !important; }
             .current-month { font-size: 24pt !important; color: black !important; margin: 0 auto !important; }
-            
-            /* 網格安全滿版設定 */
             .calendar-main { flex: 1 !important; display: flex !important; flex-direction: column !important; border: 2px solid black !important; margin: 0 5mm 5mm 5mm !important; box-sizing: border-box !important; }
             .days-grid { flex: 1 !important; display: grid !important; grid-template-rows: repeat(6, 1fr) !important; background: black !important; gap: 1px !important; }
             .day-cell { background: white !important; padding: 8px !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; }
             .day-cell.other-month { background: #f9f9f9 !important; }
-            
             .day-cell.today .day-num-circle { background: transparent !important; color: black !important; border-radius: 0 !important; width: auto !important; height: auto !important; display: inline-block !important; }
             .day-num { color: black !important; font-size: 16pt !important; }
             .holiday-num { color: #e53e3e !important; }
             .lunar-subtext { font-size: 10pt !important; }
             .holiday-subtext { font-size: 10pt !important; }
-            
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -195,6 +185,7 @@
 <body>
 
     <div class="app-container">
+        <!-- 頂部導航 -->
         <header>
             <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>日曆</span></div>
             <div class="month-selector">
@@ -210,6 +201,7 @@
             </div>
         </header>
 
+        <!-- 日曆網格 -->
         <div class="calendar-main" id="calendarMainArea">
             <div class="weekdays">
                 <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
@@ -221,6 +213,7 @@
 
     <button class="fab" onclick="openEditorForToday()"><i data-lucide="plus" style="width: 32px; height: 32px;"></i></button>
 
+    <!-- ✨ 新手歡迎 -->
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
@@ -244,6 +237,7 @@
         </div>
     </div>
 
+    <!-- 📖 詳細說明書 -->
     <div class="modal-overlay" id="helpModal" onclick="closeModal('helpModal', event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header">
@@ -260,6 +254,7 @@
         </div>
     </div>
 
+    <!-- 🌅 今日晨報 -->
     <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
@@ -278,6 +273,7 @@
     <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div><div><button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button><button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button></div></div><div class="modal-body"><div class="read-time"><span id="readTimeStr"></span></div><div><span class="read-tag-badge" id="readTagBadge"></span></div><div id="readText" class="read-text"></div><div id="readGallery" class="read-gallery"></div></div></div></div>
     <div class="modal-overlay" id="editorModal" onclick="closeModal('editorModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title" id="editorTitle">編輯記事</div><button class="icon-btn" onclick="closeModal('editorModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button></div><div class="modal-body"><div class="color-picker-container"><div class="color-picker-scroll"><div class="color-picker" id="colorPickerUI"></div></div><div class="tag-name-editor"><i data-lucide="tag" style="width:20px; color:var(--text-light)"></i><input type="text" id="tagNameInput" class="tag-name-input" placeholder="自訂此顏色的代表意義..." oninput="saveTagName()"></div></div><div class="editor-toolbar"><button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button><button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button><button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button><input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)"></div><textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea><div class="photo-gallery" id="editorGallery"></div><div class="editor-footer"><button class="btn btn-cancel" onclick="closeModal('editorModal')">取消</button><button class="btn btn-save" onclick="saveEntry()"><i data-lucide="save"></i> 儲存記錄</button></div></div></div></div>
     
+    <!-- ⚙️ 設定與備份中心 -->
     <div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
@@ -297,16 +293,19 @@
                     </button>
                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
                     
-                    <button class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
+                    <!-- 🖨️ 穩定版列印按鈕 -->
+                    <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
                         <i data-lucide="printer"></i> 🖨️ 列印空白月曆
                     </button>
                     
-                    <button class="action-btn primary" onclick="exportData()"><i data-lucide="download"></i> 下載備份檔案 (.json)</button>
-                    <button class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 備份至 App</button>
+                    <button class="action-btn primary" onclick="exportData()"><i data-lucide="download"></i> 下載備份檔案 (.txt)</button>
+                    <!-- 📲 一鍵分享按鈕加入了 ID -->
+                    <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 備份至 App</button>
                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
                     
                     <button class="action-btn" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 上傳並還原資料</button>
-                    <input type="file" id="importInput" accept=".json, application/json, text/plain, */*" onchange="importData(event)">
+                    <!-- 支援讀取 .txt 與 .json -->
+                    <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)">
                 </div>
             </div>
         </div>
@@ -374,12 +373,9 @@
         function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
         function closeWelcomeModal(event, isButton = false) { if (event && event.target.id !== 'welcomeModal' && !isButton) return; document.getElementById('welcomeModal').classList.remove('active'); localStorage.setItem('diary_welcomed_v5', 'true'); checkTodayBriefing(); }
 
-        // 🖨️ 單一列印功能
         function printBlankCalendar() {
             closeModal('backupModal');
-            setTimeout(() => {
-                window.print(); 
-            }, 300);
+            setTimeout(() => { window.print(); }, 300);
         }
 
         async function changeMonth(delta) { 
@@ -509,11 +505,47 @@
         async function saveEntry() { const text = document.getElementById('editorText').value.trim(); if (!text && currentImages.length === 0) { alert('請輸入內容或加入圖片！'); return; } const entry = { id: currentEntryData ? currentEntryData.id : Date.now(), date: editingDateStr, timestamp: currentEntryData ? currentEntryData.timestamp : Date.now(), text: text, color: selectedColor, textSize: currentTextSizeIdx, images: currentImages }; await db.save(entry); closeModal('editorModal'); renderCalendar(); }
         function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
 
-        async function exportData() { try { const entries = await db.getAll(); const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries }; const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); } catch (error) { alert("匯出失敗：" + error); } }
+        async function exportData() { try { const entries = await db.getAll(); const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries }; const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); } catch (error) { alert("匯出失敗：" + error); } }
 
-        async function nativeShareBackup() { try { const entries = await db.getAll(); const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries }; const fileName = `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.json`; const file = new File([JSON.stringify(backupObj)], fileName, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ title: '日曆記事本備份', text: '這是我日曆記事本的備份檔案，請安全儲存。', files: [file] }); } else { alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n我哋而家會為你自動轉用「電郵備份」模式！'); emailBackupHelp(); } } catch (error) { if (error.name !== 'AbortError') { alert('⚠️ 分享功能被阻擋或發生錯誤。\n\n我哋而家會為你自動轉用「電郵備份」模式！'); emailBackupHelp(); } } }
+        // --- 🛠️ 分享功能終極修復版 ---
+        async function nativeShareBackup() {
+            const shareBtn = document.getElementById('shareBtn');
+            const originalHTML = shareBtn.innerHTML;
 
-        function emailBackupHelp() { alert("💌 電郵備份教學：\n\n1. 請先點擊「下載備份檔案」。\n2. 系統會幫你準備一封新電郵。\n3. 請記得在電郵中【手動夾帶(Attach)】剛才下載的檔案，然後發送給自己！"); exportData().then(() => { setTimeout(() => { const subject = encodeURIComponent("📦 我的日曆記事本備份"); const body = encodeURIComponent("這是我日曆記事本的備份。\n\n⚠️ 【重要提示】：請記得點擊附件按鈕，將剛剛下載的「diary_backup_xxxx.json」檔案夾帶在此電郵中再寄出！"); window.location.href = `mailto:?subject=${subject}&body=${body}`; }, 1000); }); }
+            try {
+                // 1. 顯示載入中提示
+                shareBtn.innerHTML = '<i data-lucide="loader"></i> 準備檔案中...';
+                lucide.createIcons();
+
+                const entries = await db.getAll();
+                const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries };
+                
+                // 2. 偽裝術：副檔名改為 .txt，欺騙嚴格的手機 App
+                const fileName = `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`;
+                const file = new File([JSON.stringify(backupObj)], fileName, { type: 'text/plain' });
+
+                // 恢復按鈕
+                shareBtn.innerHTML = originalHTML;
+                lucide.createIcons();
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: '日曆記事本備份',
+                        text: '這是我日曆記事本的備份檔案，請安全儲存。',
+                        files: [file]
+                    });
+                } else {
+                    alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n請使用上方的「下載備份檔案」功能！');
+                }
+            } catch (error) {
+                // 恢復按鈕並提供 Fallback
+                shareBtn.innerHTML = originalHTML;
+                lucide.createIcons();
+                if (error.name !== 'AbortError') {
+                    alert(`⚠️ 分享中途終止。\n\n原因：檔案過大或目標 App (如 WhatsApp/Email) 拒收。\n建議改用上方的「下載備份檔案」功能！`);
+                }
+            }
+        }
 
         function importData(event) { const file = event.target.files[0]; if (!file) return; if (!confirm('⚠️ 警告：還原資料將會「覆蓋」並清除您目前的所有紀錄。確定要繼續嗎？')) { event.target.value = ''; return; } const reader = new FileReader(); reader.onload = async function(e) { try { const importedData = JSON.parse(e.target.result); if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("備份檔案格式不正確"); await db.clearAll(); for (const entry of importedData.entries) await db.save(entry); if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } alert("🎉 資料還原成功！系統將重新整理畫面。"); closeModal('backupModal'); renderCalendar(); } catch (error) { alert("匯入失敗，檔案可能已損毀或格式錯誤。\n" + error); } }; reader.readAsText(file); event.target.value = ''; }
 
