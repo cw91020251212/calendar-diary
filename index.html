@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -73,12 +74,16 @@
         .day-cell:active { background: var(--hover); }
         .day-cell.other-month { background: var(--bg); opacity: 0.5; }
         
-        .day-cell.today .day-num { background: var(--primary); color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .day-cell.today .day-num-circle { background: var(--primary); color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
         
         .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+        .day-num-wrapper { display: flex; flex-direction: column; }
+        .day-num-top { display: flex; align-items: baseline; gap: 4px; }
         .day-num { font-size: 22px; font-weight: bold; line-height: 1; }
+        .lunar-subtext { font-size: 11px; color: var(--text-light); font-weight: normal; }
+        .holiday-subtext { font-size: 10px; color: #e53e3e; font-weight: bold; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px; }
         
-        .dots-container { display: flex; flex-wrap: wrap; gap: 4px; max-width: 60%; justify-content: flex-end; }
+        .dots-container { display: flex; flex-wrap: wrap; gap: 4px; max-width: 50%; justify-content: flex-end; }
         .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
         .events-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
@@ -135,7 +140,6 @@
         .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
         .tag-name-input:focus { border-color: var(--primary); }
 
-        /* 工具列加入鬧鐘按鈕 */
         .editor-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-shrink: 0; }
         .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 12px 6px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main);}
         .tool-btn:hover { background: var(--border); }
@@ -172,6 +176,7 @@
 <body>
 
     <div class="app-container">
+        <!-- 頂部導航 -->
         <header>
             <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>日曆</span></div>
             <div class="month-selector">
@@ -184,6 +189,7 @@
             </div>
         </header>
 
+        <!-- 日曆網格 -->
         <div class="calendar-main">
             <div class="weekdays">
                 <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
@@ -193,10 +199,38 @@
         </div>
     </div>
 
-    <button class="fab" onclick="openEditorForToday()">
-        <i data-lucide="plus" style="width: 32px; height: 32px;"></i>
-    </button>
+    <button class="fab" onclick="openEditorForToday()"><i data-lucide="plus" style="width: 32px; height: 32px;"></i></button>
 
+    <!-- ✨ 模態框 0：新手歡迎與聲明 (首次開啟顯示) -->
+    <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
+        <div class="modal-content" style="max-height: 85dvh; height: auto;">
+            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+                <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 歡迎使用日曆</div>
+            </div>
+            <div class="modal-body" style="line-height: 1.6;">
+                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
+
+                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                    <strong style="color: var(--text-main); font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="book-open" style="width:20px;height:20px; color: var(--secondary);"></i> 快速上手教學：</strong>
+                    <ul style="margin-top: 10px; padding-left: 24px; color: var(--text-light); font-size: 15px; display: flex; flex-direction: column; gap: 6px;">
+                        <li>點擊右下角 <strong style="color: var(--primary);">「+」</strong> 隨時新增記事。</li>
+                        <li>內置 <strong>12色標籤</strong>，可自訂名稱分類，並支援 <strong>照片儲存</strong>。</li>
+                        <li>點擊 <strong>「🔔 提提我」</strong>，可將記事加入手機原生鬧鐘。</li>
+                        <li>點擊頂部調色盤可切換 <strong>6款護眼主題</strong>。</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fff5f5; border-left: 5px solid #fc8181; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                    <strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 極重要：資料安全與備份</strong>
+                    <p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>絕對不會連上網</strong>！你的所有私隱、文字和圖片，都只會安全地儲存在這部手機裡。<br><br>請務必定期點擊右上角的 <strong>「⚙️ 設定」</strong> 自己下載備份檔案。如果不小心清除了瀏覽器紀錄又沒有備份，資料是會永遠消失的哦！</p>
+                </div>
+
+                <button class="action-btn primary" onclick="closeWelcomeModal(null, true)" style="width: 100%; font-size: 18px;">我明白了，開始使用！</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌅 模態框 0.5：今日晨報 -->
     <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
@@ -211,6 +245,7 @@
         </div>
     </div>
 
+    <!-- 模態框 1：預覽日 -->
     <div class="modal-overlay" id="dayModal" onclick="closeModal('dayModal', event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -224,6 +259,7 @@
         </div>
     </div>
 
+    <!-- 模態框 2：閱讀模式 -->
     <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -245,6 +281,7 @@
         </div>
     </div>
 
+    <!-- 模態框 3：編輯器 -->
     <div class="modal-overlay" id="editorModal" onclick="closeModal('editorModal', event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -278,6 +315,7 @@
         </div>
     </div>
 
+    <!-- 模態框 4：設定與備份中心 -->
     <div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
@@ -302,6 +340,7 @@
         </div>
     </div>
 
+    <!-- 模態框 5：圖片放大鏡 -->
     <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
         <button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
         <div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged Image"></div>
@@ -309,6 +348,28 @@
 
     <script>
         lucide.createIcons();
+
+        // 香港 2026 官方公眾假期清單
+        const HK_HOLIDAYS_2026 = {
+            "2026-01-01": "元旦",
+            "2026-02-17": "農曆年初一",
+            "2026-02-18": "農曆年初二",
+            "2026-02-19": "農曆年初三",
+            "2026-04-03": "耶穌受難節",
+            "2026-04-04": "清明節 / 翌日",
+            "2026-04-06": "復活節翌日",
+            "2026-05-01": "勞動節",
+            "2026-05-24": "佛誕",
+            "2026-05-25": "佛誕翌日",
+            "2026-06-19": "端午節",
+            "2026-07-01": "特區成立日",
+            "2026-09-25": "中秋節翌日",
+            "2026-10-01": "國慶日",
+            "2026-10-18": "重陽節",
+            "2026-10-19": "重陽節翌日",
+            "2026-12-25": "聖誕節",
+            "2026-12-26": "聖誕節後首周日"
+        };
 
         const THEMES = [
             { id: 'light', icon: 'sun', name: '明亮' },
@@ -393,17 +454,29 @@
             await db.init();
             renderCalendar();
             
-            // 觸發晨報檢查
+            // 檢查是否首次使用
+            const hasWelcomed = localStorage.getItem('diary_welcomed_v1');
+            if (!hasWelcomed) {
+                document.getElementById('welcomeModal').classList.add('active');
+            } else {
+                checkTodayBriefing();
+            }
+        }
+
+        // 新手歡迎視窗關閉邏輯
+        function closeWelcomeModal(event, isButton = false) {
+            if (event && event.target.id !== 'welcomeModal' && !isButton) return;
+            document.getElementById('welcomeModal').classList.remove('active');
+            localStorage.setItem('diary_welcomed_v1', 'true');
+            // 關閉歡迎視窗後，順便檢查今日晨報
             checkTodayBriefing();
         }
 
-        // --- 🌅 新增：晨報系統邏輯 ---
         async function checkTodayBriefing() {
             const todayDateObj = new Date();
             const todayStr = formatDate(todayDateObj.getFullYear(), todayDateObj.getMonth(), todayDateObj.getDate());
             const lastBriefing = localStorage.getItem('diary_last_briefing');
             
-            // 如果今日已經睇過晨報，就唔好再煩用家
             if (lastBriefing === todayStr) return;
 
             const allEntries = await db.getAll();
@@ -487,11 +560,32 @@
                     dateStr = formatDate(year, month + 1, dayNum);
                 }
 
+                let lunarDisplay = '';
+                try {
+                    const dObj = new Date(dateStr);
+                    const lunar = Lunar.fromDate(dObj);
+                    const lunarDayStr = lunar.getDayInChinese();
+                    if (lunarDayStr === '初一' || lunarDayStr === '十五') {
+                        lunarDisplay = `<span class="lunar-subtext">${lunarDayStr}</span>`;
+                    }
+                } catch(e) {}
+
+                let holidayDisplay = '';
+                if (HK_HOLIDAYS_2026[dateStr]) {
+                    holidayDisplay = `<div class="holiday-subtext">${HK_HOLIDAYS_2026[dateStr]}</div>`;
+                }
+
                 const dayEntries = entryMap[dateStr] || [];
                 
                 cell.innerHTML = `
                     <div class="day-header">
-                        <div class="day-num">${dayNum}</div>
+                        <div class="day-num-wrapper">
+                            <div class="day-num-top">
+                                <div class="${cell.classList.contains('today') ? 'day-num-circle' : 'day-num'}">${dayNum}</div>
+                                ${lunarDisplay}
+                            </div>
+                            ${holidayDisplay}
+                        </div>
                         <div class="dots-container">
                             ${dayEntries.map(e => {
                                 const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
@@ -646,24 +740,19 @@
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
         function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
 
-        // --- ⏰ 新增：一鍵加入原生手機日曆 ---
         function addToNativeCalendar() {
             const text = document.getElementById('editorText').value.trim() || '日曆事項';
             const tagName = tagNames[selectedColor] || '事項';
             
-            // 解析目前編輯的日期
             const dateParts = editingDateStr.split('-');
             const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`;
             
-            // 建立跨日的全日事件格式
             const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2]));
             d.setDate(d.getDate() + 1);
             const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 
-            // 生成標準 iCal 檔案內容
             const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${startStr}\nDTEND;VALUE=DATE:${endStr}\nSUMMARY:【${tagName}】\nDESCRIPTION:${text}\nEND:VEVENT\nEND:VCALENDAR`;
 
-            // 下載並觸發手機原生系統攔截
             const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -674,7 +763,6 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            // 由於 iOS Safari 有時反應較慢，提供一個小提示
             setTimeout(() => {
                 alert("⏰ 已經為你製作好日曆檔案！\n\n如果系統彈出提示，請選擇「加入日曆」，就可以享用手機自帶嘅響鬧功能啦！");
             }, 500);
