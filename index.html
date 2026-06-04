@@ -205,16 +205,41 @@
 
     <button class="fab" onclick="openEditorForToday()"><i data-lucide="plus" style="width: 32px; height: 32px;"></i></button>
 
-    <!-- ✨ 模態框 0：詳細使用教學與聲明 -->
+    <!-- ✨ 模態框 0：新手歡迎與聲明 (首次開啟顯示 - 極簡版) -->
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
-                <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 詳細使用教學</div>
+                <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 歡迎使用日曆</div>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
-                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。以下是各項強大功能的詳細說明：</p>
+                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
 
-                <!-- 教學區塊 -->
+                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border);">
+                    <ul style="padding-left: 20px; color: var(--text-main); font-size: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <li>點擊右下角 <strong style="color: var(--primary); font-size: 20px;">「+」</strong> 隨時新增記事。</li>
+                        <li>支援 <strong>12色自訂標籤</strong> 及 <strong>相片儲存</strong>。</li>
+                        <li>需要詳細教學？隨時點擊右上角 <strong>「⚙️ 設定」</strong> 查看說明書。</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fff5f5; border-left: 5px solid #fc8181; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                    <strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 資料安全聲明</strong>
+                    <p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>不會連上網</strong>，所有資料只會儲存在這部手機裡。請記得定期自己下載備份檔！</p>
+                </div>
+
+                <button class="action-btn primary" onclick="closeWelcomeModal(null, true)" style="width: 100%; font-size: 18px;">我明白了，開始使用！</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📖 模態框 0.1：詳細說明書 (從設定內開啟) -->
+    <div class="modal-overlay" id="helpModal" onclick="closeModal('helpModal', event)">
+        <div class="modal-content" style="max-height: 85dvh; height: auto;">
+            <div class="modal-header">
+                <div class="modal-title" style="color: var(--primary); font-size: 20px;"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> 詳細使用教學</div>
+                <button class="icon-btn" onclick="closeModal('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box">
                     <div class="tutorial-title"><i data-lucide="plus-circle" style="color: var(--secondary);"></i> 1. 新增與查閱記事</div>
                     <div class="tutorial-text">
@@ -239,17 +264,14 @@
                 <div class="tutorial-box">
                     <div class="tutorial-title"><i data-lucide="image" style="color: #4299e1;"></i> 4. 照片壓縮與放大鏡</div>
                     <div class="tutorial-text">
-                        你可以隨意上載照片，系統會自動在背景將照片壓縮至最佳容量以節省手機空間。在閱讀時，<strong>點擊任何一張照片</strong>，就會啟動全螢幕黑色背景的放大鏡，讓你看清細節。
+                        你可以隨意上載照片，系統會自動在背景將照片壓縮以節省手機空間。在閱讀時，<strong>點擊任何一張照片</strong>，就會啟動全螢幕黑色背景的放大鏡，讓你看清細節。
                     </div>
                 </div>
 
-                <!-- 安全聲明區塊 -->
                 <div style="background: #fff5f5; border-left: 5px solid #fc8181; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
                     <strong style="color: #c53030; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-alert" style="width:20px;height:20px;"></i> 5. 極重要：資料安全與備份</strong>
-                    <p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>絕對不會連上網</strong>！你的所有私隱、文字和圖片，都只會安全地儲存在這部手機裡。<br><br>請務必定期點擊右上角的 <strong>「⚙️ 設定」</strong> 自己下載備份檔案。如果不小心清除了瀏覽器紀錄又沒有備份，資料是會永遠消失的哦！</p>
+                    <p style="font-size: 14px; color: #c53030; margin-top: 8px; line-height: 1.5;">這個程式<strong>絕對不會連上網</strong>！你的所有私隱、文字和圖片，都只會安全地儲存在這部手機裡。<br><br>請務必定期點擊 <strong>「⚙️ 設定」</strong> 自己下載備份檔案。如果不小心清除了瀏覽器紀錄又沒有備份，資料是會永遠消失的哦！</p>
                 </div>
-
-                <button class="action-btn primary" onclick="closeWelcomeModal(null, true)" style="width: 100%; font-size: 18px;">我明白了，開始使用！</button>
             </div>
         </div>
     </div>
@@ -354,7 +376,6 @@
                 </div>
                 
                 <div class="action-group">
-                    <!-- 全新加入的「打開說明書」按鈕 -->
                     <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5;" onclick="openHelpModal()">
                         <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                     </button>
@@ -469,8 +490,8 @@
             await db.init();
             renderCalendar();
             
-            // 檢查是否首次使用
-            const hasWelcomed = localStorage.getItem('diary_welcomed_v2');
+            // 檢查是否首次使用 (更新為 v3 確保你測試到新版)
+            const hasWelcomed = localStorage.getItem('diary_welcomed_v3');
             if (!hasWelcomed) {
                 document.getElementById('welcomeModal').classList.add('active');
             } else {
@@ -481,13 +502,14 @@
         // 打開教學視窗
         function openHelpModal() {
             closeModal('backupModal'); // 先關閉設定視窗
-            document.getElementById('welcomeModal').classList.add('active');
+            document.getElementById('helpModal').classList.add('active'); // 打開說明書
         }
 
+        // 關閉首次歡迎視窗
         function closeWelcomeModal(event, isButton = false) {
             if (event && event.target.id !== 'welcomeModal' && !isButton) return;
             document.getElementById('welcomeModal').classList.remove('active');
-            localStorage.setItem('diary_welcomed_v2', 'true');
+            localStorage.setItem('diary_welcomed_v3', 'true');
             checkTodayBriefing();
         }
 
