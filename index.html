@@ -269,7 +269,28 @@
         </div>
     </div>
 
+    
+    <!-- ♻️ 資料還原提示（偵測到本機資料為空時顯示） -->
+    <div class="modal-overlay" id="restorePromptModal" onclick="closeModal('restorePromptModal', event)">
+        <div class="modal-content" style="max-height: 80dvh; height: auto;">
+            <div class="modal-header">
+                <div class="modal-title" style="color: var(--primary);"><i data-lucide="rotate-ccw"></i> 找唔到本機資料</div>
+                <button class="icon-btn" onclick="closeModal('restorePromptModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body" style="line-height:1.7;">
+                <p style="margin-bottom:12px; color:var(--text-main); font-size:16px;">我偵測到你而家部機嘅記事資料係空嘅（可能剛清除咗網站資料 / 轉咗機）。</p>
+                <div class="backup-info" style="margin-bottom:14px;">
+                    <strong>想還原備份？</strong>
+                    <div>撳下面「選擇備份檔」揀返你之前下載/分享出嚟嘅 <code>.txt</code> 備份檔，就會自動匯入並恢復。</div>
+                </div>
+                <button class="action-btn primary" onclick="document.getElementById('importInput').click();" style="width:100%;"><i data-lucide="upload"></i> 選擇備份檔 (.txt) 還原</button>
+                <button class="action-btn" onclick="closeModal('restorePromptModal')" style="width:100%; margin-top:10px;">暫時唔還原</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 🌅 今日晨報 -->
+
     <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
@@ -453,7 +474,15 @@
                 <!-- （已移除）Google 雲端同步 / 上網登入功能 -->
                 <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
                 
-                <div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
+                
+                <div class="tutorial-box" style="margin-bottom: 14px;">
+                    <div class="tutorial-title"><i data-lucide="bell"></i> 自動備份提醒</div>
+                    <div class="tutorial-text" style="margin-top:6px;">
+                        每隔 <input id="backupReminderDays" type="number" min="1" max="365" style="width:78px; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background: var(--surface); color: var(--text-main); font-weight:bold;" /> 日提醒我做一次「手動下載備份檔」。
+                    </div>
+                </div>
+
+<div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
                 <div class="action-group">
                     <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
                         <i data-lucide="printer"></i> 🖨️ 列印空白月曆
@@ -507,6 +536,11 @@
         // 🟢 全新變數：自動儲存計時器
         let autoSaveInterval = null;
 
+        // 🧷 備份提醒 / 還原提示（純離線）
+        const LAST_BACKUP_KEY = 'diary_last_backup_ts';
+        const REMINDER_DAYS_KEY = 'diary_backup_reminder_days';
+        const DEFAULT_REMINDER_DAYS = 7;
+
         // （已移除）Google 雲端同步 / OAuth 相關程式碼
 
 
@@ -537,8 +571,11 @@
             currentThemeIdx = THEMES.findIndex(t => t.id === savedThemeId) >= 0 ? THEMES.findIndex(t => t.id === savedThemeId) : 0;
             applyTheme(THEMES[currentThemeIdx]);
             initColorPickerUI(); await db.init();
+            initBackupReminderUI();
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
             await renderCalendar(); initSwipe();
+            checkBackupReminder();
+            checkEmptyDbAndPromptRestore();
             const pn = document.getElementById('privateNote');
             if (pn) pn.value = localStorage.getItem('user_private_note') || ''; 
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
@@ -823,12 +860,84 @@
         
         function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
 
+
+        function getReminderDays() {
+            const raw = localStorage.getItem(REMINDER_DAYS_KEY);
+            const v = parseInt(raw || '', 10);
+            if (!Number.isFinite(v) || v < 1 || v > 365) return DEFAULT_REMINDER_DAYS;
+            return v;
+        }
+
+        function setReminderDays(v) {
+            const n = parseInt(v || '', 10);
+            if (!Number.isFinite(n) || n < 1 || n > 365) return;
+            localStorage.setItem(REMINDER_DAYS_KEY, String(n));
+        }
+
+        function markLastBackup() {
+            localStorage.setItem(LAST_BACKUP_KEY, String(Date.now()));
+        }
+
+        function checkBackupReminder() {
+            const last = parseInt(localStorage.getItem(LAST_BACKUP_KEY) || '0', 10);
+            const days = getReminderDays();
+            const ms = days * 24 * 60 * 60 * 1000;
+            if (!last) return; // 未曾備份過就唔提醒
+            if (Date.now() - last < ms) return;
+
+            // 24 小時內只提醒一次，避免煩
+            const gateKey = 'diary_backup_reminder_last_shown';
+            const gate = parseInt(localStorage.getItem(gateKey) || '0', 10);
+            if (gate && Date.now() - gate < 24 * 60 * 60 * 1000) return;
+            localStorage.setItem(gateKey, String(Date.now()));
+
+            alert(`🔔 備份提醒：你已經超過 ${days} 日未做備份。
+
+建議去「⚙️ 設定與備份」→「手動下載備份檔」保存一份。`);
+        }
+
+        async function checkEmptyDbAndPromptRestore() {
+            try {
+                const entries = await db.getAll();
+                if (entries && entries.length > 0) return;
+
+                // 新手第一次使用唔彈（有 welcome modal），只係「曾經用過」但而家變空先彈
+                const everUsedKey = 'diary_ever_used';
+                const everUsed = localStorage.getItem(everUsedKey) === '1';
+                if (!everUsed) {
+                    localStorage.setItem(everUsedKey, '1');
+                    return;
+                }
+
+                // 一次會話只彈一次
+                const sessionKey = 'diary_restore_prompted_session';
+                if (sessionStorage.getItem(sessionKey) === '1') return;
+                sessionStorage.setItem(sessionKey, '1');
+
+                document.getElementById('restorePromptModal').classList.add('active');
+                lucide.createIcons();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function initBackupReminderUI() {
+            const input = document.getElementById('backupReminderDays');
+            if (!input) return;
+            input.value = String(getReminderDays());
+            input.addEventListener('change', () => {
+                setReminderDays(input.value);
+                input.value = String(getReminderDays());
+            });
+        }
+
         async function exportData() { 
             try { 
                 const entries = await db.getAll(); 
                 const backupObj = { version: "2.1", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames }; 
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); 
-                const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); 
+                const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
+                markLastBackup(); 
             } catch (error) { alert("匯出失敗：" + error); } 
         }
 
@@ -855,6 +964,7 @@
                         text: '這是我日曆記事本的備份檔案，請安全儲存。',
                         files: [file]
                     });
+                    markLastBackup();
                 } else {
                     alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n請使用上方的「下載備份檔案」功能！');
                 }
