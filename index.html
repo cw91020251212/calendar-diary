@@ -6,6 +6,7 @@
     <meta name="description" content="日曆記事本 - 記錄每一天的美好時刻">
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
+    <!-- 引入 Google Cloud 雲端同步核心組件 -->
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -50,12 +51,6 @@
         @keyframes slideInLeft { 0% { transform: translateX(-50px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
         @keyframes slideInRight { 0% { transform: translateX(50px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
         
-        .sliding-out-left { animation: slideOutLeft 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        .sliding-out-right { animation: slideOutRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        .sliding-in-left { animation: slideInLeft 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        .sliding-in-right { animation: slideInRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-
-        /* 旋轉動畫供雲端同步按鈕使用 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 1.5s linear infinite; }
 
@@ -200,6 +195,7 @@
 <body>
 
     <div class="app-container">
+        <!-- 頂部導航 -->
         <header>
             <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>日曆</span></div>
             <div class="month-selector">
@@ -215,6 +211,7 @@
             </div>
         </header>
 
+        <!-- 日曆網格 -->
         <div class="calendar-main" id="calendarMainArea">
             <div class="weekdays">
                 <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
@@ -226,6 +223,7 @@
 
     <button class="fab" onclick="openEditorForToday()"><i data-lucide="plus" style="width: 32px; height: 32px;"></i></button>
 
+    <!-- ✨ 新手歡迎 -->
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
@@ -245,6 +243,7 @@
         </div>
     </div>
 
+    <!-- 📖 詳細說明書 -->
     <div class="modal-overlay" id="helpModal" onclick="closeModal('helpModal', event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header">
@@ -254,12 +253,14 @@
             <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今天的記事。<br>想看其他月份？只需在畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想找回很久以前的紀錄，點擊最頂部的 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 2. Google 雲端同步</div><div class="tutorial-text">喺「設定」入面登入 Google 帳號，就可以將資料安全備份去你嘅私人雲端。就算換新手機，都可以無縫秒速還原所有文字同圖片！</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 3. 12 色標籤與底色狀態</div><div class="tutorial-text">除了為記事加上 12 色標籤外，你而家可以喺點擊日子後，設定成個日曆格嘅 <strong>背景底色</strong>（例如橙色代表放假）。系統會永久記住你設定嘅名稱！</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 4. 鬧鐘與「提提我」功能</div><div class="tutorial-text">輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆，你的手機就會在指定日子響鬧鐘提醒你！</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 3. 雙重自動儲存機制</div><div class="tutorial-text">系統會喺你編輯時每 30 秒靜默儲存一次，並且喺你離開或切換 App 時觸發緊急儲存，無需擔心遺失進度。</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 4. 12 色標籤與底色狀態</div><div class="tutorial-text">除了為記事加上 12 色標籤外，你而家可以喺點擊日子後，設定成個日曆格嘅 <strong>背景底色</strong>（例如橙色代表放假）。</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 5. 鬧鐘與「提提我」功能</div><div class="tutorial-text">輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆，你的手機就會在指定日子響鬧鐘提醒你！</div></div>
             </div>
         </div>
     </div>
 
+    <!-- 🌅 今日晨報 -->
     <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
@@ -274,6 +275,7 @@
         </div>
     </div>
 
+    <!-- 🟢 日期視窗 -->
     <div class="modal-overlay" id="dayModal" onclick="closeModal('dayModal', event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -299,6 +301,7 @@
         </div>
     </div>
     
+    <!-- 🟢 閱讀視窗 -->
     <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -317,11 +320,17 @@
         </div>
     </div>
     
+    <!-- 🟢 編輯器視窗 (加入了自動儲存提示) -->
     <div class="modal-overlay" id="editorModal" onclick="closeModal('editorModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="editorTitle">編輯記事</div>
-                <button class="icon-btn" onclick="closeModal('editorModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                
+                <!-- 💡 輕巧的自動儲存提示字眼 -->
+                <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: auto; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
+                
+                <!-- X 按鈕改為調用 closeEditor() 觸發最後儲存 -->
+                <button class="icon-btn" onclick="closeEditor()"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div class="color-picker-container">
@@ -365,13 +374,15 @@
                 <textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea>
                 <div class="photo-gallery" id="editorGallery"></div>
                 <div class="editor-footer">
-                    <button class="btn btn-cancel" onclick="closeModal('editorModal')">取消</button>
+                    <!-- 取消按鈕改名為返回，同樣觸發自動儲存 -->
+                    <button class="btn btn-cancel" onclick="closeEditor()"><i data-lucide="arrow-left"></i> 返回</button>
                     <button class="btn btn-save" onclick="saveEntry()"><i data-lucide="save"></i> 儲存記錄</button>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- ⚙️ 設定與備份中心 -->
     <div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
@@ -401,7 +412,6 @@
                     <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
                         <i data-lucide="printer"></i> 🖨️ 列印空白月曆
                     </button>
-                    
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="exportData()"><i data-lucide="download"></i> 手動下載備份檔 (.txt)</button>
                     <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 手動上傳並還原資料</button>
@@ -448,31 +458,19 @@
         let selectedWeatherBadge = '';
         let isAnimating = false; 
 
-        // --- ☁️ Google Cloud 雙軌備份核心組件 ---
+        // 🟢 全新變數：自動儲存計時器
+        let autoSaveInterval = null;
+
         const CLIENT_ID = '237496748515-eas5gupa4v2a7ucbso8tdbgpnb621lrh.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-        const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; // 存入隱藏資料夾
+        const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; 
         let tokenClient;
 
-        // 載入 GAPI
-        function gapiLoaded() {
-            gapi.load('client', async () => {
-                await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
-            });
-        }
-        
-        // 載入 Google Identity Services
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: '' // 動態設定
-            });
-        }
+        function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] }); }); }
+        function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); }
 
         async function cloudAction(action) {
             if (!gapi.client || !tokenClient) { alert('Google 服務尚未準備好，請稍候再試...'); return; }
-            
             if (action === 'logout') {
                 const token = gapi.client.getToken();
                 if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
@@ -480,9 +478,7 @@
                 alert('已成功登出 Google 帳戶。');
                 return;
             }
-
             const token = gapi.client.getToken();
-            // 如果未登入，先彈出 Google 登入視窗
             if (token === null) {
                 tokenClient.callback = async (resp) => {
                     if (resp.error !== undefined) { throw (resp); }
@@ -498,82 +494,48 @@
             }
         }
 
-        // 檢查雲端有無舊檔
         async function checkCloudFile() {
             try {
-                let response = await gapi.client.drive.files.list({
-                    spaces: 'appDataFolder',
-                    fields: 'files(id, name)',
-                    q: "name='diary_sync_backup.json'"
-                });
+                let response = await gapi.client.drive.files.list({ spaces: 'appDataFolder', fields: 'files(id, name)', q: "name='diary_sync_backup.json'" });
                 return response.result.files.length > 0 ? response.result.files[0] : null;
             } catch (err) { console.error(err); throw err; }
         }
 
-        // 上傳至 Google 雲端
         async function doCloudBackup() {
-            const btn = document.getElementById('cloudBackupBtn');
-            const orig = btn.innerHTML;
+            const btn = document.getElementById('cloudBackupBtn'); const orig = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
             try {
                 const entries = await db.getAll();
                 const backupData = { version: "2.1", exportDate: new Date().toISOString(), tagNames, entries, dayStatuses, dayStatusNames };
                 const fileContent = JSON.stringify(backupData);
                 const fileMetadata = { name: 'diary_sync_backup.json', parents: ['appDataFolder'] };
-                
                 let existingFile = await checkCloudFile();
-                
-                const boundary = '-------314159265358979323846';
-                const delimiter = "\r\n--" + boundary + "\r\n";
-                const close_delim = "\r\n--" + boundary + "--";
+                const boundary = '-------314159265358979323846'; const delimiter = "\r\n--" + boundary + "\r\n"; const close_delim = "\r\n--" + boundary + "--";
                 const multipartRequestBody = delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(fileMetadata) + delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + fileContent + close_delim;
-
-                let requestParams = {
-                    'params': {'uploadType': 'multipart'},
-                    'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'},
-                    'body': multipartRequestBody
-                };
-
-                // 如果有舊檔就覆蓋，冇就新建
-                if (existingFile) { requestParams.path = '/upload/drive/v3/files/' + existingFile.id; requestParams.method = 'PATCH'; } 
-                else { requestParams.path = '/upload/drive/v3/files'; requestParams.method = 'POST'; }
-                
+                let requestParams = { 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'}, 'body': multipartRequestBody };
+                if (existingFile) { requestParams.path = '/upload/drive/v3/files/' + existingFile.id; requestParams.method = 'PATCH'; } else { requestParams.path = '/upload/drive/v3/files'; requestParams.method = 'POST'; }
                 await gapi.client.request(requestParams);
-                alert('☁️ 成功！所有資料（包含相片與底色）已安全同步至你的 Google 雲端隱藏空間內！\n\n以後換新手機只要撳「從雲端還原」即可。');
-            } catch (err) {
-                console.error(err); alert('上傳失敗！請確定網絡正常。如果問題持續，請重新登出再登入。');
-            } finally { btn.innerHTML = orig; lucide.createIcons(); }
+                alert('☁️ 成功！所有資料已安全同步至 Google 雲端隱藏空間內！');
+            } catch (err) { console.error(err); alert('上傳失敗！請確定網絡正常。'); } finally { btn.innerHTML = orig; lucide.createIcons(); }
         }
 
-        // 從 Google 雲端還原
         async function doCloudRestore() {
             if(!confirm('⚠️ 警告：這將會清除這部手機目前的資料，並下載雲端進度完全覆蓋。\n\n確定要繼續嗎？')) return;
-            const btn = document.getElementById('cloudRestoreBtn');
-            const orig = btn.innerHTML;
+            const btn = document.getElementById('cloudRestoreBtn'); const orig = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在下載還原...'; lucide.createIcons();
             try {
                 let existingFile = await checkCloudFile();
-                if (!existingFile) { alert('☁️ 找不到任何雲端紀錄！\n請確定你之前有上傳過，或者登入咗正確嘅 Google 帳戶。'); return; }
-                
+                if (!existingFile) { alert('☁️ 找不到任何雲端紀錄！'); return; }
                 let response = await gapi.client.drive.files.get({ fileId: existingFile.id, alt: 'media' });
                 const importedData = typeof response.result === 'string' ? JSON.parse(response.result) : response.result;
-                
                 if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("檔案格式不正確");
-                await db.clearAll(); 
-                for (const entry of importedData.entries) await db.save(entry); 
-                
+                await db.clearAll(); for (const entry of importedData.entries) await db.save(entry); 
                 if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } 
                 if(importedData.dayStatuses) { dayStatuses = importedData.dayStatuses; localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses)); }
                 if(importedData.dayStatusNames) { dayStatusNames = importedData.dayStatusNames; localStorage.setItem('diary_day_status_names', JSON.stringify(dayStatusNames)); }
-                
-                alert("🎉 資料無縫還原成功！所有紀錄返曬嚟！"); 
-                closeModal('backupModal'); renderCalendar();
-            } catch (err) {
-                console.error(err); alert('還原失敗！可能網絡不穩定，或者備份檔案已損毀。');
-            } finally { btn.innerHTML = orig; lucide.createIcons(); }
+                alert("🎉 資料無縫還原成功！所有紀錄返曬嚟！"); closeModal('backupModal'); renderCalendar();
+            } catch (err) { console.error(err); alert('還原失敗！'); } finally { btn.innerHTML = orig; lucide.createIcons(); }
         }
-        // --- ☁️ Google Cloud 雙軌同步組件完結 ---
-
 
         const DB_NAME = 'DiaryProDB'; 
         const STORE_NAME = 'entries';
@@ -604,7 +566,6 @@
             initColorPickerUI(); await db.init();
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
             await renderCalendar(); initSwipe(); 
-            
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
             if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
         }
@@ -688,9 +649,7 @@
 
         function openDayView(dateStr, entries) {
             editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
-            
             renderDayStatusUI();
-
             const listEl = document.getElementById('dayEntryList');
             if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
             } else { 
@@ -709,7 +668,6 @@
         function renderDayStatusUI() {
             const currentStatus = dayStatuses[editingDateStr] || 'none';
             let html = `<div class="color-btn ${currentStatus === 'none' ? 'selected' : ''}" style="background:var(--surface); border:2px dashed var(--text-light); display:flex; align-items:center; justify-content:center;" onclick="setDayStatus('none')"><i data-lucide="x" style="width:20px; color:var(--text-light)"></i></div>`;
-            
             DAY_STATUS_COLORS.forEach(c => {
                 const solidHex = c.border; 
                 html += `<div class="color-btn ${currentStatus === c.id ? 'selected' : ''}" style="background:${solidHex};" onclick="setDayStatus('${c.id}')"></div>`;
@@ -729,8 +687,7 @@
             if(statusId === 'none') { delete dayStatuses[editingDateStr]; } 
             else { dayStatuses[editingDateStr] = statusId; }
             localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
-            renderDayStatusUI(); 
-            renderCalendar(); 
+            renderDayStatusUI(); renderCalendar(); 
         }
 
         function saveStatusName() {
@@ -779,7 +736,11 @@
                 selectedWeatherBadge = '';
             }
             updateWeatherUI(); 
-            renderEditorImages(); document.getElementById('editorModal').classList.add('active'); setTimeout(() => textarea.focus(), 400); 
+            renderEditorImages(); document.getElementById('editorModal').classList.add('active'); 
+            setTimeout(() => textarea.focus(), 400); 
+            
+            // 🟢 開啟編輯器時，啟動定時自動儲存
+            startAutoSave();
         }
 
         function selectColor(colorId) { selectedColor = colorId; document.querySelectorAll('.color-btn').forEach(btn => { btn.classList.remove('selected'); if(btn.dataset.color === colorId) { btn.classList.add('selected'); btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } }); document.getElementById('tagNameInput').value = tagNames[colorId] || ''; }
@@ -822,20 +783,60 @@
         function renderEditorImages() { document.getElementById('editorGallery').innerHTML = currentImages.map((src, idx) => `<div class="photo-item"><img src="${src}" onclick="openLightbox('${src}')"><button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:20px;height:20px;"></i></button></div>`).join(''); lucide.createIcons(); }
         function removeImage(idx) { currentImages.splice(idx, 1); renderEditorImages(); }
 
-        async function saveEntry() { 
+        // 🟢 全新邏輯：靜默自動儲存 (唔會閂視窗)
+        async function silentAutoSave() {
             const text = document.getElementById('editorText').value.trim(); 
-            if (!text && currentImages.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片或選擇天氣狀態！'); return; } 
-            const entry = { 
-                id: currentEntryData ? currentEntryData.id : Date.now(), 
+            // 避免新建一份完全空白的無效記錄
+            if (!text && currentImages.length === 0 && !selectedWeatherBadge && !currentEntryData) return; 
+
+            const entryId = currentEntryData ? currentEntryData.id : Date.now();
+            const entryTimestamp = currentEntryData ? currentEntryData.timestamp : Date.now();
+
+            currentEntryData = { 
+                id: entryId, 
                 date: editingDateStr, 
-                timestamp: currentEntryData ? currentEntryData.timestamp : Date.now(), 
+                timestamp: entryTimestamp, 
                 text: text, 
                 color: selectedColor, 
                 textSize: currentTextSizeIdx, 
                 images: currentImages,
                 weather: selectedWeatherBadge 
             }; 
-            await db.save(entry); 
+            
+            await db.save(currentEntryData);
+            
+            // 閃動「已自動儲存」提示
+            const indicator = document.getElementById('autoSaveIndicator');
+            if (indicator) {
+                indicator.style.opacity = '1';
+                setTimeout(() => { indicator.style.opacity = '0'; }, 2500);
+            }
+        }
+
+        // 🟢 啟動/停止自動儲存定時器
+        function startAutoSave() {
+            stopAutoSave();
+            autoSaveInterval = setInterval(silentAutoSave, 30000); // 30 秒自動儲存一次
+        }
+
+        function stopAutoSave() {
+            if (autoSaveInterval) { clearInterval(autoSaveInterval); autoSaveInterval = null; }
+        }
+
+        // 🟢 取代原有取消按鈕：安全關閉編輯器
+        async function closeEditor() {
+            await silentAutoSave(); // 離開前強制儲存一次
+            stopAutoSave();
+            closeModal('editorModal');
+            renderCalendar(); // 刷新日曆畫面
+        }
+
+        // 手動儲存按鈕
+        async function saveEntry() { 
+            const text = document.getElementById('editorText').value.trim(); 
+            if (!text && currentImages.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片或選擇天氣狀態！'); return; } 
+            await silentAutoSave();
+            stopAutoSave();
             closeModal('editorModal'); 
             renderCalendar(); 
         }
@@ -907,6 +908,18 @@
             }; 
             reader.readAsText(file); event.target.value = ''; 
         }
+
+        // 🟢 防彈出機制：當你切換 App (visibilitychange) 或離開網頁 (pagehide) 時強制儲存
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && document.getElementById('editorModal').classList.contains('active')) {
+                silentAutoSave();
+            }
+        });
+        window.addEventListener('pagehide', () => {
+            if (document.getElementById('editorModal').classList.contains('active')) {
+                silentAutoSave();
+            }
+        });
 
         window.onload = initApp;
     </script>
