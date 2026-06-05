@@ -215,7 +215,7 @@
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
                 <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
-                <button class="icon-btn" onclick="openModal('toolboxModal')"><i data-lucide="briefcase" style="width: 26px; height: 26px;"></i></button>
+
 					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
@@ -261,7 +261,7 @@
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今天的記事。<br>想看其他月份？只需在畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想找回很久以前的紀錄，點擊最頂部的 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 2. Google 雲端同步</div><div class="tutorial-text">喺「設定」入面登入 Google 帳號，就可以將資料安全備份去你嘅私人雲端。就算換新手機，都可以無縫秒速還原所有文字同圖片！</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="shield" style="color: #4c51bf;"></i> 2. 純離線模式（唔使登入）</div><div class="tutorial-text">本版本已<strong>取消上網登入／雲端同步</strong>：所有記事同相片只會保存在你部手機／瀏覽器本機（IndexedDB／localStorage）。<br>如要備份或換機：去右上角 <strong>「⚙️ 設定與備份」</strong>，用 <strong>「手動下載備份檔」</strong>／<strong>「一鍵分享」</strong>，之後再用 <strong>「手動上傳並還原資料」</strong> 取回即可。</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 3. 雙重自動儲存機制</div><div class="tutorial-text">系統會喺你編輯時每 30 秒靜默儲存一次，並且喺你離開或切換 App 時觸發緊急儲存，無需擔心遺失進度。</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 4. 12 色標籤與底色狀態</div><div class="tutorial-text">除了為記事加上 12 色標籤外，你而家可以喺點擊日子後，設定成個日曆格嘅 <strong>背景底色</strong>（例如橙色代表放假）。</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 5. 鬧鐘與「提提我」功能</div><div class="tutorial-text">輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆，你的手機就會在指定日子響鬧鐘提醒你！</div></div>
@@ -443,8 +443,12 @@
             </div>
             <div class="modal-body">
                 
-                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:16px;" onclick="openHelpModal()">
+                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:12px;" onclick="openHelpModal()">
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
+                </button>
+
+                <button class="action-btn" style="background: #eef2ff; color: #3730a3; border-color: #c7d2fe; margin-bottom:16px;" onclick="closeModal('backupModal'); openModal('toolboxModal');">
+                    <i data-lucide="briefcase"></i> 🧰 打開工具箱（網址捷徑）
                 </button>
                 <!-- （已移除）Google 雲端同步 / 上網登入功能 -->
                 <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
@@ -858,7 +862,7 @@
                 shareBtn.innerHTML = originalHTML;
                 lucide.createIcons();
                 if (error.name !== 'AbortError') {
-                    alert(`⚠️ 分享中途終止。\n\n原因：檔案過大或目標 App (如 WhatsApp/Email) 拒收。\n建議改用上方的「下載備份檔案」功能！`);
+                    alert(`⚠️ 分享中途終止。\n\n原因：檔案過大或目標 App 拒收。\n建議改用上方的「下載備份檔案」功能！`);
                 }
             }
         }
