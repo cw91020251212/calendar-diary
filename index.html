@@ -37,6 +37,17 @@
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
         .icon-btn:hover { background: var(--hover); }
+
+        /* 🔧 修補：摺疊選單 / 工具箱用摺疊區塊 */
+        .section-header { padding: 16px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
+        .section-content { display: none; flex-direction: column; gap: 8px; padding-bottom: 16px; }
+        .section-content.active { display: flex; }
+
+        /* 工具箱內的 action 按鈕改為左對齊，不影響備份中心 */
+        #toolboxModal .action-btn { justify-content: flex-start; }
+
+        /* 為了節省空間，只隱藏「日期視窗」內的底色選單（編輯器的標籤顏色保留） */
+        #dayModal .color-picker-container { display: none; }
         
         .current-month-wrapper { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
         .current-month { font-size: 20px; font-weight: bold; min-width: 90px; text-align: center; }
@@ -207,7 +218,8 @@
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
                 <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
-                <button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
+                <button class="icon-btn" onclick="openModal('toolboxModal')"><i data-lucide="briefcase" style="width: 26px; height: 26px;"></i></button>
+					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
 
@@ -382,7 +394,50 @@
         </div>
     </div>
     
-    <!-- ⚙️ 設定與備份中心 -->
+        
+        
+    <!-- 📦 實用工具箱 (修補更新) -->
+    <div class="modal-overlay" id="toolboxModal" onclick="closeModal('toolboxModal', event)">
+        <div class="modal-content" style="height: auto; max-height: 85dvh;">
+            <div class="modal-header" style="padding:16px 20px;">
+                <div class="modal-title"><i data-lucide="briefcase"></i> 實用工具箱</div>
+                <button class="icon-btn" onclick="closeModal('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- 🚨 緊急聯絡 -->
+                <div class="section-header" onclick="toggleSection('emergency')">🚨 緊急聯絡 <i data-lucide="chevron-down"></i></div>
+                <div id="emergency" class="section-content">
+                    <a href="tel:999" class="action-btn"><i data-lucide="phone"></i> 緊急求助 (999)</a>
+                    <a href="https://www.police.gov.hk/ppp_tc/" target="_blank" class="action-btn"><i data-lucide="shield-alert"></i> 香港警務處網頁</a>
+                </div>
+
+                <!-- 🚗 交通消息 -->
+                <div class="section-header" onclick="toggleSection('traffic')">🚗 交通消息 <i data-lucide="chevron-down"></i></div>
+                <div id="traffic" class="section-content">
+                    <a href="https://www.td.gov.hk/tc/transport_in_hong_kong/its/intelligent_road_network_system/traffic_snapshot_images/index.html" target="_blank" class="action-btn"><i data-lucide="camera"></i> 運輸署交通快拍</a>
+                    <a href="https://www.mtr.com.hk/ch/customer/main/index.html" target="_blank" class="action-btn"><i data-lucide="train-front"></i> 港鐵行程搜尋</a>
+                    <a href="https://www.td.gov.hk/tc/special_traffic_news/index.html" target="_blank" class="action-btn"><i data-lucide="alert-triangle"></i> 特別交通消息</a>
+                </div>
+
+                <!-- 🏛️ 生活與假期 -->
+                <div class="section-header" onclick="toggleSection('govt')">🏛️ 生活與假期 <i data-lucide="chevron-down"></i></div>
+                <div id="govt" class="section-content">
+                    <a href="https://www.hko.gov.hk/tc/" target="_blank" class="action-btn"><i data-lucide="cloud-sun"></i> 香港天文台</a>
+                    <a href="https://www.gov.hk/tc/about/abouthk/holiday/" target="_blank" class="action-btn"><i data-lucide="calendar"></i> 政府公眾假期</a>
+                    <a href="https://www.gov.hk/tc/residents/" target="_blank" class="action-btn"><i data-lucide="landmark"></i> 政府一站通</a>
+                </div>
+
+                <!-- 📝 私人筆記 -->
+                <div class="section-header" onclick="toggleSection('private')">📝 私人備註 (僅此手機可見) <i data-lucide="chevron-down"></i></div>
+                <div id="private" class="section-content">
+                    <textarea id="privateNote" style="width:100%; height:110px; padding:12px; border-radius:10px; border:1px solid var(--border); background: var(--bg); color: var(--text-main);" oninput="savePrivateNote()" placeholder="輸入常用公司電話或聯絡簿..."></textarea>
+                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top: 8px;">提示：呢段內容會保存在你呢部手機嘅 localStorage，不會上傳雲端。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- ⚙️ 設定與備份中心 -->
     <div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
@@ -565,7 +620,9 @@
             applyTheme(THEMES[currentThemeIdx]);
             initColorPickerUI(); await db.init();
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-            await renderCalendar(); initSwipe(); 
+            await renderCalendar(); initSwipe();
+            const pn = document.getElementById('privateNote');
+            if (pn) pn.value = localStorage.getItem('user_private_note') || ''; 
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
             if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
         }
@@ -646,6 +703,11 @@
         function resetToToday() { currentDate = new Date(); renderCalendar(); }
         function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
         function closeModal(id, event) { if (event && event.target.id !== id) return; document.getElementById(id).classList.remove('active'); }
+
+        // 🔧 修補：通用打開視窗 + 摺疊區塊 + 私人備註
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function toggleSection(id) { document.getElementById(id).classList.toggle('active'); lucide.createIcons(); }
+        function savePrivateNote() { const el = document.getElementById('privateNote'); if (el) localStorage.setItem('user_private_note', el.value); }
 
         function openDayView(dateStr, entries) {
             editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
