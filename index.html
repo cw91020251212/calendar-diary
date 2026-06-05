@@ -6,7 +6,24 @@
     <meta name="description" content="日曆記事本 - 記錄每一天的美好時刻">
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
-<script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 引入 Google Cloud 雲端同步核心組件 -->
+    <!-- 重要：先定義 gapiLoaded/gisLoaded，避免外部 script 載入太快時 onload 找唔到函數 -->
+    <script>
+      window.__gapiLoadedFlag = false;
+      window.__gisLoadedFlag = false;
+      window.__googleInitHook = null;
+      window.gapiLoaded = function () {
+        window.__gapiLoadedFlag = true;
+        if (typeof window.__googleInitHook === 'function') window.__googleInitHook();
+      };
+      window.gisLoaded = function () {
+        window.__gisLoadedFlag = true;
+        if (typeof window.__googleInitHook === 'function') window.__googleInitHook();
+      };
+    </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -215,7 +232,6 @@
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
                 <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
-
 					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
@@ -261,7 +277,7 @@
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今天的記事。<br>想看其他月份？只需在畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想找回很久以前的紀錄，點擊最頂部的 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="shield" style="color: #4c51bf;"></i> 2. 純離線模式（唔使登入）</div><div class="tutorial-text">本版本已<strong>取消上網登入／雲端同步</strong>：所有記事同相片只會保存在你部手機／瀏覽器本機（IndexedDB／localStorage）。<br>如要備份或換機：去右上角 <strong>「⚙️ 設定與備份」</strong>，用 <strong>「手動下載備份檔」</strong>／<strong>「一鍵分享」</strong>，之後再用 <strong>「手動上傳並還原資料」</strong> 取回即可。</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 2. Google 雲端同步</div><div class="tutorial-text">喺「設定」入面登入 Google 帳號，就可以將資料安全備份去你嘅私人雲端。就算換新手機，都可以無縫秒速還原所有文字同圖片！</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 3. 雙重自動儲存機制</div><div class="tutorial-text">系統會喺你編輯時每 30 秒靜默儲存一次，並且喺你離開或切換 App 時觸發緊急儲存，無需擔心遺失進度。</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 4. 12 色標籤與底色狀態</div><div class="tutorial-text">除了為記事加上 12 色標籤外，你而家可以喺點擊日子後，設定成個日曆格嘅 <strong>背景底色</strong>（例如橙色代表放假）。</div></div>
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 5. 鬧鐘與「提提我」功能</div><div class="tutorial-text">輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆，你的手機就會在指定日子響鬧鐘提醒你！</div></div>
@@ -269,28 +285,7 @@
         </div>
     </div>
 
-    
-    <!-- ♻️ 資料還原提示（偵測到本機資料為空時顯示） -->
-    <div class="modal-overlay" id="restorePromptModal" onclick="closeModal('restorePromptModal', event)">
-        <div class="modal-content" style="max-height: 80dvh; height: auto;">
-            <div class="modal-header">
-                <div class="modal-title" style="color: var(--primary);"><i data-lucide="rotate-ccw"></i> 找唔到本機資料</div>
-                <button class="icon-btn" onclick="closeModal('restorePromptModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body" style="line-height:1.7;">
-                <p style="margin-bottom:12px; color:var(--text-main); font-size:16px;">我偵測到你而家部機嘅記事資料係空嘅（可能剛清除咗網站資料 / 轉咗機）。</p>
-                <div class="backup-info" style="margin-bottom:14px;">
-                    <strong>想還原備份？</strong>
-                    <div>撳下面「選擇備份檔」揀返你之前下載/分享出嚟嘅 <code>.txt</code> 備份檔，就會自動匯入並恢復。</div>
-                </div>
-                <button class="action-btn primary" onclick="document.getElementById('importInput').click();" style="width:100%;"><i data-lucide="upload"></i> 選擇備份檔 (.txt) 還原</button>
-                <button class="action-btn" onclick="closeModal('restorePromptModal')" style="width:100%; margin-top:10px;">暫時唔還原</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 🌅 今日晨報 -->
-
     <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
@@ -466,25 +461,34 @@
             </div>
             <div class="modal-body">
                 
-                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:12px;" onclick="openHelpModal()">
+                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:16px;" onclick="openHelpModal()">
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                 </button>
 
                 <button class="action-btn" style="background: #eef2ff; color: #3730a3; border-color: #c7d2fe; margin-bottom:16px;" onclick="closeModal('backupModal'); openModal('toolboxModal');">
                     <i data-lucide="briefcase"></i> 🧰 打開工具箱（網址捷徑）
                 </button>
-                <!-- （已移除）Google 雲端同步 / 上網登入功能 -->
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
-                
-                
-                <div class="tutorial-box" style="margin-bottom: 14px;">
-                    <div class="tutorial-title"><i data-lucide="bell"></i> 自動備份提醒</div>
-                    <div class="tutorial-text" style="margin-top:6px;">
-                        每隔 <input id="backupReminderDays" type="number" min="1" max="365" style="width:78px; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background: var(--surface); color: var(--text-main); font-weight:bold;" /> 日提醒我做一次「手動下載備份檔」。
+
+
+                <div class="tutorial-box" style="border-color: #4285F4; background: #f8faff;">
+                    <div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
+                    <div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
+                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 6px;">
+                        相關文件：
+                        <a href="privacy.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《私隱權政策》</a>
+                        ／
+                        <a href="terms.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《服務條款》</a>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
+                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+                        <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed #feb2b2; display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
                     </div>
                 </div>
-
-<div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
+                
+                <div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
                 <div class="action-group">
                     <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
                         <i data-lucide="printer"></i> 🖨️ 列印空白月曆
@@ -538,13 +542,122 @@
         // 🟢 全新變數：自動儲存計時器
         let autoSaveInterval = null;
 
-        // 🧷 備份提醒 / 還原提示（純離線）
-        const LAST_BACKUP_KEY = 'diary_last_backup_ts';
-        const REMINDER_DAYS_KEY = 'diary_backup_reminder_days';
-        const DEFAULT_REMINDER_DAYS = 7;
+        const CLIENT_ID = '412594028338-gi0u8p0uvk4dcqrb6jv534ii56e58grn.apps.googleusercontent.com';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; 
+        let tokenClient;
 
-        // （已移除）Google 雲端同步 / OAuth 相關程式碼
+        // ✅ 修復：避免 gapi / gsi script onload 早過本段 JS 定義
+        // 由 head 先定義 gapiLoaded/gisLoaded，然後喺兩個都 ready 之後再一次過 init。
+        let __googleInited = false;
+        window.__googleInitHook = async function () {
+            if (__googleInited) return;
+            if (!window.__gapiLoadedFlag || !window.__gisLoadedFlag) return;
+            if (!window.gapi || !window.google) return;
 
+            __googleInited = true;
+
+            // 1) 初始化 gapi client (Drive API via discovery doc)
+            await new Promise(resolve => gapi.load('client', resolve));
+            await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
+
+            // 2) 初始化 GIS token client（callback 之後會喺 cloudAction 內覆寫）
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: () => {}
+            });
+
+            // 3) 解除雲端按鈕禁用狀態（如果 UI 已經存在）
+            const b1 = document.getElementById('cloudBackupBtn');
+            const b2 = document.getElementById('cloudRestoreBtn');
+            if (b1) b1.disabled = false;
+            if (b2) b2.disabled = false;
+        };
+        // 如果兩個外部 script 早已載入完成，立即嘗試初始化一次
+        try { window.__googleInitHook(); } catch (e) {}
+
+        async function cloudAction(action) {
+            // Google API / GIS 未完成初始化（例如網絡慢、script 未載入、或前面初始化失敗）
+            if (!window.gapi || !gapi.client || !tokenClient) {
+                alert('Google 服務初始化中／未完成，請等 2-3 秒再試一次。');
+                return;
+            }
+            // Drive discovery doc 未就緒
+            if (!gapi.client.drive) {
+                alert('Google Drive 服務仍在準備中，請稍候再試...');
+                return;
+            }
+            if (action === 'logout') {
+                const token = gapi.client.getToken();
+                if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
+                document.getElementById('cloudLogoutBtn').style.display = 'none';
+                alert('已成功登出 Google 帳戶。');
+                return;
+            }
+            const token = gapi.client.getToken();
+            if (token === null) {
+                tokenClient.callback = async (resp) => {
+                    if (resp.error !== undefined) { throw (resp); }
+                    document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                    if (action === 'backup') doCloudBackup();
+                    if (action === 'restore') doCloudRestore();
+                };
+                try {
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                } catch (e) {
+                    console.error(e);
+                    alert('無法開啟 Google 授權視窗。\n\n常見原因：\n1) Google Cloud Console 未加入此網域到「Authorized JavaScript origins」\n2) 瀏覽器阻擋第三方 Cookie / 彈出式視窗\n\n請先確定已加入：' + window.location.origin);
+                }
+            } else {
+                document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                if (action === 'backup') doCloudBackup();
+                if (action === 'restore') doCloudRestore();
+            }
+        }
+
+        async function checkCloudFile() {
+            try {
+                let response = await gapi.client.drive.files.list({ spaces: 'appDataFolder', fields: 'files(id, name)', q: "name='diary_sync_backup.json'" });
+                return response.result.files.length > 0 ? response.result.files[0] : null;
+            } catch (err) { console.error(err); throw err; }
+        }
+
+        async function doCloudBackup() {
+            const btn = document.getElementById('cloudBackupBtn'); const orig = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
+            try {
+                const entries = await db.getAll();
+                const backupData = { version: "2.1", exportDate: new Date().toISOString(), tagNames, entries, dayStatuses, dayStatusNames };
+                const fileContent = JSON.stringify(backupData);
+                const fileMetadata = { name: 'diary_sync_backup.json', parents: ['appDataFolder'] };
+                let existingFile = await checkCloudFile();
+                const boundary = '-------314159265358979323846'; const delimiter = "\r\n--" + boundary + "\r\n"; const close_delim = "\r\n--" + boundary + "--";
+                const multipartRequestBody = delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(fileMetadata) + delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + fileContent + close_delim;
+                let requestParams = { 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'}, 'body': multipartRequestBody };
+                if (existingFile) { requestParams.path = '/upload/drive/v3/files/' + existingFile.id; requestParams.method = 'PATCH'; } else { requestParams.path = '/upload/drive/v3/files'; requestParams.method = 'POST'; }
+                await gapi.client.request(requestParams);
+                alert('☁️ 成功！所有資料已安全同步至 Google 雲端隱藏空間內！');
+            } catch (err) { console.error(err); alert('上傳失敗！請確定網絡正常。'); } finally { btn.innerHTML = orig; lucide.createIcons(); }
+        }
+
+        async function doCloudRestore() {
+            if(!confirm('⚠️ 警告：這將會清除這部手機目前的資料，並下載雲端進度完全覆蓋。\n\n確定要繼續嗎？')) return;
+            const btn = document.getElementById('cloudRestoreBtn'); const orig = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在下載還原...'; lucide.createIcons();
+            try {
+                let existingFile = await checkCloudFile();
+                if (!existingFile) { alert('☁️ 找不到任何雲端紀錄！'); return; }
+                let response = await gapi.client.drive.files.get({ fileId: existingFile.id, alt: 'media' });
+                const importedData = typeof response.result === 'string' ? JSON.parse(response.result) : response.result;
+                if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("檔案格式不正確");
+                await db.clearAll(); for (const entry of importedData.entries) await db.save(entry); 
+                if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } 
+                if(importedData.dayStatuses) { dayStatuses = importedData.dayStatuses; localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses)); }
+                if(importedData.dayStatusNames) { dayStatusNames = importedData.dayStatusNames; localStorage.setItem('diary_day_status_names', JSON.stringify(dayStatusNames)); }
+                alert("🎉 資料無縫還原成功！所有紀錄返曬嚟！"); closeModal('backupModal'); renderCalendar();
+            } catch (err) { console.error(err); alert('還原失敗！'); } finally { btn.innerHTML = orig; lucide.createIcons(); }
+        }
 
         const DB_NAME = 'DiaryProDB'; 
         const STORE_NAME = 'entries';
@@ -573,11 +686,8 @@
             currentThemeIdx = THEMES.findIndex(t => t.id === savedThemeId) >= 0 ? THEMES.findIndex(t => t.id === savedThemeId) : 0;
             applyTheme(THEMES[currentThemeIdx]);
             initColorPickerUI(); await db.init();
-            initBackupReminderUI();
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
             await renderCalendar(); initSwipe();
-            checkBackupReminder();
-            checkEmptyDbAndPromptRestore();
             const pn = document.getElementById('privateNote');
             if (pn) pn.value = localStorage.getItem('user_private_note') || ''; 
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
@@ -862,84 +972,12 @@
         
         function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
 
-
-        function getReminderDays() {
-            const raw = localStorage.getItem(REMINDER_DAYS_KEY);
-            const v = parseInt(raw || '', 10);
-            if (!Number.isFinite(v) || v < 1 || v > 365) return DEFAULT_REMINDER_DAYS;
-            return v;
-        }
-
-        function setReminderDays(v) {
-            const n = parseInt(v || '', 10);
-            if (!Number.isFinite(n) || n < 1 || n > 365) return;
-            localStorage.setItem(REMINDER_DAYS_KEY, String(n));
-        }
-
-        function markLastBackup() {
-            localStorage.setItem(LAST_BACKUP_KEY, String(Date.now()));
-        }
-
-        function checkBackupReminder() {
-            const last = parseInt(localStorage.getItem(LAST_BACKUP_KEY) || '0', 10);
-            const days = getReminderDays();
-            const ms = days * 24 * 60 * 60 * 1000;
-            if (!last) return; // 未曾備份過就唔提醒
-            if (Date.now() - last < ms) return;
-
-            // 24 小時內只提醒一次，避免煩
-            const gateKey = 'diary_backup_reminder_last_shown';
-            const gate = parseInt(localStorage.getItem(gateKey) || '0', 10);
-            if (gate && Date.now() - gate < 24 * 60 * 60 * 1000) return;
-            localStorage.setItem(gateKey, String(Date.now()));
-
-            alert(`🔔 備份提醒：你已經超過 ${days} 日未做備份。
-
-建議去「⚙️ 設定與備份」→「手動下載備份檔」保存一份。`);
-        }
-
-        async function checkEmptyDbAndPromptRestore() {
-            try {
-                const entries = await db.getAll();
-                if (entries && entries.length > 0) return;
-
-                // 新手第一次使用唔彈（有 welcome modal），只係「曾經用過」但而家變空先彈
-                const everUsedKey = 'diary_ever_used';
-                const everUsed = localStorage.getItem(everUsedKey) === '1';
-                if (!everUsed) {
-                    localStorage.setItem(everUsedKey, '1');
-                    return;
-                }
-
-                // 一次會話只彈一次
-                const sessionKey = 'diary_restore_prompted_session';
-                if (sessionStorage.getItem(sessionKey) === '1') return;
-                sessionStorage.setItem(sessionKey, '1');
-
-                document.getElementById('restorePromptModal').classList.add('active');
-                lucide.createIcons();
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function initBackupReminderUI() {
-            const input = document.getElementById('backupReminderDays');
-            if (!input) return;
-            input.value = String(getReminderDays());
-            input.addEventListener('change', () => {
-                setReminderDays(input.value);
-                input.value = String(getReminderDays());
-            });
-        }
-
         async function exportData() { 
             try { 
                 const entries = await db.getAll(); 
                 const backupObj = { version: "2.1", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames }; 
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); 
-                const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
-                markLastBackup(); 
+                const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); 
             } catch (error) { alert("匯出失敗：" + error); } 
         }
 
@@ -966,7 +1004,6 @@
                         text: '這是我日曆記事本的備份檔案，請安全儲存。',
                         files: [file]
                     });
-                    markLastBackup();
                 } else {
                     alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n請使用上方的「下載備份檔案」功能！');
                 }
@@ -974,7 +1011,7 @@
                 shareBtn.innerHTML = originalHTML;
                 lucide.createIcons();
                 if (error.name !== 'AbortError') {
-                    alert(`⚠️ 分享中途終止。\n\n原因：檔案過大或目標 App 拒收。\n建議改用上方的「下載備份檔案」功能！`);
+                    alert(`⚠️ 分享中途終止。\n\n原因：檔案過大或目標 App (如 WhatsApp/Email) 拒收。\n建議改用上方的「下載備份檔案」功能！`);
                 }
             }
         }
