@@ -215,7 +215,7 @@
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
                 <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
-
+                <button class="icon-btn" onclick="openModal('toolboxModal')"><i data-lucide="briefcase" style="width: 26px; height: 26px;"></i></button>
 					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
@@ -443,12 +443,8 @@
             </div>
             <div class="modal-body">
                 
-                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:12px;" onclick="openHelpModal()">
+                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:16px;" onclick="openHelpModal()">
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
-                </button>
-
-                <button class="action-btn" style="background: #eef2ff; color: #3730a3; border-color: #c7d2fe; margin-bottom:16px;" onclick="closeModal('backupModal'); openModal('toolboxModal');">
-                    <i data-lucide="briefcase"></i> 🧰 打開工具箱（網址捷徑）
                 </button>
                 <!-- （已移除）Google 雲端同步 / 上網登入功能 -->
                 <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
