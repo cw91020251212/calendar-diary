@@ -178,7 +178,7 @@
         .tutorial-title { color: var(--text-main); font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .tutorial-text { color: var(--text-light); font-size: 15px; line-height: 1.6; }
 
-        #fileInput, #importInput { display: none; }
+        #fileInput, #cameraInput, #importInput { display: none; }
 
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; }
@@ -376,8 +376,10 @@
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
+                    <button class="tool-btn" onclick="document.getElementById('cameraInput').click()"><i data-lucide="camera"></i> 影相</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
                 </div>
 
                 <div class="weather-toolbar" id="weatherToolbarUI">
