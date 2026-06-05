@@ -7,6 +7,20 @@
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
     <!-- 引入 Google Cloud 雲端同步核心組件 -->
+    <!-- 重要：先定義 gapiLoaded/gisLoaded，避免外部 script 載入太快時 onload 找唔到函數 -->
+    <script>
+      window.__gapiLoadedFlag = false;
+      window.__gisLoadedFlag = false;
+      window.__googleInitHook = null;
+      window.gapiLoaded = function () {
+        window.__gapiLoadedFlag = true;
+        if (typeof window.__googleInitHook === 'function') window.__googleInitHook();
+      };
+      window.gisLoaded = function () {
+        window.__gisLoadedFlag = true;
+        if (typeof window.__googleInitHook === 'function') window.__googleInitHook();
+      };
+    </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -454,8 +468,8 @@
                     <div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
                     <div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')"><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
-                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')"><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
+                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
                         <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed #feb2b2; display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
                     </div>
                 </div>
@@ -521,11 +535,47 @@
         const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; 
         let tokenClient;
 
-        function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] }); }); }
-        function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); }
+        // ✅ 修復：避免 gapi / gsi script onload 早過本段 JS 定義
+        // 由 head 先定義 gapiLoaded/gisLoaded，然後喺兩個都 ready 之後再一次過 init。
+        let __googleInited = false;
+        window.__googleInitHook = async function () {
+            if (__googleInited) return;
+            if (!window.__gapiLoadedFlag || !window.__gisLoadedFlag) return;
+            if (!window.gapi || !window.google) return;
+
+            __googleInited = true;
+
+            // 1) 初始化 gapi client (Drive API via discovery doc)
+            await new Promise(resolve => gapi.load('client', resolve));
+            await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
+
+            // 2) 初始化 GIS token client（callback 之後會喺 cloudAction 內覆寫）
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: () => {}
+            });
+
+            // 3) 解除雲端按鈕禁用狀態（如果 UI 已經存在）
+            const b1 = document.getElementById('cloudBackupBtn');
+            const b2 = document.getElementById('cloudRestoreBtn');
+            if (b1) b1.disabled = false;
+            if (b2) b2.disabled = false;
+        };
+        // 如果兩個外部 script 早已載入完成，立即嘗試初始化一次
+        try { window.__googleInitHook(); } catch (e) {}
 
         async function cloudAction(action) {
-            if (!gapi.client || !tokenClient) { alert('Google 服務尚未準備好，請稍候再試...'); return; }
+            // Google API / GIS 未完成初始化（例如網絡慢、script 未載入、或前面初始化失敗）
+            if (!window.gapi || !gapi.client || !tokenClient) {
+                alert('Google 服務初始化中／未完成，請等 2-3 秒再試一次。');
+                return;
+            }
+            // Drive discovery doc 未就緒
+            if (!gapi.client.drive) {
+                alert('Google Drive 服務仍在準備中，請稍候再試...');
+                return;
+            }
             if (action === 'logout') {
                 const token = gapi.client.getToken();
                 if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
@@ -541,7 +591,12 @@
                     if (action === 'backup') doCloudBackup();
                     if (action === 'restore') doCloudRestore();
                 };
-                tokenClient.requestAccessToken({prompt: 'consent'});
+                try {
+                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                } catch (e) {
+                    console.error(e);
+                    alert('無法開啟 Google 授權視窗。\n\n常見原因：\n1) Google Cloud Console 未加入此網域到「Authorized JavaScript origins」\n2) 瀏覽器阻擋第三方 Cookie / 彈出式視窗\n\n請先確定已加入：' + window.location.origin);
+                }
             } else {
                 document.getElementById('cloudLogoutBtn').style.display = 'flex';
                 if (action === 'backup') doCloudBackup();
