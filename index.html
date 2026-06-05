@@ -449,4 +449,466 @@
         let isAnimating = false; 
 
         // --- ☁️ Google Cloud 雙軌備份核心組件 ---
-        const CLIENT_ID = '237496748515-eas5gupa4v2
+        const CLIENT_ID = '237496748515-eas5gupa4v2a7ucbso8tdbgpnb621lrh.apps.googleusercontent.com';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; // 存入隱藏資料夾
+        let tokenClient;
+
+        // 載入 GAPI
+        function gapiLoaded() {
+            gapi.load('client', async () => {
+                await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
+            });
+        }
+        
+        // 載入 Google Identity Services
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '' // 動態設定
+            });
+        }
+
+        async function cloudAction(action) {
+            if (!gapi.client || !tokenClient) { alert('Google 服務尚未準備好，請稍候再試...'); return; }
+            
+            if (action === 'logout') {
+                const token = gapi.client.getToken();
+                if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
+                document.getElementById('cloudLogoutBtn').style.display = 'none';
+                alert('已成功登出 Google 帳戶。');
+                return;
+            }
+
+            const token = gapi.client.getToken();
+            // 如果未登入，先彈出 Google 登入視窗
+            if (token === null) {
+                tokenClient.callback = async (resp) => {
+                    if (resp.error !== undefined) { throw (resp); }
+                    document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                    if (action === 'backup') doCloudBackup();
+                    if (action === 'restore') doCloudRestore();
+                };
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                if (action === 'backup') doCloudBackup();
+                if (action === 'restore') doCloudRestore();
+            }
+        }
+
+        // 檢查雲端有無舊檔
+        async function checkCloudFile() {
+            try {
+                let response = await gapi.client.drive.files.list({
+                    spaces: 'appDataFolder',
+                    fields: 'files(id, name)',
+                    q: "name='diary_sync_backup.json'"
+                });
+                return response.result.files.length > 0 ? response.result.files[0] : null;
+            } catch (err) { console.error(err); throw err; }
+        }
+
+        // 上傳至 Google 雲端
+        async function doCloudBackup() {
+            const btn = document.getElementById('cloudBackupBtn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
+            try {
+                const entries = await db.getAll();
+                const backupData = { version: "2.1", exportDate: new Date().toISOString(), tagNames, entries, dayStatuses, dayStatusNames };
+                const fileContent = JSON.stringify(backupData);
+                const fileMetadata = { name: 'diary_sync_backup.json', parents: ['appDataFolder'] };
+                
+                let existingFile = await checkCloudFile();
+                
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+                const multipartRequestBody = delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(fileMetadata) + delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + fileContent + close_delim;
+
+                let requestParams = {
+                    'params': {'uploadType': 'multipart'},
+                    'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'},
+                    'body': multipartRequestBody
+                };
+
+                // 如果有舊檔就覆蓋，冇就新建
+                if (existingFile) { requestParams.path = '/upload/drive/v3/files/' + existingFile.id; requestParams.method = 'PATCH'; } 
+                else { requestParams.path = '/upload/drive/v3/files'; requestParams.method = 'POST'; }
+                
+                await gapi.client.request(requestParams);
+                alert('☁️ 成功！所有資料（包含相片與底色）已安全同步至你的 Google 雲端隱藏空間內！\n\n以後換新手機只要撳「從雲端還原」即可。');
+            } catch (err) {
+                console.error(err); alert('上傳失敗！請確定網絡正常。如果問題持續，請重新登出再登入。');
+            } finally { btn.innerHTML = orig; lucide.createIcons(); }
+        }
+
+        // 從 Google 雲端還原
+        async function doCloudRestore() {
+            if(!confirm('⚠️ 警告：這將會清除這部手機目前的資料，並下載雲端進度完全覆蓋。\n\n確定要繼續嗎？')) return;
+            const btn = document.getElementById('cloudRestoreBtn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在下載還原...'; lucide.createIcons();
+            try {
+                let existingFile = await checkCloudFile();
+                if (!existingFile) { alert('☁️ 找不到任何雲端紀錄！\n請確定你之前有上傳過，或者登入咗正確嘅 Google 帳戶。'); return; }
+                
+                let response = await gapi.client.drive.files.get({ fileId: existingFile.id, alt: 'media' });
+                const importedData = typeof response.result === 'string' ? JSON.parse(response.result) : response.result;
+                
+                if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("檔案格式不正確");
+                await db.clearAll(); 
+                for (const entry of importedData.entries) await db.save(entry); 
+                
+                if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } 
+                if(importedData.dayStatuses) { dayStatuses = importedData.dayStatuses; localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses)); }
+                if(importedData.dayStatusNames) { dayStatusNames = importedData.dayStatusNames; localStorage.setItem('diary_day_status_names', JSON.stringify(dayStatusNames)); }
+                
+                alert("🎉 資料無縫還原成功！所有紀錄返曬嚟！"); 
+                closeModal('backupModal'); renderCalendar();
+            } catch (err) {
+                console.error(err); alert('還原失敗！可能網絡不穩定，或者備份檔案已損毀。');
+            } finally { btn.innerHTML = orig; lucide.createIcons(); }
+        }
+        // --- ☁️ Google Cloud 雙軌同步組件完結 ---
+
+
+        const DB_NAME = 'DiaryProDB'; 
+        const STORE_NAME = 'entries';
+        const db = {
+            dbInstance: null,
+            async init() { return new Promise((resolve, reject) => { const req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) { e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id' }); } }; req.onsuccess = (e) => { this.dbInstance = e.target.result; resolve(); }; req.onerror = (e) => reject(e.target.error); }); },
+            async getAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll(); req.onsuccess = () => resolve(req.result); }); },
+            async save(entry) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(entry); req.onsuccess = () => resolve(); }); },
+            async delete(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id); req.onsuccess = () => resolve(); }); },
+            async clearAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).clear(); req.onsuccess = () => resolve(); }); }
+        };
+
+        let touchStartX = 0; let touchStartY = 0;
+        function initSwipe() {
+            const calendarArea = document.getElementById('calendarMainArea');
+            calendarArea.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, {passive: true});
+            calendarArea.addEventListener('touchend', e => {
+                const xDiff = e.changedTouches[0].screenX - touchStartX;
+                const yDiff = e.changedTouches[0].screenY - touchStartY;
+                if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > 40) { if (xDiff > 0) changeMonth(-1); else changeMonth(1); }
+            }, {passive: true});
+        }
+
+        async function initApp() {
+            const savedThemeId = localStorage.getItem('diary_theme_github') || 'light';
+            currentThemeIdx = THEMES.findIndex(t => t.id === savedThemeId) >= 0 ? THEMES.findIndex(t => t.id === savedThemeId) : 0;
+            applyTheme(THEMES[currentThemeIdx]);
+            initColorPickerUI(); await db.init();
+            document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            await renderCalendar(); initSwipe(); 
+            
+            const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
+            if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
+        }
+
+        function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
+        function closeWelcomeModal(event, isButton = false) { if (event && event.target.id !== 'welcomeModal' && !isButton) return; document.getElementById('welcomeModal').classList.remove('active'); localStorage.setItem('diary_welcomed_v5', 'true'); checkTodayBriefing(); }
+
+        function printBlankCalendar() { closeModal('backupModal'); setTimeout(() => { window.print(); }, 300); }
+
+        async function changeMonth(delta) { 
+            if (isAnimating) return; isAnimating = true;
+            const grid = document.getElementById('calendarGrid');
+            if (delta > 0) grid.classList.add('sliding-out-left'); else grid.classList.add('sliding-out-right');
+            await new Promise(r => setTimeout(r, 200)); 
+            currentDate.setMonth(currentDate.getMonth() + delta); 
+            document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            await renderCalendar(); 
+            grid.className = 'days-grid'; 
+            if (delta > 0) grid.classList.add('sliding-in-right'); else grid.classList.add('sliding-in-left');
+            await new Promise(r => setTimeout(r, 200)); grid.className = 'days-grid'; isAnimating = false;
+        }
+
+        async function handleQuickDateSelect(event) {
+            const selectedVal = event.target.value; if (!selectedVal) return;
+            const [y, m, d] = selectedVal.split('-'); currentDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+            await renderCalendar();
+            const targetDateStr = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            const allEntries = await db.getAll(); const dayEntries = allEntries.filter(e => e.date === targetDateStr);
+            openDayView(targetDateStr, dayEntries);
+        }
+
+        async function checkTodayBriefing() {
+            const todayDateObj = new Date(); const todayStr = formatDate(todayDateObj.getFullYear(), todayDateObj.getMonth(), todayDateObj.getDate());
+            const lastBriefing = localStorage.getItem('diary_last_briefing'); if (lastBriefing === todayStr) return;
+            const allEntries = await db.getAll(); const todayEntries = allEntries.filter(e => e.date === todayStr);
+            if (todayEntries.length > 0) {
+                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="closeModal('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
+                document.getElementById('briefingModal').classList.add('active'); localStorage.setItem('diary_last_briefing', todayStr);
+            }
+        }
+
+        function cycleTheme() { currentThemeIdx = (currentThemeIdx + 1) % THEMES.length; applyTheme(THEMES[currentThemeIdx]); localStorage.setItem('diary_theme_github', THEMES[currentThemeIdx].id); }
+        function applyTheme(themeObj) { document.body.className = ''; if (themeObj.id !== 'light') document.body.classList.add(`theme-${themeObj.id}`); document.getElementById('themeIcon').setAttribute('data-lucide', themeObj.icon); lucide.createIcons(); }
+        function initColorPickerUI() { document.getElementById('colorPickerUI').innerHTML = APP_COLORS.map(c => `<div class="color-btn" style="background-color: ${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"></div>`).join(''); }
+
+        async function renderCalendar() {
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
+            document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const prevMonthDays = new Date(year, month, 0).getDate();
+            const allEntries = await db.getAll(); const entryMap = {}; allEntries.forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
+
+            for (let i = 0; i < 42; i++) {
+                const cell = document.createElement('div'); cell.className = 'day-cell'; let dayNum, dateStr = '';
+                if (i < firstDay) { dayNum = prevMonthDays - firstDay + i + 1; cell.classList.add('other-month'); dateStr = formatDate(year, month - 1, dayNum);
+                } else if (i >= firstDay && i < firstDay + daysInMonth) { dayNum = i - firstDay + 1; dateStr = formatDate(year, month, dayNum); const today = new Date(); if (year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate()) { cell.classList.add('today'); }
+                } else { dayNum = i - firstDay - daysInMonth + 1; cell.classList.add('other-month'); dateStr = formatDate(year, month + 1, dayNum); }
+
+                const currentDayStatus = dayStatuses[dateStr];
+                if (currentDayStatus && currentDayStatus !== 'none') {
+                    const statusObj = DAY_STATUS_COLORS.find(c => c.id === currentDayStatus);
+                    if (statusObj) cell.style.setProperty('--day-bg-overlay', statusObj.rgba);
+                }
+
+                let lunarDisplay = ''; try { const lunarDayStr = Lunar.fromDate(new Date(dateStr)).getDayInChinese(); if (lunarDayStr === '初一' || lunarDayStr === '十五') { lunarDisplay = `<span class="lunar-subtext">${lunarDayStr}</span>`; } } catch(e) {}
+                let holidayDisplay = ''; let isHoliday = false;
+                if (HK_HOLIDAYS_2026[dateStr]) { holidayDisplay = `<div class="holiday-subtext">${HK_HOLIDAYS_2026[dateStr]}</div>`; isHoliday = true; }
+                const dayEntries = entryMap[dateStr] || [];
+                
+                let numClass = cell.classList.contains('today') ? 'day-num-circle' : 'day-num'; let numStyle = '';
+                if (isHoliday) { if (cell.classList.contains('today')) { numStyle = 'style="background: #e53e3e;"'; } else { numClass += ' holiday-num'; } }
+                
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 3).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 3 ? `<div class="event-chip" style="--event-color: transparent; color: var(--text-light); justify-content:center;">+${dayEntries.length - 3}</div>` : ''}</div>`;
+                cell.onclick = () => openDayView(dateStr, dayEntries); grid.appendChild(cell);
+            } lucide.createIcons();
+        }
+
+        function resetToToday() { currentDate = new Date(); renderCalendar(); }
+        function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+        function closeModal(id, event) { if (event && event.target.id !== id) return; document.getElementById(id).classList.remove('active'); }
+
+        function openDayView(dateStr, entries) {
+            editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+            
+            renderDayStatusUI();
+
+            const listEl = document.getElementById('dayEntryList');
+            if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
+            } else { 
+                listEl.innerHTML = entries.map(e => { 
+                    const entryJson = encodeURIComponent(JSON.stringify(e)); 
+                    const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; 
+                    const tagName = tagNames[e.color] || '標籤'; 
+                    const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'});
+                    const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
+                    return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="openReadView('${entryJson}')"><div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                }).join(''); 
+            }
+            document.getElementById('dayModal').classList.add('active');
+        }
+
+        function renderDayStatusUI() {
+            const currentStatus = dayStatuses[editingDateStr] || 'none';
+            let html = `<div class="color-btn ${currentStatus === 'none' ? 'selected' : ''}" style="background:var(--surface); border:2px dashed var(--text-light); display:flex; align-items:center; justify-content:center;" onclick="setDayStatus('none')"><i data-lucide="x" style="width:20px; color:var(--text-light)"></i></div>`;
+            
+            DAY_STATUS_COLORS.forEach(c => {
+                const solidHex = c.border; 
+                html += `<div class="color-btn ${currentStatus === c.id ? 'selected' : ''}" style="background:${solidHex};" onclick="setDayStatus('${c.id}')"></div>`;
+            });
+            document.getElementById('dayStatusUI').innerHTML = html;
+            lucide.createIcons();
+
+            const inputEl = document.getElementById('statusNameInput');
+            if(currentStatus === 'none') {
+                inputEl.value = ''; inputEl.disabled = true; inputEl.placeholder = '請先選擇一種底色...';
+            } else {
+                inputEl.disabled = false; inputEl.value = dayStatusNames[currentStatus] || ''; inputEl.placeholder = '自訂此底色代表...';
+            }
+        }
+
+        function setDayStatus(statusId) {
+            if(statusId === 'none') { delete dayStatuses[editingDateStr]; } 
+            else { dayStatuses[editingDateStr] = statusId; }
+            localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
+            renderDayStatusUI(); 
+            renderCalendar(); 
+        }
+
+        function saveStatusName() {
+            const currentStatus = dayStatuses[editingDateStr];
+            if(!currentStatus || currentStatus === 'none') return;
+            dayStatusNames[currentStatus] = document.getElementById('statusNameInput').value.trim() || '自訂狀態';
+            localStorage.setItem('diary_day_status_names', JSON.stringify(dayStatusNames));
+        }
+
+        function openReadView(entryJsonEncoded) {
+            currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded)); document.getElementById('dayModal').classList.remove('active');
+            const dateObj = new Date(currentEntryData.timestamp); 
+            document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
+            document.getElementById('readWeatherBadge').textContent = currentEntryData.weather ? `[ ${currentEntryData.weather} ]` : '';
+
+            const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
+            document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
+            if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
+            document.getElementById('readModal').classList.add('active');
+        }
+
+        function backToDayView() { closeModal('readModal'); db.getAll().then(all => { openDayView(editingDateStr, all.filter(e => e.date === editingDateStr)); }); }
+        function openLightbox(imgSrc) { document.getElementById('lightboxImg').src = imgSrc; document.getElementById('lightbox').classList.add('active'); }
+        function closeLightbox(event) { if (event && event.target.id === 'lightboxImg') return; document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImg').src = ''; }
+        function openEditorForToday() { editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()); openEditor(null); }
+        function openEditorFromDayView() { closeModal('dayModal'); setTimeout(() => openEditor(null), 200); }
+        function editFromReadView() { closeModal('readModal'); setTimeout(() => openEditor(currentEntryData), 200); }
+
+        async function deleteFromReadView() { if (confirm('確定要刪除這份紀錄嗎？無法復原哦。')) { await db.delete(currentEntryData.id); closeModal('readModal'); renderCalendar(); } }
+
+        function openEditor(entryData) {
+            currentEntryData = entryData; const textarea = document.getElementById('editorText');
+            if (entryData) { 
+                document.getElementById('editorTitle').textContent = '編輯記事'; 
+                textarea.value = entryData.text || ''; 
+                selectColor(entryData.color || 'blue'); 
+                setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
+                currentImages = entryData.images ? [...entryData.images] : [];
+                selectedWeatherBadge = entryData.weather || '';
+            } else { 
+                document.getElementById('editorTitle').textContent = '新增記事'; 
+                textarea.value = ''; 
+                selectColor('blue'); 
+                setTextSize(1); 
+                currentImages = []; 
+                selectedWeatherBadge = '';
+            }
+            updateWeatherUI(); 
+            renderEditorImages(); document.getElementById('editorModal').classList.add('active'); setTimeout(() => textarea.focus(), 400); 
+        }
+
+        function selectColor(colorId) { selectedColor = colorId; document.querySelectorAll('.color-btn').forEach(btn => { btn.classList.remove('selected'); if(btn.dataset.color === colorId) { btn.classList.add('selected'); btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } }); document.getElementById('tagNameInput').value = tagNames[colorId] || ''; }
+        function saveTagName() { tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤'; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); }
+        function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
+        function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
+
+        function toggleWeather(weatherStr) {
+            if (selectedWeatherBadge === weatherStr) { selectedWeatherBadge = ''; } 
+            else { selectedWeatherBadge = weatherStr; }
+            updateWeatherUI();
+        }
+
+        function updateWeatherUI() {
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                if (btn.getAttribute('data-weather') === selectedWeatherBadge) {
+                    btn.classList.add('selected-weather');
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else { btn.classList.remove('selected-weather'); }
+            });
+        }
+
+        function addToNativeCalendar() {
+            const text = document.getElementById('editorText').value.trim() || '日曆事項'; const tagName = tagNames[selectedColor] || '事項'; const dateParts = editingDateStr.split('-'); const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`; const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2])); d.setDate(d.getDate() + 1); const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${startStr}\nDTEND;VALUE=DATE:${endStr}\nSUMMARY:【${tagName}】\nDESCRIPTION:${text}\nEND:VEVENT\nEND:VCALENDAR`;
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `reminder_${startStr}.ics`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            setTimeout(() => { alert("⏰ 已經為你製作好日曆檔案！\n\n如果系統彈出提示，請選擇「加入日曆」，就可以享用手機自帶嘅響鬧功能啦！"); }, 500);
+        }
+
+        function handleImageUpload(event) {
+            const files = event.target.files; if (!files || files.length === 0) return;
+            Array.from(files).forEach(file => {
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (e) => { const img = new Image(); img.src = e.target.result;
+                    img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let width = img.width, height = img.height; if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); currentImages.push(canvas.toDataURL('image/jpeg', 0.6)); renderEditorImages(); };
+                };
+            }); event.target.value = ''; 
+        }
+
+        function renderEditorImages() { document.getElementById('editorGallery').innerHTML = currentImages.map((src, idx) => `<div class="photo-item"><img src="${src}" onclick="openLightbox('${src}')"><button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:20px;height:20px;"></i></button></div>`).join(''); lucide.createIcons(); }
+        function removeImage(idx) { currentImages.splice(idx, 1); renderEditorImages(); }
+
+        async function saveEntry() { 
+            const text = document.getElementById('editorText').value.trim(); 
+            if (!text && currentImages.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片或選擇天氣狀態！'); return; } 
+            const entry = { 
+                id: currentEntryData ? currentEntryData.id : Date.now(), 
+                date: editingDateStr, 
+                timestamp: currentEntryData ? currentEntryData.timestamp : Date.now(), 
+                text: text, 
+                color: selectedColor, 
+                textSize: currentTextSizeIdx, 
+                images: currentImages,
+                weather: selectedWeatherBadge 
+            }; 
+            await db.save(entry); 
+            closeModal('editorModal'); 
+            renderCalendar(); 
+        }
+        
+        function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
+
+        async function exportData() { 
+            try { 
+                const entries = await db.getAll(); 
+                const backupObj = { version: "2.1", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames }; 
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); 
+                const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); 
+            } catch (error) { alert("匯出失敗：" + error); } 
+        }
+
+        async function nativeShareBackup() {
+            const shareBtn = document.getElementById('shareBtn');
+            const originalHTML = shareBtn.innerHTML;
+
+            try {
+                shareBtn.innerHTML = '<i data-lucide="loader"></i> 準備檔案中...';
+                lucide.createIcons();
+
+                const entries = await db.getAll();
+                const backupObj = { version: "2.1", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames };
+                
+                const fileName = `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`;
+                const file = new File([JSON.stringify(backupObj)], fileName, { type: 'text/plain' });
+
+                shareBtn.innerHTML = originalHTML;
+                lucide.createIcons();
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: '日曆記事本備份',
+                        text: '這是我日曆記事本的備份檔案，請安全儲存。',
+                        files: [file]
+                    });
+                } else {
+                    alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n請使用上方的「下載備份檔案」功能！');
+                }
+            } catch (error) {
+                shareBtn.innerHTML = originalHTML;
+                lucide.createIcons();
+                if (error.name !== 'AbortError') {
+                    alert(`⚠️ 分享中途終止。\n\n原因：檔案過大或目標 App (如 WhatsApp/Email) 拒收。\n建議改用上方的「下載備份檔案」功能！`);
+                }
+            }
+        }
+
+        function importData(event) { 
+            const file = event.target.files[0]; if (!file) return; 
+            if (!confirm('⚠️ 警告：還原資料將會「覆蓋」並清除您目前的所有紀錄。確定要繼續嗎？')) { event.target.value = ''; return; } 
+            const reader = new FileReader(); 
+            reader.onload = async function(e) { 
+                try { 
+                    const importedData = JSON.parse(e.target.result); 
+                    if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("備份檔案格式不正確"); 
+                    await db.clearAll(); 
+                    for (const entry of importedData.entries) await db.save(entry); 
+                    
+                    if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } 
+                    if(importedData.dayStatuses) { dayStatuses = importedData.dayStatuses; localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses)); }
+                    if(importedData.dayStatusNames) { dayStatusNames = importedData.dayStatusNames; localStorage.setItem('diary_day_status_names', JSON.stringify(dayStatusNames)); }
+                    
+                    alert("🎉 資料還原成功！系統將重新整理畫面。"); 
+                    closeModal('backupModal'); renderCalendar(); 
+                } catch (error) { alert("匯入失敗，檔案可能已損毀或格式錯誤。\n" + error); } 
+            }; 
+            reader.readAsText(file); event.target.value = ''; 
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
