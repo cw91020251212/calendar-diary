@@ -93,7 +93,7 @@
         .entry-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
         .entry-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--card-color, var(--primary)); }
         .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
-        .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold;}
+        .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold; display: flex; gap: 8px; align-items: center;}
         .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--border); }
         .entry-card-text { font-size: 16px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; line-height: 1.6;}
         .entry-card-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-top: 12px; }
@@ -101,7 +101,8 @@
 
         #readModal .modal-content { height: 100dvh; border-radius: 0; } 
         #readModal .modal-header { border-radius: 0; }
-        .read-time { color: var(--text-light); font-size: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;}
+        .read-time { color: var(--text-light); font-size: 16px; margin-bottom: 16px; display: flex; justify-content: flex-start; align-items: center; gap: 12px;}
+        .read-weather-badge { font-weight: bold; color: var(--text-main); font-size: 16px; }
         .read-tag-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 15px; font-weight: bold; color: white; margin-bottom: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .read-text { font-size: 18px; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; color: var(--text-main); }
         .read-text.size-sm { font-size: 16px; }
@@ -129,11 +130,11 @@
         .editor-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         
         .weather-toolbar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; flex-shrink: 0; }
-        /* 隱藏滾動條但保持可滑動 */
         .weather-toolbar::-webkit-scrollbar { display: none; }
         .weather-toolbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
-        .weather-btn:active { background: var(--hover); }
+        .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        /* 增加選中狀態的樣式 */
+        .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(102,126,234,0.3); }
 
         .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 12px 6px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main);}
         .tool-btn:hover { background: var(--border); }
@@ -278,9 +279,26 @@
     </div>
 
     <div class="modal-overlay" id="dayModal" onclick="closeModal('dayModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title" id="dayModalTitle">日期</div><button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button></div><div class="modal-body"><div class="entry-list" id="dayEntryList"></div><button class="add-entry-btn" onclick="openEditorFromDayView()"><i data-lucide="pen-line"></i> 新增此日記事</button></div></div></div>
-    <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)"><div class="modal-content"><div class="modal-header"><div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div><div><button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button><button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button></div></div><div class="modal-body"><div class="read-time"><span id="readTimeStr"></span></div><div><span class="read-tag-badge" id="readTagBadge"></span></div><div id="readText" class="read-text"></div><div id="readGallery" class="read-gallery"></div></div></div></div>
     
-    <!-- 🟢 編輯器模態框：加入了超齊全的天氣/突發狀況印章 -->
+    <!-- 🟢 閱讀視窗：修改了 read-time 區塊，加入獨立的天氣顯示位 -->
+    <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
+                <div><button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button><button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button></div>
+            </div>
+            <div class="modal-body">
+                <div class="read-time">
+                    <span id="readTimeStr"></span>
+                    <span id="readWeatherBadge" class="read-weather-badge"></span>
+                </div>
+                <div><span class="read-tag-badge" id="readTagBadge"></span></div>
+                <div id="readText" class="read-text"></div>
+                <div id="readGallery" class="read-gallery"></div>
+            </div>
+        </div>
+    </div>
+    
     <div class="modal-overlay" id="editorModal" onclick="closeModal('editorModal', event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -305,24 +323,24 @@
                     <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
                 </div>
 
-                <!-- 🌤️ 終極版天氣印章工具列 -->
-                <div class="weather-toolbar">
-                    <button class="weather-btn" onclick="insertWeather('☀️ 晴天')">☀️ 晴天</button>
-                    <button class="weather-btn" onclick="insertWeather('⛅ 多雲')">⛅ 多雲</button>
-                    <button class="weather-btn" onclick="insertWeather('🌧️ 落雨')">🌧️ 落雨</button>
-                    <button class="weather-btn" onclick="insertWeather('⛈️ 雷暴')">⛈️ 雷暴</button>
-                    <button class="weather-btn" onclick="insertWeather('🌡️🔥 酷熱')">🌡️🔥 酷熱</button>
-                    <button class="weather-btn" onclick="insertWeather('❄️ 寒冷')">❄️ 寒冷</button>
-                    <button class="weather-btn" onclick="insertWeather('⛄ 落雪')">⛄ 落雪</button>
-                    <button class="weather-btn" onclick="insertWeather('🧊 落雹')">🧊 落雹</button>
-                    <button class="weather-btn" onclick="insertWeather('🟡 黃雨')">🟡 黃雨</button>
-                    <button class="weather-btn" onclick="insertWeather('🔴 紅雨')">🔴 紅雨</button>
-                    <button class="weather-btn" onclick="insertWeather('⚫ 黑雨')">⚫ 黑雨</button>
-                    <button class="weather-btn" onclick="insertWeather('🌀 3號風球')">🌀 3號</button>
-                    <button class="weather-btn" onclick="insertWeather('🌀 8號風球')">🌀 8號</button>
-                    <button class="weather-btn" onclick="insertWeather('🌀 10號風球')">🌀 10號</button>
-                    <button class="weather-btn" onclick="insertWeather('🌊 水浸')">🌊 水浸</button>
-                    <button class="weather-btn" onclick="insertWeather('🌋 地震')">🌋 地震</button>
+                <!-- 🌤️ 天氣印章變成選擇按鈕 (data-weather屬性) -->
+                <div class="weather-toolbar" id="weatherToolbarUI">
+                    <button class="weather-btn" data-weather="☀️ 晴天" onclick="toggleWeather('☀️ 晴天')">☀️ 晴天</button>
+                    <button class="weather-btn" data-weather="⛅ 多雲" onclick="toggleWeather('⛅ 多雲')">⛅ 多雲</button>
+                    <button class="weather-btn" data-weather="🌧️ 落雨" onclick="toggleWeather('🌧️ 落雨')">🌧️ 落雨</button>
+                    <button class="weather-btn" data-weather="⛈️ 雷暴" onclick="toggleWeather('⛈️ 雷暴')">⛈️ 雷暴</button>
+                    <button class="weather-btn" data-weather="🌡️🔥 酷熱" onclick="toggleWeather('🌡️🔥 酷熱')">🌡️🔥 酷熱</button>
+                    <button class="weather-btn" data-weather="❄️ 寒冷" onclick="toggleWeather('❄️ 寒冷')">❄️ 寒冷</button>
+                    <button class="weather-btn" data-weather="⛄ 落雪" onclick="toggleWeather('⛄ 落雪')">⛄ 落雪</button>
+                    <button class="weather-btn" data-weather="🧊 落雹" onclick="toggleWeather('🧊 落雹')">🧊 落雹</button>
+                    <button class="weather-btn" data-weather="🟡 黃雨" onclick="toggleWeather('🟡 黃雨')">🟡 黃雨</button>
+                    <button class="weather-btn" data-weather="🔴 紅雨" onclick="toggleWeather('🔴 紅雨')">🔴 紅雨</button>
+                    <button class="weather-btn" data-weather="⚫ 黑雨" onclick="toggleWeather('⚫ 黑雨')">⚫ 黑雨</button>
+                    <button class="weather-btn" data-weather="🌀 3號風球" onclick="toggleWeather('🌀 3號風球')">🌀 3號</button>
+                    <button class="weather-btn" data-weather="🌀 8號風球" onclick="toggleWeather('🌀 8號風球')">🌀 8號</button>
+                    <button class="weather-btn" data-weather="🌀 10號風球" onclick="toggleWeather('🌀 10號風球')">🌀 10號</button>
+                    <button class="weather-btn" data-weather="🌊 水浸" onclick="toggleWeather('🌊 水浸')">🌊 水浸</button>
+                    <button class="weather-btn" data-weather="🌋 地震" onclick="toggleWeather('🌋 地震')">🌋 地震</button>
                 </div>
 
                 <textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea>
@@ -355,18 +373,15 @@
                     </button>
                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
                     
-                    <!-- 🖨️ 穩定版列印按鈕 -->
                     <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
                         <i data-lucide="printer"></i> 🖨️ 列印空白月曆
                     </button>
                     
                     <button class="action-btn primary" onclick="exportData()"><i data-lucide="download"></i> 下載備份檔案 (.txt)</button>
-                    <!-- 📲 一鍵分享按鈕 -->
                     <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 備份至 App</button>
                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 4px 0;">
                     
                     <button class="action-btn" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 上傳並還原資料</button>
-                    <!-- 支援讀取 .txt 與 .json -->
                     <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)">
                 </div>
             </div>
@@ -396,6 +411,7 @@
         let currentTextSizeIdx = 1;
         let selectedColor = 'blue';
         let currentImages = [];
+        let selectedWeatherBadge = ''; // 🟢 新增：儲存目前選中的天氣
         let isAnimating = false; 
 
         const DB_NAME = 'DiaryProDB'; 
@@ -506,17 +522,35 @@
         function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
         function closeModal(id, event) { if (event && event.target.id !== id) return; document.getElementById(id).classList.remove('active'); }
 
+        // 🟢 更新：清單畫面同時顯示天氣標籤（如果有）
         function openDayView(dateStr, entries) {
             editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
             const listEl = document.getElementById('dayEntryList');
             if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
-            } else { listEl.innerHTML = entries.map(e => { const entryJson = encodeURIComponent(JSON.stringify(e)); const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="openReadView('${entryJson}')"><div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'})}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`}).join(''); }
+            } else { 
+                listEl.innerHTML = entries.map(e => { 
+                    const entryJson = encodeURIComponent(JSON.stringify(e)); 
+                    const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; 
+                    const tagName = tagNames[e.color] || '標籤'; 
+                    const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'});
+                    // 若有記錄天氣，就加喺時間前面
+                    const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
+                    
+                    return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="openReadView('${entryJson}')"><div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                }).join(''); 
+            }
             document.getElementById('dayModal').classList.add('active');
         }
 
+        // 🟢 更新：閱讀畫面，將天氣顯示喺時間旁邊
         function openReadView(entryJsonEncoded) {
             currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded)); document.getElementById('dayModal').classList.remove('active');
-            const dateObj = new Date(currentEntryData.timestamp); document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
+            const dateObj = new Date(currentEntryData.timestamp); 
+            document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
+            
+            // 獨立顯示天氣
+            document.getElementById('readWeatherBadge').textContent = currentEntryData.weather ? `[ ${currentEntryData.weather} ]` : '';
+
             const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
             document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
             if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
@@ -532,10 +566,25 @@
 
         async function deleteFromReadView() { if (confirm('確定要刪除這份紀錄嗎？無法復原哦。')) { await db.delete(currentEntryData.id); closeModal('readModal'); renderCalendar(); } }
 
+        // 🟢 更新：進入編輯器時，讀取並顯示上次選中嘅天氣
         function openEditor(entryData) {
             currentEntryData = entryData; const textarea = document.getElementById('editorText');
-            if (entryData) { document.getElementById('editorTitle').textContent = '編輯記事'; textarea.value = entryData.text || ''; selectColor(entryData.color || 'blue'); setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); currentImages = entryData.images ? [...entryData.images] : [];
-            } else { document.getElementById('editorTitle').textContent = '新增記事'; textarea.value = ''; selectColor('blue'); setTextSize(1); currentImages = []; }
+            if (entryData) { 
+                document.getElementById('editorTitle').textContent = '編輯記事'; 
+                textarea.value = entryData.text || ''; 
+                selectColor(entryData.color || 'blue'); 
+                setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
+                currentImages = entryData.images ? [...entryData.images] : [];
+                selectedWeatherBadge = entryData.weather || '';
+            } else { 
+                document.getElementById('editorTitle').textContent = '新增記事'; 
+                textarea.value = ''; 
+                selectColor('blue'); 
+                setTextSize(1); 
+                currentImages = []; 
+                selectedWeatherBadge = '';
+            }
+            updateWeatherUI(); // 更新按鈕顏色
             renderEditorImages(); document.getElementById('editorModal').classList.add('active'); setTimeout(() => textarea.focus(), 400); 
         }
 
@@ -544,20 +593,27 @@
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
         function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
 
-        // 🟢 天氣印章插入功能
-        function insertWeather(weatherStr) {
-            const textarea = document.getElementById('editorText');
-            const cursorPosition = textarea.selectionStart;
-            const textBefore = textarea.value.substring(0, cursorPosition);
-            const textAfter = textarea.value.substring(cursorPosition);
-            const insertText = `[ ${weatherStr} ] `;
-            
-            textarea.value = textBefore + insertText + textAfter;
-            textarea.focus();
-            
-            // 將游標移到插入文字的後面
-            const newCursorPosition = cursorPosition + insertText.length;
-            textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+        // 🟢 全新邏輯：切換天氣選擇（不會插入文字，只會變色）
+        function toggleWeather(weatherStr) {
+            if (selectedWeatherBadge === weatherStr) {
+                selectedWeatherBadge = ''; // 再撳一次取消
+            } else {
+                selectedWeatherBadge = weatherStr;
+            }
+            updateWeatherUI();
+        }
+
+        // 🟢 讓介面按鈕反映目前的選擇狀態
+        function updateWeatherUI() {
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                if (btn.getAttribute('data-weather') === selectedWeatherBadge) {
+                    btn.classList.add('selected-weather');
+                    // 將選中的移到可視範圍內
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    btn.classList.remove('selected-weather');
+                }
+            });
         }
 
         function addToNativeCalendar() {
@@ -580,7 +636,25 @@
         function renderEditorImages() { document.getElementById('editorGallery').innerHTML = currentImages.map((src, idx) => `<div class="photo-item"><img src="${src}" onclick="openLightbox('${src}')"><button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:20px;height:20px;"></i></button></div>`).join(''); lucide.createIcons(); }
         function removeImage(idx) { currentImages.splice(idx, 1); renderEditorImages(); }
 
-        async function saveEntry() { const text = document.getElementById('editorText').value.trim(); if (!text && currentImages.length === 0) { alert('請輸入內容或加入圖片！'); return; } const entry = { id: currentEntryData ? currentEntryData.id : Date.now(), date: editingDateStr, timestamp: currentEntryData ? currentEntryData.timestamp : Date.now(), text: text, color: selectedColor, textSize: currentTextSizeIdx, images: currentImages }; await db.save(entry); closeModal('editorModal'); renderCalendar(); }
+        // 🟢 更新：儲存時，將 `weather: selectedWeatherBadge` 存入數據庫
+        async function saveEntry() { 
+            const text = document.getElementById('editorText').value.trim(); 
+            if (!text && currentImages.length === 0) { alert('請輸入內容或加入圖片！'); return; } 
+            const entry = { 
+                id: currentEntryData ? currentEntryData.id : Date.now(), 
+                date: editingDateStr, 
+                timestamp: currentEntryData ? currentEntryData.timestamp : Date.now(), 
+                text: text, 
+                color: selectedColor, 
+                textSize: currentTextSizeIdx, 
+                images: currentImages,
+                weather: selectedWeatherBadge // 儲存天氣資料
+            }; 
+            await db.save(entry); 
+            closeModal('editorModal'); 
+            renderCalendar(); 
+        }
+        
         function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
 
         async function exportData() { try { const entries = await db.getAll(); const backupObj = { version: "2.0", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries }; const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); } catch (error) { alert("匯出失敗：" + error); } }
