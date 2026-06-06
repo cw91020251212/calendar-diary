@@ -231,6 +231,15 @@
         .move-row { display:flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
         .move-row label { font-size: 14px; color: var(--text-light); font-weight: bold; }
         .move-row input[type=date] { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); font-size: 16px; }
+        .move-mode { display:flex; gap: 8px; margin-bottom: 10px; }
+        .move-mode .mini-btn { flex: 1; justify-content: center; }
+        .move-mode .mini-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .move-bulk { display:none; }
+        .move-bulk .range-row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .move-bulk textarea { width: 100%; min-height: 84px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); font-size: 14px; resize: vertical; }
+        .weekday-pills { display:flex; flex-wrap: wrap; gap: 8px; }
+        .weekday-pill { display:flex; align-items:center; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; font-size: 13px; font-weight: bold; color: var(--text-main); cursor: pointer; user-select:none; }
+        .weekday-pill input { accent-color: var(--primary); }
         .move-actions { display:flex; gap: 10px; margin-top: 12px; }
         .move-actions .btn { padding: 14px; font-size: 16px; }
 
@@ -486,12 +495,57 @@
                 <button class="icon-btn" onclick="closeModal('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
-                <div class="move-row">
+                <div class="move-mode">
+                    <button class="mini-btn active" id="mcModeSingle" onclick="setMoveCopyMode('single')">單一日期</button>
+                    <button class="mini-btn" id="mcModeBulk" onclick="setMoveCopyMode('bulk')">多個日期</button>
+                </div>
+
+                <div class="move-row move-single" id="moveCopySingleBox">
                     <label>目標日期</label>
                     <input type="date" id="moveCopyTargetDate">
                     <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">提示：
                         <b>移動</b> = 原本嗰份會搬走；
                         <b>複製</b> = 會保留原本，再複製一份到新日子。
+                    </div>
+                </div>
+
+                <div class="move-row move-bulk" id="moveCopyBulkBox">
+                    <label>批量複製到多個日子</label>
+                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top:-4px;">
+                        你可以用「日期範圍 + 星期」生成，或者直接貼上多個日期（每行一個）。
+                    </div>
+
+                    <div class="range-row" style="margin-top:6px;">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-bottom:6px;">開始日</div>
+                            
+                            <input type="date" id="moveCopyStartDate">
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-bottom:6px;">結束日</div>
+                            <input type="date" id="moveCopyEndDate">
+                        </div>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-top:10px;">包括星期</div>
+                    <div class="weekday-pills">
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="0" checked>日</label>
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="1" checked>一</label>
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="2" checked>二</label>
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="3" checked>三</label>
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="4" checked>四</label>
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="5" checked>五</label>
+                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="6" checked>六</label>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-top:10px;">或：直接貼上日期清單</div>
+                    <textarea id="moveCopyDatesTextarea" placeholder="例如：
+2026-06-08
+2026-06-15
+2026-06-30"></textarea>
+
+                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">
+                        建議每次最多 <b>60</b> 個日子（避免太慢或太大）。
                     </div>
                 </div>
                 <div class="move-actions">
@@ -1487,7 +1541,80 @@
             const picker = document.getElementById('moveCopyTargetDate');
             if (picker) picker.value = editingDateStr;
             openModal('moveCopyModal');
+            // 預設：單一日期模式
+            setMoveCopyMode('single');
+            // 批量模式：預設範圍=當日，方便你一開就改
+            const s = document.getElementById('moveCopyStartDate');
+            const e = document.getElementById('moveCopyEndDate');
+            if (s) s.value = editingDateStr;
+            if (e) e.value = editingDateStr;
+            const ta = document.getElementById('moveCopyDatesTextarea');
+            if (ta) ta.value = '';
             lucide.createIcons();
+        }
+
+        function setMoveCopyMode(mode) {
+            const singleBtn = document.getElementById('mcModeSingle');
+            const bulkBtn = document.getElementById('mcModeBulk');
+            const singleBox = document.getElementById('moveCopySingleBox');
+            const bulkBox = document.getElementById('moveCopyBulkBox');
+
+            const isBulk = mode === 'bulk';
+            if (singleBtn) singleBtn.classList.toggle('active', !isBulk);
+            if (bulkBtn) bulkBtn.classList.toggle('active', isBulk);
+            if (singleBox) singleBox.style.display = isBulk ? 'none' : 'flex';
+            if (bulkBox) bulkBox.style.display = isBulk ? 'flex' : 'none';
+        }
+
+        function normalizeDateStr(s) {
+            const t = (s || '').trim();
+            // 只接受 YYYY-MM-DD
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return '';
+            return t;
+        }
+
+        function buildTargetsFromTextarea() {
+            const ta = document.getElementById('moveCopyDatesTextarea');
+            if (!ta) return [];
+            const lines = (ta.value || '')
+                .split(/\r?\n|,|\s+/)
+                .map(x => normalizeDateStr(x))
+                .filter(Boolean);
+            return Array.from(new Set(lines));
+        }
+
+        function buildTargetsFromRange() {
+            const s = document.getElementById('moveCopyStartDate');
+            const e = document.getElementById('moveCopyEndDate');
+            const start = normalizeDateStr(s ? s.value : '');
+            const end = normalizeDateStr(e ? e.value : '');
+            if (!start || !end) return [];
+
+            const checked = Array.from(document.querySelectorAll('.mcWeekday'))
+                .filter(el => el.checked)
+                .map(el => parseInt(el.value, 10));
+            const allowed = new Set(checked);
+            if (allowed.size === 0) return [];
+
+            const out = [];
+            const cur = new Date(start + 'T00:00:00');
+            const endD = new Date(end + 'T00:00:00');
+            if (isNaN(cur.getTime()) || isNaN(endD.getTime())) return [];
+            if (cur > endD) return [];
+
+            while (cur <= endD) {
+                const dow = cur.getDay(); // 0-6
+                if (allowed.has(dow)) {
+                    const y = cur.getFullYear();
+                    const m = String(cur.getMonth() + 1).padStart(2, '0');
+                    const d = String(cur.getDate()).padStart(2, '0');
+                    out.push(`${y}-${m}-${d}`);
+                }
+                cur.setDate(cur.getDate() + 1);
+                // 簡單防呆：避免極端情況無限 loop
+                if (out.length > 400) break;
+            }
+            return Array.from(new Set(out));
         }
 
         async function cloneAttachmentsForCopy(attachments) {
@@ -1514,26 +1641,28 @@
         }
 
         async function applyMoveOrCopy(mode) {
-            const picker = document.getElementById('moveCopyTargetDate');
-            const target = picker ? picker.value : '';
-            if (!target) { alert('請先選擇目標日期'); return; }
             if (!currentEntryData) { alert('未有可移動的記事'); return; }
+
+            const isBulk = !!(document.getElementById('moveCopyBulkBox') && document.getElementById('moveCopyBulkBox').style.display !== 'none');
 
             // 先把你而家畫面嘅內容（顏色/附件清單等）同步入 currentEntryData
             await silentAutoSave();
-
             const sourceDate = currentEntryData.date;
 
-            // ✅ 保留「底色」：把來源日期嘅 day status 複製到目標日期（同時保留來源嗰日原狀）
-            try {
-                if (dayStatuses && sourceDate && dayStatuses[sourceDate] && !dayStatuses[target]) {
-                    dayStatuses[target] = dayStatuses[sourceDate];
-                    localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
-                }
-            } catch (e) { console.error(e); }
-
+            // --- Move：仍然只支援單一日期（安全起見）
             if (mode === 'move') {
-                // ✅ 移動：同一份記事改 date
+                const picker = document.getElementById('moveCopyTargetDate');
+                const target = picker ? normalizeDateStr(picker.value) : '';
+                if (!target) { alert('請先選擇目標日期'); return; }
+
+                // ✅ 保留「底色」：把來源日期嘅 day status 複製到目標日期（同時保留來源嗰日原狀）
+                try {
+                    if (dayStatuses && sourceDate && dayStatuses[sourceDate] && !dayStatuses[target]) {
+                        dayStatuses[target] = dayStatuses[sourceDate];
+                        localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
+                    }
+                } catch (e) { console.error(e); }
+
                 currentEntryData.date = target;
                 await db.save(currentEntryData);
 
@@ -1548,16 +1677,62 @@
                 return;
             }
 
+            // --- Copy
             if (mode === 'copy') {
-                // ✅ 複製：保持顏色/底色/附件狀態；附件 blob 會複製成新 id
-                const newId = Date.now();
-                const newAttachments = await cloneAttachmentsForCopy(currentEntryData.attachments || []);
-                const copy = { ...currentEntryData, id: newId, date: target, timestamp: Date.now(), attachments: newAttachments };
-                await db.save(copy);
+                let targets = [];
+
+                if (!isBulk) {
+                    const picker = document.getElementById('moveCopyTargetDate');
+                    const target = picker ? normalizeDateStr(picker.value) : '';
+                    if (!target) { alert('請先選擇目標日期'); return; }
+                    targets = [target];
+                } else {
+                    // 1) 先睇有冇貼日期清單（有就優先用）
+                    targets = buildTargetsFromTextarea();
+                    // 2) 否則用範圍 + 星期生成
+                    if (targets.length === 0) targets = buildTargetsFromRange();
+
+                    // 3) 防呆
+                    targets = targets.filter(Boolean);
+                    targets = Array.from(new Set(targets));
+                    if (targets.length === 0) { alert('未有任何目標日期（請貼日期清單，或者填開始/結束日並勾選星期）'); return; }
+                    if (targets.length > 60) {
+                        alert('一次過複製太多（' + targets.length + ' 個日子）。為免太慢，請分批，每次最多 60 個。');
+                        return;
+                    }
+
+                    // 避免無意思：如果包含來源日，會跳過
+                    targets = targets.filter(d => d !== sourceDate);
+                    if (targets.length === 0) { alert('目標日期只得來源日期（已自動跳過），所以無需複製。'); return; }
+
+                    if (!confirm('確定要複製到 ' + targets.length + ' 個日子？\n\n' + targets.slice(0, 12).join('\n') + (targets.length > 12 ? '\n...' : ''))) {
+                        return;
+                    }
+                }
+
+                // 批量複製：逐個日子儲存（附件 blob 會逐份複製成新 id）
+                let copied = 0;
+                for (let i = 0; i < targets.length; i++) {
+                    const target = targets[i];
+
+                    // ✅ 保留「底色」：來源日 -> 目標日（如果目標日未設定過）
+                    try {
+                        if (dayStatuses && sourceDate && dayStatuses[sourceDate] && !dayStatuses[target]) {
+                            dayStatuses[target] = dayStatuses[sourceDate];
+                            localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
+                        }
+                    } catch (e) { console.error(e); }
+
+                    const newId = Date.now() + i;
+                    const newAttachments = await cloneAttachmentsForCopy(currentEntryData.attachments || []);
+                    const copy = { ...currentEntryData, id: newId, date: target, timestamp: Date.now(), attachments: newAttachments };
+                    await db.save(copy);
+                    copied++;
+                }
 
                 closeModal('moveCopyModal');
                 renderCalendar();
-                showToast('✅ 已複製到 ' + target, 'success');
+                showToast('✅ 已複製到 ' + copied + ' 個日子', 'success');
                 return;
             }
         }
