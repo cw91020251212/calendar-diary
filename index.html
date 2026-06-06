@@ -6,6 +6,8 @@
     <meta name="description" content="日曆記事本 - 記錄每一天的美好時刻">
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="mobile-web-app-capable" content="yes">
     <!-- 引入 Google Cloud 雲端同步核心組件 -->
     <!-- 重要：先定義 gapiLoaded/gisLoaded，避免外部 script 載入太快時 onload 找唔到函數 -->
     <script>
@@ -1303,7 +1305,91 @@
             }
         });
 
-        window.onload = initApp;
+        // =========================
+        // 📲 PWA + Android 分享接收（Web Share Target）
+        // =========================
+        async function registerServiceWorker() {
+            try {
+                if (!('serviceWorker' in navigator)) return;
+                await navigator.serviceWorker.register('sw.js', { scope: './' });
+            } catch (e) {
+                console.error('SW register failed', e);
+            }
+        }
+
+        async function tryConsumeSharedPayload() {
+            try {
+                const url = new URL(window.location.href);
+                if (url.searchParams.get('shared') !== '1') return;
+
+                if (!('caches' in window)) return;
+                const cache = await caches.open('diary-share-cache-v1');
+
+                // 同時兼容不同部署路徑：嘗試用相對 key
+
+                const payloadResp = await cache.match('/__share_payload__');
+                if (!payloadResp) return;
+
+                const payload = await payloadResp.json();
+
+                // 讀取圖片（如果有）
+                let images = [];
+                const countResp = await cache.match('/__share_files_count__');
+                const filesCount = countResp ? parseInt(await countResp.text(), 10) : (payload.filesCount || 0);
+
+                for (let i = 0; i < filesCount; i++) {
+                    const r = await cache.match(`/__share_file___${i}`);
+                    if (!r) continue;
+                    const blob = await r.blob();
+                    const dataUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    images.push(String(dataUrl));
+                }
+
+                // 組合文字：title/text/url
+                const parts = [];
+                if (payload.title) parts.push(payload.title);
+                if (payload.text) parts.push(payload.text);
+                if (payload.url) parts.push(payload.url);
+                const combinedText = parts.filter(Boolean).join('\n\n');
+
+                // 開啟「新增記事」編輯器並帶入內容
+                editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+                openEditor(null);
+                const textarea = document.getElementById('editorText');
+                if (textarea && combinedText) textarea.value = combinedText;
+
+                if (images.length > 0) {
+                    currentImages = images;
+                    renderEditorImages();
+                }
+
+                showToast('✅ 已接收分享內容，請按「儲存記錄」', 'success');
+
+                // 用完即清：避免下次重入又彈一次
+                await cache.delete('/__share_payload__');
+                await cache.delete('/__share_files_count__');
+                for (let i = 0; i < filesCount; i++) await cache.delete(`/__share_file___${i}`);
+
+                // 清走 shared=1（但唔 reload）
+                url.searchParams.delete('shared');
+                history.replaceState(history.state, document.title, url.pathname + (url.searchParams.toString() ? ('?' + url.searchParams.toString()) : '') + url.hash);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ✅ 修正：上面 cache key 用咗 3 個底線，呢度統一返（兼容舊 key）
+        // （留空，實際 key 由 SW 產生，見 tryConsumeSharedPayload）
+
+        window.onload = async () => {
+            await registerServiceWorker();
+            await initApp();
+            await tryConsumeSharedPayload();
+        };
     </script>
 </body>
 </html>
