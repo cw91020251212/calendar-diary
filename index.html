@@ -195,7 +195,7 @@
         .tutorial-title { color: var(--text-main); font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .tutorial-text { color: var(--text-light); font-size: 15px; line-height: 1.6; }
 
-        #fileInput, #cameraInput, #importInput { display: none; }
+        #fileInput, #importInput { display: none; }
 
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; }
@@ -232,6 +232,7 @@
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
                 <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
+                <button class="icon-btn" onclick="openModal('toolboxModal')"><i data-lucide="briefcase" style="width: 26px; height: 26px;"></i></button>
 					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
@@ -371,10 +372,8 @@
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
-                    <button class="tool-btn" onclick="document.getElementById('cameraInput').click()"><i data-lucide="camera"></i> 影相</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
-                    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)">
                 </div>
 
                 <div class="weather-toolbar" id="weatherToolbarUI">
@@ -465,30 +464,19 @@
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                 </button>
 
-                <button class="action-btn" style="background: #eef2ff; color: #3730a3; border-color: #c7d2fe; margin-bottom:16px;" onclick="closeModal('backupModal'); openModal('toolboxModal');">
-                    <i data-lucide="briefcase"></i> 🧰 打開工具箱（網址捷徑）
-                </button>
-
-
-                <!-- ☁️ Google 雲端同步（先收起：撳掣先展開） -->
-                <div class="section-header" onclick="toggleSection('googleCloudSync')" style="margin-bottom: 8px;">
-                    ☁️ Google 雲端同步 <i data-lucide="chevron-down"></i>
-                </div>
-                <div id="googleCloudSync" class="section-content">
-                    <div class="tutorial-box" style="border-color: #4285F4; background: #f8faff;">
-                        <div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
-                        <div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
-                        <div style="font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 6px;">
-                            相關文件：
-                            <a href="privacy.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《私隱權政策》</a>
-                            ／
-                            <a href="terms.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《服務條款》</a>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
-                            <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
-                            <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed #feb2b2; display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
-                        </div>
+                <div class="tutorial-box" style="border-color: #4285F4; background: #f8faff;">
+                    <div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
+                    <div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
+                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 6px;">
+                        相關文件：
+                        <a href="privacy.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《私隱權政策》</a>
+                        ／
+                        <a href="terms.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《服務條款》</a>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
+                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+                        <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed #feb2b2; display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
                     </div>
                 </div>
                 
@@ -548,7 +536,7 @@
         // 🟢 全新變數：自動儲存計時器
         let autoSaveInterval = null;
 
-        const CLIENT_ID = '412594028338-gi0u8p0uvk4dcqrb6jv534ii56e58grn.apps.googleusercontent.com';
+        const CLIENT_ID = '821513038783-uhr5flbnurvsgoh9vbekovl29e049m3s.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; 
         let tokenClient;
@@ -605,6 +593,8 @@
             if (token === null) {
                 tokenClient.callback = async (resp) => {
                     if (resp.error !== undefined) { throw (resp); }
+                    // ✅ 關鍵修正：把 GIS 取得的 access token 設到 gapi client，否則 Drive 請求會 401
+                    gapi.client.setToken(resp);
                     document.getElementById('cloudLogoutBtn').style.display = 'flex';
                     if (action === 'backup') doCloudBackup();
                     if (action === 'restore') doCloudRestore();
@@ -644,7 +634,11 @@
                 if (existingFile) { requestParams.path = '/upload/drive/v3/files/' + existingFile.id; requestParams.method = 'PATCH'; } else { requestParams.path = '/upload/drive/v3/files'; requestParams.method = 'POST'; }
                 await gapi.client.request(requestParams);
                 alert('☁️ 成功！所有資料已安全同步至 Google 雲端隱藏空間內！');
-            } catch (err) { console.error(err); alert('上傳失敗！請確定網絡正常。'); } finally { btn.innerHTML = orig; lucide.createIcons(); }
+            } catch (err) {
+                console.error(err);
+                const msg = (err && err.result && err.result.error && err.result.error.message) ? err.result.error.message : (err && err.message ? err.message : String(err));
+                alert('上傳失敗！\n\n可能原因：未成功授權／Drive API 未啟用／網絡限制。\n\n錯誤訊息：' + msg);
+            } finally { btn.innerHTML = orig; lucide.createIcons(); }
         }
 
         async function doCloudRestore() {
