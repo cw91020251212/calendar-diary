@@ -60,7 +60,7 @@
         .app-container { display: flex; flex-direction: column; height: 100dvh; }
 
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
-        .header-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; }
+        .header-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
@@ -236,7 +236,7 @@
     <div class="app-container">
         <!-- 頂部導航 -->
         <header>
-            <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>日曆</span></div>
+            <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>月曆</span></div>
             <div class="month-selector">
                 <div id="cloudMiniStatus" style="font-size: 12px; color: var(--text-light); opacity: 0.85; margin-right: 6px; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
                 <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
@@ -247,7 +247,6 @@
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
                 <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
-                <button class="icon-btn" onclick="openModal('toolboxModal')"><i data-lucide="briefcase" style="width: 26px; height: 26px;"></i></button>
 					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
@@ -437,23 +436,23 @@
                 <div class="section-header" onclick="toggleSection('emergency')">🚨 緊急聯絡 <i data-lucide="chevron-down"></i></div>
                 <div id="emergency" class="section-content">
                     <a href="tel:999" class="action-btn"><i data-lucide="phone"></i> 緊急求助 (999)</a>
-                    <a href="https://www.police.gov.hk/ppp_tc/" target="_blank" class="action-btn"><i data-lucide="shield-alert"></i> 香港警務處網頁</a>
+                    <a href="https://www.police.gov.hk/ppp_tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="shield-alert"></i> 香港警務處（如字太細可用雙指放大）</a>
                 </div>
 
                 <!-- 🚗 交通消息 -->
                 <div class="section-header" onclick="toggleSection('traffic')">🚗 交通消息 <i data-lucide="chevron-down"></i></div>
                 <div id="traffic" class="section-content">
-                    <a href="https://www.td.gov.hk/tc/transport_in_hong_kong/its/intelligent_road_network_system/traffic_snapshot_images/index.html" target="_blank" class="action-btn"><i data-lucide="camera"></i> 運輸署交通快拍</a>
-                    <a href="https://www.mtr.com.hk/ch/customer/main/index.html" target="_blank" class="action-btn"><i data-lucide="train-front"></i> 港鐵行程搜尋</a>
-                    <a href="https://www.td.gov.hk/tc/special_traffic_news/index.html" target="_blank" class="action-btn"><i data-lucide="alert-triangle"></i> 特別交通消息</a>
+                    <a href="https://www.hkemobility.gov.hk/tc/traffic-information/live/cctv" target="_blank" rel="noopener" class="action-btn"><i data-lucide="camera"></i> 交通快拍（手機版／香港出行易）</a>
+                    <a href="https://www.mtr.com.hk/ch/customer/jp/index.php" target="_blank" rel="noopener" class="action-btn"><i data-lucide="train-front"></i> 港鐵行程指南（路綫建議）</a>
+                    <a href="https://www.td.gov.hk/tc/special_traffic_news/index.html" target="_blank" rel="noopener" class="action-btn"><i data-lucide="alert-triangle"></i> 特別交通消息</a>
                 </div>
 
                 <!-- 🏛️ 生活與假期 -->
                 <div class="section-header" onclick="toggleSection('govt')">🏛️ 生活與假期 <i data-lucide="chevron-down"></i></div>
                 <div id="govt" class="section-content">
-                    <a href="https://www.hko.gov.hk/tc/" target="_blank" class="action-btn"><i data-lucide="cloud-sun"></i> 香港天文台</a>
-                    <a href="https://www.gov.hk/tc/about/abouthk/holiday/" target="_blank" class="action-btn"><i data-lucide="calendar"></i> 政府公眾假期</a>
-                    <a href="https://www.gov.hk/tc/residents/" target="_blank" class="action-btn"><i data-lucide="landmark"></i> 政府一站通</a>
+                    <a href="https://www.hko.gov.hk/tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="cloud-sun"></i> 香港天文台</a>
+                    <a href="https://www.gov.hk/tc/about/abouthk/holiday/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="calendar"></i> 政府公眾假期</a>
+                    <a href="https://www.gov.hk/tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="landmark"></i> GovHK 香港政府一站通（首頁）</a>
                 </div>
 
                 <!-- 📝 私人筆記 -->
@@ -475,8 +474,12 @@
             </div>
             <div class="modal-body">
                 
-                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:16px;" onclick="openHelpModal()">
+                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:12px;" onclick="openHelpModal()">
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
+                </button>
+
+                <button class="action-btn" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;" onclick="closeModal('backupModal'); setTimeout(() => openModal('toolboxModal'), 150);">
+                    <i data-lucide="briefcase"></i> 打開工具箱
                 </button>
 
                 <div class="tutorial-box" style="border-color: #4285F4; background: #f8faff;">
@@ -573,6 +576,29 @@
 
         // 🟢 全新變數：自動儲存計時器
         let autoSaveInterval = null;
+
+        // 🟩 Android 返回鍵處理：用 History API 令「返回」先關編輯器並儲存
+        let __editorHistoryPushed = false;
+        let __suppressNextPop = false;
+        function ensureBaseHistoryState() {
+            try {
+                if (!history.state || !history.state.__diaryBase) {
+                    history.replaceState({ __diaryBase: true }, document.title);
+                }
+            } catch (e) { console.error(e); }
+        }
+        window.addEventListener('popstate', async () => {
+            // 如果係我哋自己 closeEditor() 觸發嘅 history.back()，就唔再處理
+            if (__suppressNextPop) { __suppressNextPop = false; return; }
+            try {
+                const editorEl = document.getElementById('editorModal');
+                const editorActive = !!(editorEl && editorEl.classList.contains('active'));
+                if (editorActive) {
+                    __editorHistoryPushed = false;
+                    await closeEditorNoHistory();
+                }
+            } catch (e) { console.error(e); }
+        });
 
         const CLIENT_ID = '821513038783-uhr5flbnurvsgoh9vbekovl29e049m3s.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
@@ -866,6 +892,9 @@
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
             if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
 
+            // 🟩 初始化 base history（Android 返回鍵用）
+            try { ensureBaseHistoryState(); } catch (e) { console.error(e); }
+
             // ☁️ 如果你之前開咗自動同步，返嚟會自動再開（但仍然只喺頁面開住時有效）
             try { initCloudAutoSyncFromStorage(); } catch (e) { console.error(e); }
         }
@@ -1059,6 +1088,15 @@
             updateWeatherUI(); 
             renderEditorImages(); document.getElementById('editorModal').classList.add('active'); 
             setTimeout(() => textarea.focus(), 400); 
+
+            // 🟩 Android 返回鍵：開啟編輯器時 push 一個 history state
+            ensureBaseHistoryState();
+            try {
+                if (!__editorHistoryPushed) {
+                    history.pushState({ __diaryModal: 'editor' }, document.title);
+                    __editorHistoryPushed = true;
+                }
+            } catch (e) { console.error(e); }
             
             // 🟢 開啟編輯器時，啟動定時自動儲存
             startAutoSave();
@@ -1145,11 +1183,25 @@
         }
 
         // 🟢 取代原有取消按鈕：安全關閉編輯器
-        async function closeEditor() {
+        // ✅ 不帶 history 操作嘅關閉（畀 popstate 用，避免循環）
+        async function closeEditorNoHistory() {
             await silentAutoSave(); // 離開前強制儲存一次
             stopAutoSave();
             closeModal('editorModal');
             renderCalendar(); // 刷新日曆畫面
+        }
+
+        // 🟢 取代原有取消按鈕：安全關閉編輯器（會處理 Android 返回鍵嘅 history）
+        async function closeEditor() {
+            await closeEditorNoHistory();
+            // 如果係由按鈕/背景 click 主動關閉，就把 history 退返一步，避免堆疊越嚟越長
+            try {
+                if (__editorHistoryPushed) {
+                    __suppressNextPop = true;
+                    __editorHistoryPushed = false;
+                    history.back();
+                }
+            } catch (e) { console.error(e); }
         }
 
         // ✅ 你想要嘅「離開畫面=自動儲存」：
