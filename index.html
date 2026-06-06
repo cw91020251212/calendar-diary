@@ -478,6 +478,23 @@
                         <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
                         <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed #feb2b2; display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
                     </div>
+
+                    <!-- ✅ 自動雲端同步（頁面開住時） -->
+                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid rgba(66,133,244,0.25); background: rgba(66,133,244,0.06);">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="font-weight:bold; color:#1f4fbf; display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="repeat" style="width:18px; height:18px;"></i>
+                                自動同步（每 30 秒）
+                            </div>
+                            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
+                                <input id="cloudAutoSyncToggle" type="checkbox" onchange="toggleCloudAutoSyncFromUI()" style="width:20px; height:20px;" />
+                                <span id="cloudAutoSyncLabel" style="font-weight:bold;">關閉</span>
+                            </label>
+                        </div>
+                        <div id="cloudAutoSyncStatus" style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
+                            提示：只會喺呢個網頁保持開住嗰陣自動上傳；關咗頁／退出瀏覽器就會停止。
+                        </div>
+                    </div>
                 </div>
                 
                 <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
@@ -591,16 +608,33 @@
             }
             const token = gapi.client.getToken();
             if (token === null) {
-                tokenClient.callback = async (resp) => {
-                    if (resp.error !== undefined) { throw (resp); }
-                    // ✅ 關鍵修正：把 GIS 取得的 access token 設到 gapi client，否則 Drive 請求會 401
-                    gapi.client.setToken(resp);
-                    document.getElementById('cloudLogoutBtn').style.display = 'flex';
-                    if (action === 'backup') doCloudBackup();
-                    if (action === 'restore') doCloudRestore();
-                };
+
                 try {
-                    tokenClient.requestAccessToken({ prompt: 'consent' });
+                    // 先嘗試「唔彈視窗」靜默取 token；如果失敗先再彈 consent（Android/Chrome 通常比較順）
+                    let triedInteractive = false;
+                    tokenClient.callback = async (resp) => {
+                        // 靜默失敗（常見：interaction_required / login_required）就升級做互動授權
+                        if (resp && resp.error) {
+                            if (!triedInteractive) {
+                                triedInteractive = true;
+                                try { tokenClient.requestAccessToken({ prompt: 'consent' }); } catch (e2) { console.error(e2); alert('無法開啟 Google 授權視窗。'); }
+                                return;
+                            }
+                            alert('Google 授權失敗：' + resp.error);
+                            return;
+                        }
+                        // ✅ 把 GIS token 設到 gapi client
+                        gapi.client.setToken(resp);
+                        document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                        if (action === 'backup') doCloudBackup();
+                        if (action === 'restore') doCloudRestore();
+                    };
+                    try {
+                        tokenClient.requestAccessToken({ prompt: '' });
+                    } catch (e) {
+                        console.error(e);
+                        alert('無法開啟 Google 授權流程，請稍後再試。');
+                    }
                 } catch (e) {
                     console.error(e);
                     alert('無法開啟 Google 授權視窗。\n\n常見原因：\n1) Google Cloud Console 未加入此網域到「Authorized JavaScript origins」\n2) 瀏覽器阻擋第三方 Cookie / 彈出式視窗\n\n請先確定已加入：' + window.location.origin);
@@ -663,6 +697,81 @@
             } catch (err) { console.error(err); alert('還原失敗！'); } finally { btn.innerHTML = orig; lucide.createIcons(); }
         }
 
+        // =========================
+        // ☁️ 自動雲端同步（每 30 秒）
+        // =========================
+        const CLOUD_AUTOSYNC_MS = 30000;
+        const CLOUD_AUTOSYNC_KEY = 'diary_cloud_autosync_enabled_v1';
+        let cloudAutoSyncInterval = null;
+        let cloudAutoSyncBusy = false;
+
+        function setCloudAutoSyncUI(enabled) {
+            const t = document.getElementById('cloudAutoSyncToggle');
+            const l = document.getElementById('cloudAutoSyncLabel');
+            if (t) t.checked = !!enabled;
+            if (l) l.textContent = enabled ? '開啟' : '關閉';
+        }
+
+        function setCloudAutoSyncStatus(text, isError = false) {
+            const el = document.getElementById('cloudAutoSyncStatus');
+            if (!el) return;
+            el.textContent = text;
+            el.style.color = isError ? '#c53030' : 'var(--text-light)';
+        }
+
+        async function runCloudAutoSyncOnce() {
+            if (cloudAutoSyncBusy) return;
+            cloudAutoSyncBusy = true;
+            try {
+                setCloudAutoSyncStatus('⏳ 自動同步中...（每 30 秒）');
+                // 用 backup 行為：如未登入會自動引導授權
+                await cloudAction('backup');
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                const ss = String(now.getSeconds()).padStart(2, '0');
+                setCloudAutoSyncStatus(`✅ 自動同步完成：${hh}:${mm}:${ss}（每 30 秒）`);
+            } catch (e) {
+                console.error(e);
+                setCloudAutoSyncStatus('❌ 自動同步失敗（可能未授權／網絡限制）。你可以按一次「同步上傳」重新授權。', true);
+            } finally {
+                cloudAutoSyncBusy = false;
+            }
+        }
+
+        function startCloudAutoSync() {
+            stopCloudAutoSync();
+            localStorage.setItem(CLOUD_AUTOSYNC_KEY, 'true');
+            setCloudAutoSyncUI(true);
+            setCloudAutoSyncStatus('✅ 已開啟：只要頁面開住，就會每 30 秒自動上傳一次。');
+            // 立即跑一次，之後每 30 秒一次
+            runCloudAutoSyncOnce();
+            cloudAutoSyncInterval = setInterval(runCloudAutoSyncOnce, CLOUD_AUTOSYNC_MS);
+        }
+
+        function stopCloudAutoSync() {
+            localStorage.setItem(CLOUD_AUTOSYNC_KEY, 'false');
+            setCloudAutoSyncUI(false);
+            if (cloudAutoSyncInterval) {
+                clearInterval(cloudAutoSyncInterval);
+                cloudAutoSyncInterval = null;
+            }
+            setCloudAutoSyncStatus('提示：只會喺呢個網頁保持開住嗰陣自動上傳；關咗頁／退出瀏覽器就會停止。');
+        }
+
+        function toggleCloudAutoSyncFromUI() {
+            const t = document.getElementById('cloudAutoSyncToggle');
+            const enabled = !!(t && t.checked);
+            if (enabled) startCloudAutoSync();
+            else stopCloudAutoSync();
+        }
+
+        function initCloudAutoSyncFromStorage() {
+            const enabled = localStorage.getItem(CLOUD_AUTOSYNC_KEY) === 'true';
+            setCloudAutoSyncUI(enabled);
+            if (enabled) startCloudAutoSync();
+        }
+
         const DB_NAME = 'DiaryProDB'; 
         const STORE_NAME = 'entries';
         const db = {
@@ -696,6 +805,9 @@
             if (pn) pn.value = localStorage.getItem('user_private_note') || ''; 
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
             if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
+
+            // ☁️ 如果你之前開咗自動同步，返嚟會自動再開（但仍然只喺頁面開住時有效）
+            try { initCloudAutoSyncFromStorage(); } catch (e) { console.error(e); }
         }
 
         function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
