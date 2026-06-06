@@ -240,6 +240,16 @@
         .weekday-pills { display:flex; flex-wrap: wrap; gap: 8px; }
         .weekday-pill { display:flex; align-items:center; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; font-size: 13px; font-weight: bold; color: var(--text-main); cursor: pointer; user-select:none; }
         .weekday-pill input { accent-color: var(--primary); }
+
+        .mc-hint { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; color: var(--text-main); line-height: 1.35; }
+        .mc-hint b { color: var(--primary); }
+        .mc-preview { margin-top: 10px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; max-height: 180px; overflow: auto; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+        .mc-preview .empty { color: var(--text-light); font-family: inherit; }
+        .mc-progress-wrap { margin-top: 10px; display:none; }
+        .mc-progress-label { font-size: 12px; color: var(--text-light); margin-bottom: 6px; font-weight: bold; }
+        .mc-progress { width: 100%; height: 10px; border-radius: 999px; background: rgba(0,0,0,0.08); overflow: hidden; border: 1px solid var(--border); }
+        .mc-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.15s ease; }
+
         .move-actions { display:flex; gap: 10px; margin-top: 12px; }
         .move-actions .btn { padding: 14px; font-size: 16px; }
 
@@ -544,6 +554,14 @@
 2026-06-15
 2026-06-30"></textarea>
 
+                    <div class="mc-hint" id="mcImpactHint"><span class="empty">將會影響 0 個日期（尚未有目標日期）</span></div>
+                    <div class="mc-preview" id="mcPreview"><div class="empty">預覽清單會喺呢度顯示</div></div>
+
+                    <div class="mc-progress-wrap" id="mcProgressWrap">
+                        <div class="mc-progress-label" id="mcProgressLabel">複製中…</div>
+                        <div class="mc-progress"><div class="mc-progress-bar" id="mcProgressBar"></div></div>
+                    </div>
+
                     <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">
                         建議每次最多 <b>60</b> 個日子（避免太慢或太大）。
                     </div>
@@ -552,6 +570,7 @@
                     <button class="btn btn-cancel" onclick="closeModal('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
                     <button class="btn" style="background:#2563eb; color:white;" onclick="applyMoveOrCopy('move')"><i data-lucide="move"></i> 移動</button>
                     <button class="btn" style="background: var(--primary); color:white;" onclick="applyMoveOrCopy('copy')"><i data-lucide="copy"></i> 複製</button>
+                    <button class="btn" style="background:#111827; color:white; display:none;" id="mcUndoBtn" onclick="undoLastBulkCopy()"><i data-lucide="rotate-ccw"></i> 撤銷</button>
                 </div>
             </div>
         </div>
@@ -1550,6 +1569,15 @@
             if (e) e.value = editingDateStr;
             const ta = document.getElementById('moveCopyDatesTextarea');
             if (ta) ta.value = '';
+
+            // 綁定即時預覽（只需要綁一次）
+            if (!openMoveCopyModal._bulkHooked) {
+                hookBulkPreviewEvents();
+                openMoveCopyModal._bulkHooked = true;
+            }
+            renderBulkPreview(currentEntryData ? currentEntryData.date : editingDateStr);
+            updateUndoButtonUI();
+
             lucide.createIcons();
         }
 
@@ -1564,6 +1592,18 @@
             if (bulkBtn) bulkBtn.classList.toggle('active', isBulk);
             if (singleBox) singleBox.style.display = isBulk ? 'none' : 'flex';
             if (bulkBox) bulkBox.style.display = isBulk ? 'flex' : 'none';
+        }
+
+        let lastBulkCopyBatch = null;
+
+        function updateUndoButtonUI() {
+            const b = document.getElementById('mcUndoBtn');
+            if (!b) return;
+            if (lastBulkCopyBatch && lastBulkCopyBatch.entryIds && lastBulkCopyBatch.entryIds.length) {
+                b.style.display = '';
+            } else {
+                b.style.display = 'none';
+            }
         }
 
         function normalizeDateStr(s) {
@@ -1617,7 +1657,56 @@
             return Array.from(new Set(out));
         }
 
-        async function cloneAttachmentsForCopy(attachments) {
+        function getBulkTargets(sourceDate) {
+            // 1) 有貼日期清單就優先
+            let targets = buildTargetsFromTextarea();
+            // 2) 否則用範圍 + 星期
+            if (targets.length === 0) targets = buildTargetsFromRange();
+            targets = targets.filter(Boolean);
+            targets = Array.from(new Set(targets));
+            if (sourceDate) targets = targets.filter(d => d !== sourceDate);
+            return targets;
+        }
+
+        function renderBulkPreview(sourceDate) {
+            const hint = document.getElementById('mcImpactHint');
+            const prev = document.getElementById('mcPreview');
+            if (!hint || !prev) return;
+
+            const targets = getBulkTargets(sourceDate);
+            const n = targets.length;
+
+            if (n === 0) {
+                hint.innerHTML = '<span class="empty">將會影響 0 個日期（尚未有目標日期）</span>';
+                prev.innerHTML = '<div class="empty">預覽清單會喺呢度顯示</div>';
+                return;
+            }
+
+            if (n > 60) {
+                hint.innerHTML = `⚠️ 將會影響 <b>${n}</b> 個日期（建議分批，每次最多 60 個）`;
+            } else {
+                hint.innerHTML = `將會影響 <b>${n}</b> 個日期`;
+            }
+
+            // 預覽清單：全部列出（可滾動）
+            prev.textContent = targets.join('\n');
+        }
+
+        function hookBulkPreviewEvents() {
+            const ids = ['moveCopyStartDate','moveCopyEndDate','moveCopyDatesTextarea'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => renderBulkPreview(currentEntryData ? currentEntryData.date : editingDateStr));
+                    el.addEventListener('change', () => renderBulkPreview(currentEntryData ? currentEntryData.date : editingDateStr));
+                }
+            });
+            document.querySelectorAll('.mcWeekday').forEach(el => {
+                el.addEventListener('change', () => renderBulkPreview(currentEntryData ? currentEntryData.date : editingDateStr));
+            });
+        }
+
+        async function cloneAttachmentsForCopy(attachments, createdFileIds) {
             // 重要：複製時為避免「刪咗其中一份附件=另一份都壞」，要連 blob 一齊複製成新 id
             const atts = Array.isArray(attachments) ? attachments : [];
             const out = [];
@@ -1634,10 +1723,91 @@
                     lastModified: rec.lastModified || 0,
                     blob: rec.blob
                 });
+                if (Array.isArray(createdFileIds)) createdFileIds.push(newFileId);
                 // 保留原本附件 metadata（包括你之後可能加嘅「權限/狀態」欄位）
                 out.push({ ...a, id: newFileId });
             }
             return out;
+        }
+
+        function setBulkProgress(visible, current, total) {
+            const wrap = document.getElementById('mcProgressWrap');
+            const bar = document.getElementById('mcProgressBar');
+            const label = document.getElementById('mcProgressLabel');
+            if (!wrap || !bar || !label) return;
+            if (!visible) {
+                wrap.style.display = 'none';
+                bar.style.width = '0%';
+                label.textContent = '複製中…';
+                return;
+            }
+            wrap.style.display = 'block';
+            const pct = total ? Math.round((current / total) * 100) : 0;
+            bar.style.width = pct + '%';
+            label.textContent = `複製中… ${current}/${total}`;
+        }
+
+        function setMoveCopyButtonsDisabled(disabled) {
+            // move / copy / undo 都一齊鎖住，避免重入
+            const sel = ['mcUndoBtn'];
+            sel.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = !!disabled; });
+            const btns = document.querySelectorAll('#moveCopyModal .move-actions button');
+            btns.forEach(b => { b.disabled = !!disabled; b.style.opacity = disabled ? '0.6' : ''; });
+        }
+
+        async function undoLastBulkCopy() {
+            if (!lastBulkCopyBatch || !lastBulkCopyBatch.entryIds || lastBulkCopyBatch.entryIds.length === 0) {
+                alert('暫時無可撤銷嘅批量複製');
+                return;
+            }
+            if (!confirm('確定要撤銷上一次批量複製？\n\n將會刪除：' + lastBulkCopyBatch.entryIds.length + ' 條記錄')) return;
+
+            try {
+                setMoveCopyButtonsDisabled(true);
+                setBulkProgress(true, 0, (lastBulkCopyBatch.entryIds.length || 0) + (lastBulkCopyBatch.fileIds.length || 0));
+
+                let done = 0;
+
+                // 1) 刪除新建記事
+                for (const id of (lastBulkCopyBatch.entryIds || [])) {
+                    await db.delete(id);
+                    done++;
+                    setBulkProgress(true, done, (lastBulkCopyBatch.entryIds.length || 0) + (lastBulkCopyBatch.fileIds.length || 0));
+                }
+
+                // 2) 刪除新建附件 blob
+                for (const fid of (lastBulkCopyBatch.fileIds || [])) {
+                    try { await db.deleteFile(fid); } catch (e) { console.error(e); }
+                    done++;
+                    setBulkProgress(true, done, (lastBulkCopyBatch.entryIds.length || 0) + (lastBulkCopyBatch.fileIds.length || 0));
+                }
+
+                // 3) 回滾底色（只回滾本次改動到嘅日期）
+                try {
+                    if (dayStatuses && Array.isArray(lastBulkCopyBatch.dayStatusChanges)) {
+                        for (const ch of lastBulkCopyBatch.dayStatusChanges) {
+                            const d = ch.date;
+                            const prev = ch.prev;
+                            if (prev === undefined) {
+                                delete dayStatuses[d];
+                            } else {
+                                dayStatuses[d] = prev;
+                            }
+                        }
+                        localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
+                    }
+                } catch (e) { console.error(e); }
+
+                lastBulkCopyBatch = null;
+                updateUndoButtonUI();
+
+                // 更新畫面
+                renderCalendar();
+                showToast('↩️ 已撤銷批量複製', 'success');
+            } finally {
+                setBulkProgress(false, 0, 0);
+                setMoveCopyButtonsDisabled(false);
+            }
         }
 
         async function applyMoveOrCopy(mode) {
@@ -1687,52 +1857,72 @@
                     if (!target) { alert('請先選擇目標日期'); return; }
                     targets = [target];
                 } else {
-                    // 1) 先睇有冇貼日期清單（有就優先用）
-                    targets = buildTargetsFromTextarea();
-                    // 2) 否則用範圍 + 星期生成
-                    if (targets.length === 0) targets = buildTargetsFromRange();
+                    // 直接由預覽生成（同 UI 顯示一致）
+                    targets = getBulkTargets(sourceDate);
 
                     // 3) 防呆
-                    targets = targets.filter(Boolean);
-                    targets = Array.from(new Set(targets));
                     if (targets.length === 0) { alert('未有任何目標日期（請貼日期清單，或者填開始/結束日並勾選星期）'); return; }
                     if (targets.length > 60) {
                         alert('一次過複製太多（' + targets.length + ' 個日子）。為免太慢，請分批，每次最多 60 個。');
                         return;
                     }
 
-                    // 避免無意思：如果包含來源日，會跳過
-                    targets = targets.filter(d => d !== sourceDate);
-                    if (targets.length === 0) { alert('目標日期只得來源日期（已自動跳過），所以無需複製。'); return; }
-
-                    if (!confirm('確定要複製到 ' + targets.length + ' 個日子？\n\n' + targets.slice(0, 12).join('\n') + (targets.length > 12 ? '\n...' : ''))) {
+                    if (!confirm('確定要複製到 ' + targets.length + ' 個日子？\n\n' + targets.slice(0, 20).join('\n') + (targets.length > 20 ? '\n...' : ''))) {
                         return;
                     }
                 }
 
                 // 批量複製：逐個日子儲存（附件 blob 會逐份複製成新 id）
                 let copied = 0;
-                for (let i = 0; i < targets.length; i++) {
-                    const target = targets[i];
+                const createdEntryIds = [];
+                const createdFileIds = [];
+                const dayStatusChanges = []; // {date, prev, next}
 
-                    // ✅ 保留「底色」：來源日 -> 目標日（如果目標日未設定過）
-                    try {
-                        if (dayStatuses && sourceDate && dayStatuses[sourceDate] && !dayStatuses[target]) {
-                            dayStatuses[target] = dayStatuses[sourceDate];
-                            localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
-                        }
-                    } catch (e) { console.error(e); }
+                try {
+                    setMoveCopyButtonsDisabled(true);
+                    setBulkProgress(true, 0, targets.length);
 
-                    const newId = Date.now() + i;
-                    const newAttachments = await cloneAttachmentsForCopy(currentEntryData.attachments || []);
-                    const copy = { ...currentEntryData, id: newId, date: target, timestamp: Date.now(), attachments: newAttachments };
-                    await db.save(copy);
-                    copied++;
+                    for (let i = 0; i < targets.length; i++) {
+                        const target = targets[i];
+
+                        // ✅ 保留「底色」：來源日 -> 目標日（如果目標日未設定過）
+                        try {
+                            if (dayStatuses && sourceDate && dayStatuses[sourceDate] && !dayStatuses[target]) {
+                                dayStatusChanges.push({ date: target, prev: dayStatuses[target] });
+                                dayStatuses[target] = dayStatuses[sourceDate];
+                                localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
+                            }
+                        } catch (e) { console.error(e); }
+
+                        const newId = Date.now() + i;
+                        const newAttachments = await cloneAttachmentsForCopy(currentEntryData.attachments || [], createdFileIds);
+                        const copy = { ...currentEntryData, id: newId, date: target, timestamp: Date.now(), attachments: newAttachments };
+                        await db.save(copy);
+
+                        createdEntryIds.push(newId);
+                        copied++;
+                        setBulkProgress(true, i + 1, targets.length);
+                    }
+
+                    // 記錄 Undo 批次
+                    lastBulkCopyBatch = {
+                        createdAt: Date.now(),
+                        sourceDate,
+                        targets: [...targets],
+                        entryIds: createdEntryIds,
+                        fileIds: createdFileIds,
+                        dayStatusChanges: dayStatusChanges
+                    };
+                    updateUndoButtonUI();
+
+                    closeModal('moveCopyModal');
+                    renderCalendar();
+                    showToast('✅ 已複製到 ' + copied + ' 個日子（可按撤銷）', 'success');
+                } finally {
+                    setBulkProgress(false, 0, 0);
+                    setMoveCopyButtonsDisabled(false);
                 }
 
-                closeModal('moveCopyModal');
-                renderCalendar();
-                showToast('✅ 已複製到 ' + copied + ' 個日子', 'success');
                 return;
             }
         }
