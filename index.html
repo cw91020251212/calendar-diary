@@ -49,10 +49,11 @@
             --bg: #f4f7f6; --surface: #ffffff;
             --text-main: #2d3748; --text-light: #718096;
             --border: #e2e8f0; --hover: #edf2f7;
+            --gridline: rgba(0,0,0,0.18); /* 日曆格仔線顏色（更清晰） */
             --header-h: 64px; --weekday-h: 36px;
         }
 
-        body.theme-dark { --primary: #818cf8; --secondary: #a78bfa; --bg: #121212; --surface: #1e1e1e; --text-main: #e2e8f0; --text-light: #a0aec0; --border: #333333; --hover: #2d2d2d; }
+        body.theme-dark { --primary: #818cf8; --secondary: #a78bfa; --bg: #121212; --surface: #1e1e1e; --text-main: #e2e8f0; --text-light: #a0aec0; --border: #333333; --hover: #2d2d2d; --gridline: rgba(255,255,255,0.14); }
         body.theme-matcha { --primary: #48bb78; --secondary: #38a169; --bg: #f0fff4; --surface: #ffffff; --text-main: #276749; --text-light: #4a5568; --border: #c6f6d5; --hover: #e6fffa; }
         body.theme-sakura { --primary: #ed64a6; --secondary: #d53f8c; --bg: #fff5f7; --surface: #ffffff; --text-main: #702459; --text-light: #a0aec0; --border: #fed7e2; --hover: #fff0f6; }
         body.theme-ocean { --primary: #4299e1; --secondary: #3182ce; --bg: #ebf8ff; --surface: #ffffff; --text-main: #2a4365; --text-light: #4a5568; --border: #bee3f8; --hover: #e2f1f8; }
@@ -95,7 +96,7 @@
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 1.5s linear infinite; }
 
-        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--border); gap: 1px; will-change: transform, opacity; }
+        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; }
         
         .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; }
         .day-cell:active { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--hover); }
@@ -434,8 +435,8 @@
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
                     <button class="tool-btn" onclick="document.getElementById('attachInput').click()"><i data-lucide="paperclip"></i> 加檔</button>
-                    <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
-                    <input type="file" id="attachInput" multiple onchange="handleAttachmentUpload(event)">
+                    <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
+                    <input type="file" id="attachInput" multiple onchange="handleAttachmentUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
                 </div>
 
                 <div class="weather-toolbar" id="weatherToolbarUI">
@@ -606,7 +607,7 @@
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="exportData()"><i data-lucide="download"></i> 手動下載備份檔 (.txt)</button>
                     <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 手動上傳並還原資料</button>
-                    <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)">
+                    <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)" style="display:none" tabindex="-1" aria-hidden="true">
                 </div>
             </div>
         </div>
