@@ -626,8 +626,12 @@
                 const entries = await db.getAll();
                 const backupData = { version: "2.1", exportDate: new Date().toISOString(), tagNames, entries, dayStatuses, dayStatusNames };
                 const fileContent = JSON.stringify(backupData);
-                const fileMetadata = { name: 'diary_sync_backup.json', parents: ['appDataFolder'] };
                 let existingFile = await checkCloudFile();
+                // ✅ 修正：Drive API 更新檔案（PATCH）時不可直接寫入 parents 欄位
+                // 只有「第一次建立」先需要指定 parents=appDataFolder
+                const fileMetadata = existingFile
+                    ? { name: 'diary_sync_backup.json' }
+                    : { name: 'diary_sync_backup.json', parents: ['appDataFolder'] };
                 const boundary = '-------314159265358979323846'; const delimiter = "\r\n--" + boundary + "\r\n"; const close_delim = "\r\n--" + boundary + "--";
                 const multipartRequestBody = delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(fileMetadata) + delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + fileContent + close_delim;
                 let requestParams = { 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'}, 'body': multipartRequestBody };
