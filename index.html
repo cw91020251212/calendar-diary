@@ -28,6 +28,20 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+        /* ☁️ 小提示 toast（唔會遮住畫面） */
+        .toast { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.78); color: #fff; padding: 10px 14px; border-radius: 999px; font-size: 13px; z-index: 9999; max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+        .toast.show { opacity: 1; }
+        .toast.success { background: rgba(34, 197, 94, 0.92); }
+        .toast.error { background: rgba(239, 68, 68, 0.92); }
+
+        /* ☁️ 漂亮啲嘅開關掣 */
+        .switch { position: relative; display: inline-block; width: 54px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: rgba(0,0,0,0.15); transition: .2s; border-radius: 999px; }
+        .slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 3px; top: 3px; background: white; transition: .2s; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+        .switch input:checked + .slider { background: #4285F4; }
+        .switch input:checked + .slider:before { transform: translateX(24px); }
+
         :root {
             --primary: #667eea; --secondary: #764ba2;
             --bg: #f4f7f6; --surface: #ffffff;
@@ -224,6 +238,7 @@
         <header>
             <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>日曆</span></div>
             <div class="month-selector">
+                <div id="cloudMiniStatus" style="font-size: 12px; color: var(--text-light); opacity: 0.85; margin-right: 6px; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
                 <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
                 <div class="current-month-wrapper" title="點擊選擇日期">
                     <div class="current-month" id="currentMonthStr"></div>
@@ -347,7 +362,7 @@
     </div>
     
     <!-- 🟢 編輯器視窗 (加入了自動儲存提示) -->
-    <div class="modal-overlay" id="editorModal" onclick="closeModal('editorModal', event)">
+    <div class="modal-overlay" id="editorModal" onclick="handleEditorBackdropClick(event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="editorTitle">編輯記事</div>
@@ -486,10 +501,13 @@
                                 <i data-lucide="repeat" style="width:18px; height:18px;"></i>
                                 自動同步（每 30 秒）
                             </div>
-                            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;">
-                                <input id="cloudAutoSyncToggle" type="checkbox" onchange="toggleCloudAutoSyncFromUI()" style="width:20px; height:20px;" />
-                                <span id="cloudAutoSyncLabel" style="font-weight:bold;">關閉</span>
-                            </label>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <label class="switch" title="開/關 自動同步">
+                                    <input id="cloudAutoSyncToggle" type="checkbox" onchange="toggleCloudAutoSyncFromUI()" />
+                                    <span class="slider"></span>
+                                </label>
+                                <span id="cloudAutoSyncLabel" style="font-weight:bold; min-width: 36px; text-align:right;">關閉</span>
+                            </div>
                         </div>
                         <div id="cloudAutoSyncStatus" style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
                             提示：只會喺呢個網頁保持開住嗰陣自動上傳；關咗頁／退出瀏覽器就會停止。
@@ -514,6 +532,9 @@
     </div>
 
     <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged Image"></div></div>
+
+    <!-- ☁️ 小提示（唔會遮住畫面） -->
+    <div id="toast" class="toast"></div>
 
     <script>
         lucide.createIcons();
@@ -591,12 +612,12 @@
         async function cloudAction(action) {
             // Google API / GIS 未完成初始化（例如網絡慢、script 未載入、或前面初始化失敗）
             if (!window.gapi || !gapi.client || !tokenClient) {
-                alert('Google 服務初始化中／未完成，請等 2-3 秒再試一次。');
+                showToast('Google 服務初始化中…請等 2-3 秒再試', 'error');
                 return;
             }
             // Drive discovery doc 未就緒
             if (!gapi.client.drive) {
-                alert('Google Drive 服務仍在準備中，請稍候再試...');
+                showToast('Google Drive 服務仍在準備中…', 'error');
                 return;
             }
             if (action === 'logout') {
@@ -671,11 +692,27 @@
                 let requestParams = { 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'}, 'body': multipartRequestBody };
                 if (existingFile) { requestParams.path = '/upload/drive/v3/files/' + existingFile.id; requestParams.method = 'PATCH'; } else { requestParams.path = '/upload/drive/v3/files'; requestParams.method = 'POST'; }
                 await gapi.client.request(requestParams);
-                alert('☁️ 成功！所有資料已安全同步至 Google 雲端隱藏空間內！');
+
+                // ✅ 唔再用 alert 遮住畫面：改用細 toast + 標題位迷你提示
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                const ss = String(now.getSeconds()).padStart(2, '0');
+                setCloudMiniStatus(`☁️ 已同步 ${hh}:${mm}:${ss}`);
+                if (window.__cloudSilentMode) {
+                    // 靜默模式：唔彈任何提示
+                } else {
+                    showToast('☁️ 已同步到 Google 雲端', 'success');
+                }
             } catch (err) {
                 console.error(err);
                 const msg = (err && err.result && err.result.error && err.result.error.message) ? err.result.error.message : (err && err.message ? err.message : String(err));
-                alert('上傳失敗！\n\n可能原因：未成功授權／Drive API 未啟用／網絡限制。\n\n錯誤訊息：' + msg);
+                setCloudMiniStatus('☁️ 同步失敗');
+                if (window.__cloudSilentMode) {
+                    // 靜默模式：只更新狀態文字
+                } else {
+                    showToast('同步失敗：' + msg, 'error');
+                }
             } finally { btn.innerHTML = orig; lucide.createIcons(); }
         }
 
@@ -712,11 +749,30 @@
             if (l) l.textContent = enabled ? '開啟' : '關閉';
         }
 
+        function setCloudMiniStatus(text) {
+            const el = document.getElementById('cloudMiniStatus');
+            if (!el) return;
+            el.textContent = text || '';
+        }
+
+        function showToast(text, type = '') {
+            const el = document.getElementById('toast');
+            if (!el) return;
+            el.className = 'toast' + (type ? (' ' + type) : '');
+            el.textContent = text;
+            el.classList.add('show');
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2000);
+        }
+
         function setCloudAutoSyncStatus(text, isError = false) {
             const el = document.getElementById('cloudAutoSyncStatus');
             if (!el) return;
             el.textContent = text;
             el.style.color = isError ? '#c53030' : 'var(--text-light)';
+
+            // 同步把重點縮到頂部（唔騷擾你）
+            if (text && text.includes('✅')) setCloudMiniStatus('☁️ 自動同步中');
         }
 
         async function runCloudAutoSyncOnce() {
@@ -724,8 +780,11 @@
             cloudAutoSyncBusy = true;
             try {
                 setCloudAutoSyncStatus('⏳ 自動同步中...（每 30 秒）');
+                // ✅ 自動同步：全程靜默（唔會彈出遮住畫面嘅提示）
+                window.__cloudSilentMode = true;
                 // 用 backup 行為：如未登入會自動引導授權
                 await cloudAction('backup');
+                window.__cloudSilentMode = false;
                 const now = new Date();
                 const hh = String(now.getHours()).padStart(2, '0');
                 const mm = String(now.getMinutes()).padStart(2, '0');
@@ -735,6 +794,7 @@
                 console.error(e);
                 setCloudAutoSyncStatus('❌ 自動同步失敗（可能未授權／網絡限制）。你可以按一次「同步上傳」重新授權。', true);
             } finally {
+                window.__cloudSilentMode = false;
                 cloudAutoSyncBusy = false;
             }
         }
@@ -885,7 +945,23 @@
 
         function resetToToday() { currentDate = new Date(); renderCalendar(); }
         function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
-        function closeModal(id, event) { if (event && event.target.id !== id) return; document.getElementById(id).classList.remove('active'); }
+        function closeModal(id, event) {
+            if (event && event.target.id !== id) return;
+            document.getElementById(id).classList.remove('active');
+
+            // ✅ 你提議嘅行為：關閉「設定與備份」嗰一刻，如果已開自動同步 + 而家有網 + 已授權，就順手做一次靜默上傳
+            if (id === 'backupModal') {
+                try {
+                    const enabled = localStorage.getItem(CLOUD_AUTOSYNC_KEY) === 'true';
+                    const online = (typeof navigator !== 'undefined') ? navigator.onLine : true;
+                    const token = (window.gapi && gapi.client) ? gapi.client.getToken() : null;
+                    if (enabled && online && token) {
+                        window.__cloudSilentMode = true;
+                        setTimeout(() => { doCloudBackup().finally(() => { window.__cloudSilentMode = false; }); }, 50);
+                    }
+                } catch (e) { console.error(e); }
+            }
+        }
 
         // 🔧 修補：通用打開視窗 + 摺疊區塊 + 私人備註
         function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -1074,6 +1150,14 @@
             stopAutoSave();
             closeModal('editorModal');
             renderCalendar(); // 刷新日曆畫面
+        }
+
+        // ✅ 你想要嘅「離開畫面=自動儲存」：
+        // 當你點編輯器外面（灰色背景）想退出，都會走 closeEditor()，唔會意外冇儲存。
+        async function handleEditorBackdropClick(event) {
+            if (!event || !event.target) return;
+            if (event.target.id !== 'editorModal') return; // 只限點到背景
+            await closeEditor();
         }
 
         // 手動儲存按鈕
