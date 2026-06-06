@@ -85,6 +85,13 @@
         .quick-date-picker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
         .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+        /* ✅ 整頁橫向滑動（星期列 + 日曆格） */
+        .calendar-viewport { flex: 1; overflow: hidden; position: relative; }
+        .calendar-track { height: 100%; display: flex; width: 100%; transform: translateX(0); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
+        .calendar-track.no-anim { transition: none !important; }
+        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; }
+
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-bottom: 1px solid var(--border); transition: background-color 0.3s; }
         .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-light); }
         
@@ -121,8 +128,32 @@
         .event-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--event-color, var(--primary)); flex-shrink: 0; }
         .has-photo-icon { width: 12px; height: 12px; color: var(--text-light); flex-shrink: 0;}
 
-        .fab { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; box-shadow: 0 4px 15px rgba(102,126,234,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; transition: transform 0.2s; }
-        .fab:active { transform: scale(0.95); }
+        /* ✅ 右下角：可展開FAB（細咗 + 半透明 + 唔遮住內容） */
+        .fab-group { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 120; display: flex; align-items: center; gap: 10px; }
+
+        .fab, .fab-mini {
+            width: 52px; height: 52px; border-radius: 999px;
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+            transition: transform 0.18s ease, opacity 0.18s ease;
+            opacity: 0.84; /* 半透明：睇到少少底 */
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .fab { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .fab:active, .fab-mini:active { transform: scale(0.96); }
+
+        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.75); color: var(--text-main); border: 1px solid rgba(0,0,0,0.08); display: none; }
+        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main); }
+
+        .fab-group.expanded .fab-mini { display: flex; animation: fabPop 160ms ease-out; }
+        .fab-group.expanded .fab { opacity: 0.95; }
+        .fab-rotate { transition: transform 0.22s ease; }
+        .fab-group.expanded .fab-rotate { transform: rotate(45deg); }
+
+        @keyframes fabPop { from { transform: translateX(8px) scale(0.92); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 0.84; } }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; opacity: 0; transition: opacity 0.3s; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
         .modal-overlay.active { display: flex; opacity: 1; }
@@ -294,17 +325,28 @@
             </div>
         </header>
 
-        <!-- 日曆網格 -->
+        <!-- 日曆網格（整頁滑動版） -->
         <div class="calendar-main" id="calendarMainArea">
-            <div class="weekdays">
-                <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
-                <div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div>
+            <div class="calendar-viewport" id="calendarViewport">
+                <div class="calendar-track" id="calendarTrack">
+                    <div class="calendar-slide" id="calendarSlideCurrent">
+                        <div class="weekdays">
+                            <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
+                            <div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div>
+                        </div>
+                        <div class="days-grid" id="calendarGrid"></div>
+                    </div>
+                </div>
             </div>
-            <div class="days-grid" id="calendarGrid"></div>
         </div>
     </div>
 
-    <button class="fab" onclick="openEditorForToday()"><i data-lucide="plus" style="width: 32px; height: 32px;"></i></button>
+    <!-- ✅ 右下角：展開式功能鍵（搜尋 / 新增） -->
+    <div class="fab-group" id="fabGroup">
+        <button class="fab-mini" onclick="openSearchFromFab()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
+        <button class="fab-mini" onclick="openAddFromFab()" title="新增記事"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
+        <button class="fab" onclick="toggleFabMenu()" title="功能"><i data-lucide="plus" class="fab-rotate" style="width: 26px; height: 26px;"></i></button>
+    </div>
 
     <!-- ✨ 新手歡迎 -->
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
@@ -407,7 +449,11 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
-                <div><button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button><button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button></div>
+                <div>
+                    <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="read-time">
@@ -691,6 +737,30 @@
     <!-- ☁️ 小提示（唔會遮住畫面） -->
     <div id="toast" class="toast"></div>
 
+    <!-- 🔎 搜尋視窗 -->
+    <div class="modal-overlay" id="searchModal" onclick="closeModal('searchModal', event)">
+        <div class="modal-content" style="height: 90dvh;">
+            <div class="modal-header">
+                <div class="modal-title"><i data-lucide="search" style="width: 22px;"></i> 搜尋記事</div>
+                <button class="icon-btn" onclick="closeModal('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
+                    <input id="searchInput" type="text" placeholder="輸入關鍵字，例如：2025" 
+                           style="flex:1; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;" 
+                           oninput="debouncedSearch()" />
+                    <button class="icon-btn" onclick="clearSearch()" title="清除"><i data-lucide="eraser" style="width: 22px; height: 22px;"></i></button>
+                </div>
+
+                <div id="searchHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">
+                    提示：會搜尋你所有記事正文（同日期字串）。
+                </div>
+
+                <div class="entry-list" id="searchResultList"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
 
@@ -957,6 +1027,40 @@
             window.__toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2000);
         }
 
+        // ✅ 一鍵複製：只複製「閱讀視窗」入面嘅正文（readText）
+        async function copyReadText() {
+            const el = document.getElementById('readText');
+            const text = (el && el.textContent ? el.textContent : '').trim();
+            if (!text) {
+                showToast('（呢篇無文字內容可複製）', 'error');
+                return;
+            }
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    // fallback：兼容部分 iOS / 非 https / file://
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.top = '-9999px';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    ta.setSelectionRange(0, ta.value.length);
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (!ok) throw new Error('execCommand copy failed');
+                }
+                showToast('✅ 已複製正文', 'success');
+            } catch (e) {
+                console.error(e);
+                showToast('❌ 複製失敗（可能瀏覽器限制）', 'error');
+            }
+        }
+
         function setCloudAutoSyncStatus(text, isError = false) {
             const el = document.getElementById('cloudAutoSyncStatus');
             if (!el) return;
@@ -1084,19 +1188,125 @@
         function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
         function closeWelcomeModal(event, isButton = false) { if (event && event.target.id !== 'welcomeModal' && !isButton) return; document.getElementById('welcomeModal').classList.remove('active'); localStorage.setItem('diary_welcomed_v5', 'true'); checkTodayBriefing(); }
 
+        // =========================
+        // ✅ 右下角展開式FAB：搜尋 / 新增
+        // =========================
+        let __fabExpanded = false;
+        function toggleFabMenu() {
+            const g = document.getElementById('fabGroup');
+            if (!g) return;
+            __fabExpanded = !__fabExpanded;
+            g.classList.toggle('expanded', __fabExpanded);
+            lucide.createIcons();
+        }
+        function closeFabMenu() {
+            const g = document.getElementById('fabGroup');
+            if (!g) return;
+            __fabExpanded = false;
+            g.classList.remove('expanded');
+        }
+        function openAddFromFab() { closeFabMenu(); openEditorForToday(); }
+        function openSearchFromFab() { closeFabMenu(); openSearchModal(); }
+
+        // 點畫面其他地方自動收起（唔影響modal）
+        document.addEventListener('click', (e) => {
+            try {
+                if (!__fabExpanded) return;
+                const g = document.getElementById('fabGroup');
+                if (!g) return;
+                const anyModalOpen = !!document.querySelector('.modal-overlay.active');
+                if (anyModalOpen) return;
+                if (!g.contains(e.target)) closeFabMenu();
+            } catch (_) {}
+        }, true);
+
         function printBlankCalendar() { closeModal('backupModal'); setTimeout(() => { window.print(); }, 300); }
 
         async function changeMonth(delta) { 
             if (isAnimating) return; isAnimating = true;
-            const grid = document.getElementById('calendarGrid');
-            if (delta > 0) grid.classList.add('sliding-out-left'); else grid.classList.add('sliding-out-right');
-            await new Promise(r => setTimeout(r, 200)); 
-            currentDate.setMonth(currentDate.getMonth() + delta); 
+
+            const track = document.getElementById('calendarTrack');
+            const currentSlide = document.getElementById('calendarSlideCurrent');
+            if (!track || !currentSlide) {
+                // fallback：如果搵唔到新結構，就用舊方法直接render
+                currentDate.setMonth(currentDate.getMonth() + delta);
+                document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                await renderCalendar();
+                isAnimating = false;
+                return;
+            }
+
+            const nextDate = new Date(currentDate);
+            nextDate.setMonth(nextDate.getMonth() + delta);
+
+            // 建立下一頁 slide（包含星期列 + grid）
+            const newSlide = document.createElement('div');
+            newSlide.className = 'calendar-slide';
+            const weekdaysHTML = currentSlide.querySelector('.weekdays') ? currentSlide.querySelector('.weekdays').outerHTML : '';
+            const newGrid = document.createElement('div');
+            newGrid.className = 'days-grid';
+
+            newSlide.innerHTML = weekdaysHTML;
+            newSlide.appendChild(newGrid);
+
+            // 先render下一月到新grid（唔改header，等動畫完先改）
+            await renderCalendarFor(nextDate, newGrid, false);
+
+            // 放入 track：向左（下一月）= append；向右（上一月）= prepend
+            if (delta > 0) {
+                track.appendChild(newSlide);
+                track.classList.add('no-anim');
+                track.style.transform = 'translateX(0)';
+                // force reflow
+                void track.offsetWidth;
+                track.classList.remove('no-anim');
+                track.style.transform = 'translateX(-100%)';
+            } else {
+                track.insertBefore(newSlide, currentSlide);
+                track.classList.add('no-anim');
+                track.style.transform = 'translateX(-100%)';
+                void track.offsetWidth;
+                track.classList.remove('no-anim');
+                track.style.transform = 'translateX(0)';
+            }
+
+            // 等動畫完
+            await new Promise(r => setTimeout(r, 280));
+
+            // 更新狀態：currentDate + header + quick picker
+            currentDate = nextDate;
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            await renderCalendar(); 
-            grid.className = 'days-grid'; 
-            if (delta > 0) grid.classList.add('sliding-in-right'); else grid.classList.add('sliding-in-left');
-            await new Promise(r => setTimeout(r, 200)); grid.className = 'days-grid'; isAnimating = false;
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
+            document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
+
+            // 把 newSlide 變成 current：清走舊 slide，只保留新一頁
+            // 1) 移除舊 currentSlide
+            if (delta > 0) {
+                // track: [old][new] -> keep new
+                if (track.firstElementChild) track.removeChild(track.firstElementChild);
+            } else {
+                // track: [new][old] -> keep new (而家係 first)
+                if (track.lastElementChild) track.removeChild(track.lastElementChild);
+            }
+
+            // 2) reset track transform
+            track.classList.add('no-anim');
+            track.style.transform = 'translateX(0)';
+            void track.offsetWidth;
+            track.classList.remove('no-anim');
+
+            // 3) 確保新slide id 正確、grid id 存在（俾其他地方用 renderCalendar()）
+            const kept = track.firstElementChild;
+            if (kept) {
+                kept.id = 'calendarSlideCurrent';
+                const keptGrid = kept.querySelector('.days-grid');
+                if (keptGrid) keptGrid.id = 'calendarGrid';
+            }
+
+            // 4) 重新render一次（用正式renderCalendar）去保證 click handler / icon 100% 同步
+            await renderCalendar();
+
+            isAnimating = false;
         }
 
         // =========================
@@ -1223,18 +1433,41 @@
         function applyTheme(themeObj) { document.body.className = ''; if (themeObj.id !== 'light') document.body.classList.add(`theme-${themeObj.id}`); document.getElementById('themeIcon').setAttribute('data-lucide', themeObj.icon); lucide.createIcons(); }
         function initColorPickerUI() { document.getElementById('colorPickerUI').innerHTML = APP_COLORS.map(c => `<div class="color-btn" style="background-color: ${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"></div>`).join(''); }
 
-        async function renderCalendar() {
-            const year = currentDate.getFullYear(), month = currentDate.getMonth();
-            document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
-            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
-            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const prevMonthDays = new Date(year, month, 0).getDate();
-            const allEntries = await db.getAll(); const entryMap = {}; allEntries.forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
+        async function renderCalendarFor(dateObj, gridEl, updateHeader = true) {
+            const year = dateObj.getFullYear(), month = dateObj.getMonth();
+            if (updateHeader) document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
+
+            const grid = gridEl || document.getElementById('calendarGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevMonthDays = new Date(year, month, 0).getDate();
+
+            const allEntries = await db.getAll();
+            const entryMap = {};
+            allEntries.forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
 
             for (let i = 0; i < 42; i++) {
-                const cell = document.createElement('div'); cell.className = 'day-cell'; let dayNum, dateStr = '';
-                if (i < firstDay) { dayNum = prevMonthDays - firstDay + i + 1; cell.classList.add('other-month'); dateStr = formatDate(year, month - 1, dayNum);
-                } else if (i >= firstDay && i < firstDay + daysInMonth) { dayNum = i - firstDay + 1; dateStr = formatDate(year, month, dayNum); const today = new Date(); if (year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate()) { cell.classList.add('today'); }
-                } else { dayNum = i - firstDay - daysInMonth + 1; cell.classList.add('other-month'); dateStr = formatDate(year, month + 1, dayNum); }
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                let dayNum, dateStr = '';
+
+                if (i < firstDay) {
+                    dayNum = prevMonthDays - firstDay + i + 1;
+                    cell.classList.add('other-month');
+                    dateStr = formatDate(year, month - 1, dayNum);
+                } else if (i >= firstDay && i < firstDay + daysInMonth) {
+                    dayNum = i - firstDay + 1;
+                    dateStr = formatDate(year, month, dayNum);
+                    const today = new Date();
+                    if (year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate()) cell.classList.add('today');
+                } else {
+                    dayNum = i - firstDay - daysInMonth + 1;
+                    cell.classList.add('other-month');
+                    dateStr = formatDate(year, month + 1, dayNum);
+                }
 
                 const currentDayStatus = dayStatuses[dateStr];
                 if (currentDayStatus && currentDayStatus !== 'none') {
@@ -1242,17 +1475,34 @@
                     if (statusObj) cell.style.setProperty('--day-bg-overlay', statusObj.rgba);
                 }
 
-                let lunarDisplay = ''; try { const lunarDayStr = Lunar.fromDate(new Date(dateStr)).getDayInChinese(); if (lunarDayStr === '初一' || lunarDayStr === '十五') { lunarDisplay = `<span class="lunar-subtext">${lunarDayStr}</span>`; } } catch(e) {}
-                let holidayDisplay = ''; let isHoliday = false;
+                let lunarDisplay = '';
+                try {
+                    const lunarDayStr = Lunar.fromDate(new Date(dateStr)).getDayInChinese();
+                    if (lunarDayStr === '初一' || lunarDayStr === '十五') lunarDisplay = `<span class="lunar-subtext">${lunarDayStr}</span>`;
+                } catch(e) {}
+
+                let holidayDisplay = '';
+                let isHoliday = false;
                 if (HK_HOLIDAYS_2026[dateStr]) { holidayDisplay = `<div class="holiday-subtext">${HK_HOLIDAYS_2026[dateStr]}</div>`; isHoliday = true; }
+
                 const dayEntries = entryMap[dateStr] || [];
-                
-                let numClass = cell.classList.contains('today') ? 'day-num-circle' : 'day-num'; let numStyle = '';
-                if (isHoliday) { if (cell.classList.contains('today')) { numStyle = 'style="background: #e53e3e;"'; } else { numClass += ' holiday-num'; } }
-                
+
+                let numClass = cell.classList.contains('today') ? 'day-num-circle' : 'day-num';
+                let numStyle = '';
+                if (isHoliday) {
+                    if (cell.classList.contains('today')) numStyle = 'style="background: #e53e3e;"';
+                    else numClass += ' holiday-num';
+                }
+
                 cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 3).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 3 ? `<div class="event-chip" style="--event-color: transparent; color: var(--text-light); justify-content:center;">+${dayEntries.length - 3}</div>` : ''}</div>`;
-                cell.onclick = () => openDayView(dateStr, dayEntries); grid.appendChild(cell);
-            } lucide.createIcons();
+                cell.onclick = () => openDayView(dateStr, dayEntries);
+                grid.appendChild(cell);
+            }
+            lucide.createIcons();
+        }
+
+        async function renderCalendar() {
+            return renderCalendarFor(currentDate, document.getElementById('calendarGrid'), true);
         }
 
         function resetToToday() { currentDate = new Date(); renderCalendar(); }
@@ -1279,6 +1529,110 @@
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function toggleSection(id) { document.getElementById(id).classList.toggle('active'); lucide.createIcons(); }
         function savePrivateNote() { const el = document.getElementById('privateNote'); if (el) localStorage.setItem('user_private_note', el.value); }
+
+        // =========================
+        // 🔎 搜尋：關鍵字搵返舊記事
+        // =========================
+        let __searchTimer = null;
+        function openSearchModal() {
+            const m = document.getElementById('searchModal');
+            if (!m) return;
+            m.classList.add('active');
+            const input = document.getElementById('searchInput');
+            const list = document.getElementById('searchResultList');
+            const hint = document.getElementById('searchHint');
+            if (input) input.value = '';
+            if (list) list.innerHTML = '';
+            if (hint) hint.textContent = '提示：會搜尋你所有記事正文（同日期字串）。';
+            lucide.createIcons();
+            setTimeout(() => { try { input && input.focus(); } catch(_){} }, 120);
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('searchInput');
+            if (input) input.value = '';
+            const list = document.getElementById('searchResultList');
+            if (list) list.innerHTML = '';
+            const hint = document.getElementById('searchHint');
+            if (hint) hint.textContent = '提示：會搜尋你所有記事正文（同日期字串）。';
+        }
+
+        function debouncedSearch() {
+            clearTimeout(__searchTimer);
+            __searchTimer = setTimeout(() => runSearch(), 200);
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function highlightHtml(text, query) {
+            const t = String(text ?? '');
+            const q = String(query ?? '').trim();
+            if (!q) return escapeHtml(t);
+            // 用正則做簡單高亮（忽略大小寫）
+            const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig');
+            return escapeHtml(t).replace(re, (m) => `<mark style="background: rgba(250, 204, 21, 0.45); color: inherit; padding: 0 2px; border-radius: 4px;">${m}</mark>`);
+        }
+
+        async function runSearch() {
+            const input = document.getElementById('searchInput');
+            const list = document.getElementById('searchResultList');
+            const hint = document.getElementById('searchHint');
+            if (!input || !list) return;
+
+            const qRaw = String(input.value ?? '').trim();
+            if (!qRaw) {
+                list.innerHTML = '';
+                if (hint) hint.textContent = '提示：會搜尋你所有記事正文（同日期字串）。';
+                return;
+            }
+
+            const q = qRaw.toLowerCase();
+            const all = await db.getAll();
+
+            const hits = all.filter(e => {
+                const text = String(e.text ?? '');
+                const date = String(e.date ?? '');
+                return text.toLowerCase().includes(q) || date.includes(qRaw);
+            }).sort((a,b) => {
+                // 先按日期（字串）倒序，再按 timestamp 倒序
+                if (a.date !== b.date) return String(b.date).localeCompare(String(a.date));
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            });
+
+            if (hint) hint.textContent = `找到 ${hits.length} 條結果`; 
+
+            if (hits.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:16px;">搵唔到相關記事。</div>';
+                return;
+            }
+
+            list.innerHTML = hits.map(e => {
+                const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
+                const tagName = tagNames[e.color] || '標籤';
+                const timeText = e.timestamp ? new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'}) : '';
+                const dateText = e.date ? e.date.replace(/-/g, '/') : '';
+                const snippet = String(e.text ?? '').trim();
+                const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
+                const entryJson = encodeURIComponent(JSON.stringify(e));
+
+                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="closeModal('searchModal'); openReadView('${entryJson}')">
+                    <div class="entry-card-header">
+                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
+                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+                    </div>
+                    <div class="entry-card-text" style="-webkit-line-clamp: 4;">${highlightHtml(preview, qRaw)}</div>
+                </div>`;
+            }).join('');
+
+            lucide.createIcons();
+        }
 
         function openDayView(dateStr, entries) {
             editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
