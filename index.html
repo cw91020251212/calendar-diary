@@ -238,7 +238,7 @@
         <header>
             <div class="header-title"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> <span>月曆</span></div>
             <div class="month-selector">
-                <div id="cloudMiniStatus" style="font-size: 12px; color: var(--text-light); opacity: 0.85; margin-right: 6px; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                <div id="cloudMiniStatus" style="display:none;"></div>
                 <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
                 <div class="current-month-wrapper" title="點擊選擇日期">
                     <div class="current-month" id="currentMonthStr"></div>
@@ -776,9 +776,10 @@
         }
 
         function setCloudMiniStatus(text) {
-            const el = document.getElementById('cloudMiniStatus');
-            if (!el) return;
-            el.textContent = text || '';
+            // ✅ 改用 toast：閃一閃就消失，唔會頂走右上角齒輪
+            if (!text) return;
+            const isError = String(text).includes('失敗') || String(text).includes('❌');
+            showToast(text, isError ? 'error' : 'success');
         }
 
         function showToast(text, type = '') {
