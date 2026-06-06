@@ -213,6 +213,27 @@
 
         #fileInput, #importInput { display: none; }
 
+        /* 📎 附件（PDF/TXT/音訊等） */
+        .attachments-box { margin-top: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+        .attachments-title { font-size: 14px; color: var(--text-light); font-weight: bold; margin-bottom: 8px; display:flex; align-items:center; gap:8px; }
+        .attachments-list { display: flex; flex-direction: column; gap: 8px; }
+        .attachment-row { display:flex; align-items:center; justify-content: space-between; gap: 10px; padding: 10px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+        .attachment-meta { min-width: 0; display:flex; flex-direction: column; gap: 2px; }
+        .attachment-name { font-size: 15px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .attachment-sub { font-size: 12px; color: var(--text-light); }
+        .attachment-actions { display:flex; gap: 6px; flex-shrink: 0; }
+        .mini-btn { background: var(--hover); border: 1px solid var(--border); color: var(--text-main); padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:6px; }
+        .mini-btn.danger { background: #fff5f5; border-color: #feb2b2; color: #c53030; }
+
+        /* 🔁 移動/複製彈窗 */
+        #moveCopyModal .modal-content { height: auto; max-height: 70dvh; }
+        .move-row { display:flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+        .move-row label { font-size: 14px; color: var(--text-light); font-weight: bold; }
+        .move-row input[type=date] { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); font-size: 16px; }
+        .move-actions { display:flex; gap: 10px; margin-top: 12px; }
+        .move-actions .btn { padding: 14px; font-size: 16px; }
+
+
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; }
             .fab, .modal-overlay, .events-preview, .dots-container, .header-title, .icon-btn, .month-selector button { display: none !important; }
@@ -376,6 +397,10 @@
                 <div><span class="read-tag-badge" id="readTagBadge"></span></div>
                 <div id="readText" class="read-text"></div>
                 <div id="readGallery" class="read-gallery"></div>
+                <div class="attachments-box" id="readAttachmentsBox" style="display:none; margin-top:16px;">
+                    <div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
+                    <div class="attachments-list" id="readAttachmentList"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -407,7 +432,10 @@
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
+                    <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
+                    <button class="tool-btn" onclick="document.getElementById('attachInput').click()"><i data-lucide="paperclip"></i> 加檔</button>
                     <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+                    <input type="file" id="attachInput" multiple onchange="handleAttachmentUpload(event)">
                 </div>
 
                 <div class="weather-toolbar" id="weatherToolbarUI">
@@ -433,6 +461,10 @@
 
                 <textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea>
                 <div class="photo-gallery" id="editorGallery"></div>
+                <div class="attachments-box" id="attachmentsBox" style="display:none;">
+                    <div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
+                    <div class="attachments-list" id="attachmentList"></div>
+                </div>
                 <div class="editor-footer">
                     <!-- 取消按鈕改名為返回，同樣觸發自動儲存 -->
                     <button class="btn btn-cancel" onclick="closeEditor()"><i data-lucide="arrow-left"></i> 返回</button>
@@ -444,7 +476,33 @@
     
         
         
-    <!-- 📦 實用工具箱 (修補更新) -->
+    
+    <!-- 🔁 移動/複製 -->
+    <div class="modal-overlay" id="moveCopyModal" onclick="closeModal('moveCopyModal', event)">
+        <div class="modal-content" style="height:auto; max-height: 70dvh;">
+            <div class="modal-header">
+                <div class="modal-title"><i data-lucide="shuffle" style="width: 22px;"></i> 移動 / 複製</div>
+                <button class="icon-btn" onclick="closeModal('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="move-row">
+                    <label>目標日期</label>
+                    <input type="date" id="moveCopyTargetDate">
+                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">提示：
+                        <b>移動</b> = 原本嗰份會搬走；
+                        <b>複製</b> = 會保留原本，再複製一份到新日子。
+                    </div>
+                </div>
+                <div class="move-actions">
+                    <button class="btn btn-cancel" onclick="closeModal('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
+                    <button class="btn" style="background:#2563eb; color:white;" onclick="applyMoveOrCopy('move')"><i data-lucide="move"></i> 移動</button>
+                    <button class="btn" style="background: var(--primary); color:white;" onclick="applyMoveOrCopy('copy')"><i data-lucide="copy"></i> 複製</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- 📦 實用工具箱 (修補更新) -->
     <div class="modal-overlay" id="toolboxModal" onclick="closeModal('toolboxModal', event)">
         <div class="modal-content" style="height: auto; max-height: 85dvh;">
             <div class="modal-header" style="padding:16px 20px;">
@@ -569,6 +627,7 @@
 
         const APP_COLORS = [ { id: 'red', hex: '#fc8181', def: '緊急' }, { id: 'orange', hex: '#f6ad55', def: '待辦' }, { id: 'yellow', hex: '#f6e05e', def: '私人' }, { id: 'green', hex: '#68d391', def: '健康' }, { id: 'teal', hex: '#4fd1c5', def: '休閒' }, { id: 'blue', hex: '#63b3ed', def: '工作' }, { id: 'indigo', hex: '#7f9cf5', def: '學習' }, { id: 'purple', hex: '#b794f4', def: '靈感' }, { id: 'pink', hex: '#f687b3', def: '感情' }, { id: 'brown', hex: '#c05621', def: '家庭' }, { id: 'gray', hex: '#a0aec0', def: '其他' }, { id: 'black', hex: '#2d3748', def: '重要' } ];
         let tagNames = JSON.parse(localStorage.getItem('diary_tag_names')) || {};
+        let currentAttachments = [];
         APP_COLORS.forEach(c => { if(!tagNames[c.id]) tagNames[c.id] = c.def; });
 
         const DAY_STATUS_COLORS = [
@@ -734,7 +793,8 @@
             btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
             try {
                 const entries = await db.getAll();
-                const backupData = { version: "2.1", exportDate: new Date().toISOString(), tagNames, entries, dayStatuses, dayStatusNames };
+                const filePack = await collectBackupFiles();
+                const backupData = { version: "2.2", exportDate: new Date().toISOString(), tagNames, entries, dayStatuses, dayStatusNames, files: filePack.packedFiles, filesMeta: { totalBytes: filePack.totalBytes, allFilesCount: filePack.allFilesCount, packedFilesCount: filePack.packedFiles.length } };
                 const fileContent = JSON.stringify(backupData);
                 let existingFile = await checkCloudFile();
                 // ✅ 修正：Drive API 更新檔案（PATCH）時不可直接寫入 parents 欄位
@@ -781,7 +841,9 @@
                 let response = await gapi.client.drive.files.get({ fileId: existingFile.id, alt: 'media' });
                 const importedData = typeof response.result === 'string' ? JSON.parse(response.result) : response.result;
                 if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("檔案格式不正確");
-                await db.clearAll(); for (const entry of importedData.entries) await db.save(entry); 
+                await db.clearAll();
+                await restoreBackupFiles(importedData.files);
+                for (const entry of importedData.entries) await db.save(entry); 
                 if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } 
                 if(importedData.dayStatuses) { dayStatuses = importedData.dayStatuses; localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses)); }
                 if(importedData.dayStatusNames) { dayStatusNames = importedData.dayStatusNames; localStorage.setItem('diary_day_status_names', JSON.stringify(dayStatusNames)); }
@@ -888,15 +950,31 @@
             if (enabled) startCloudAutoSync();
         }
 
-        const DB_NAME = 'DiaryProDB'; 
+        const DB_NAME = 'DiaryProDB';
         const STORE_NAME = 'entries';
+        const FILE_STORE = 'files';
         const db = {
             dbInstance: null,
-            async init() { return new Promise((resolve, reject) => { const req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) { e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id' }); } }; req.onsuccess = (e) => { this.dbInstance = e.target.result; resolve(); }; req.onerror = (e) => reject(e.target.error); }); },
+            async init() { return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 2);
+                req.onupgradeneeded = (e) => {
+                    const dbi = e.target.result;
+                    if (!dbi.objectStoreNames.contains(STORE_NAME)) dbi.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    if (!dbi.objectStoreNames.contains(FILE_STORE)) dbi.createObjectStore(FILE_STORE, { keyPath: 'id' });
+                };
+                req.onsuccess = (e) => { this.dbInstance = e.target.result; resolve(); };
+                req.onerror = (e) => reject(e.target.error);
+            }); },
             async getAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll(); req.onsuccess = () => resolve(req.result); }); },
             async save(entry) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(entry); req.onsuccess = () => resolve(); }); },
             async delete(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id); req.onsuccess = () => resolve(); }); },
-            async clearAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).clear(); req.onsuccess = () => resolve(); }); }
+            async clearAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).clear(); req.onsuccess = () => resolve(); }); },
+            // 📎 附件 blob 儲存
+            async saveFile(fileObj) { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).put(fileObj); req.onsuccess = () => resolve(); }); },
+            async getFile(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).get(id); req.onsuccess = () => resolve(req.result || null); }); },
+            async deleteFile(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).delete(id); req.onsuccess = () => resolve(); }); },
+            async getAllFiles() { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).getAll(); req.onsuccess = () => resolve(req.result || []); }); },
+            async clearAllFiles() { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).clear(); req.onsuccess = () => resolve(); }); }
         };
 
         let touchStartX = 0; let touchStartY = 0;
@@ -1187,6 +1265,8 @@
             const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
             document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
             if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
+            renderReadAttachments();
+            lucide.createIcons();
             document.getElementById('readModal').classList.add('active');
         }
 
@@ -1197,7 +1277,17 @@
         function openEditorFromDayView() { closeModal('dayModal'); setTimeout(() => openEditor(null), 200); }
         function editFromReadView() { closeModal('readModal'); setTimeout(() => openEditor(currentEntryData), 200); }
 
-        async function deleteFromReadView() { if (confirm('確定要刪除這份紀錄嗎？無法復原哦。')) { await db.delete(currentEntryData.id); closeModal('readModal'); renderCalendar(); } }
+        async function deleteFromReadView() {
+            if (!confirm('確定要刪除這份紀錄嗎？無法復原哦。')) return;
+            try {
+                const atts = (currentEntryData && currentEntryData.attachments) ? currentEntryData.attachments : [];
+                for (const a of atts) { if (a && a.id) await db.deleteFile(a.id); }
+                await db.delete(currentEntryData.id);
+            } finally {
+                closeModal('readModal');
+                renderCalendar();
+            }
+        }
 
         function openEditor(entryData) {
             currentEntryData = entryData; const textarea = document.getElementById('editorText');
@@ -1207,17 +1297,19 @@
                 selectColor(entryData.color || 'blue'); 
                 setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
                 currentImages = entryData.images ? [...entryData.images] : [];
+                currentAttachments = entryData.attachments ? [...entryData.attachments] : [];
                 selectedWeatherBadge = entryData.weather || '';
             } else { 
                 document.getElementById('editorTitle').textContent = '新增記事'; 
                 textarea.value = ''; 
                 selectColor('blue'); 
                 setTextSize(1); 
-                currentImages = []; 
+                currentImages = [];
+                currentAttachments = [];
                 selectedWeatherBadge = '';
             }
             updateWeatherUI(); 
-            renderEditorImages(); document.getElementById('editorModal').classList.add('active'); 
+            renderEditorImages(); renderAttachments(); document.getElementById('editorModal').classList.add('active'); 
             setTimeout(() => textarea.focus(), 400); 
 
             // 🟩 Android 返回鍵：開啟編輯器時 push 一個 history state
@@ -1260,7 +1352,216 @@
             setTimeout(() => { alert("⏰ 已經為你製作好日曆檔案！\n\n如果系統彈出提示，請選擇「加入日曆」，就可以享用手機自帶嘅響鬧功能啦！"); }, 500);
         }
 
-        function handleImageUpload(event) {
+        function formatBytes(bytes) {
+            const b = Number(bytes || 0);
+            if (b < 1024) return b + ' B';
+            if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+            if (b < 1024*1024*1024) return (b/1024/1024).toFixed(1) + ' MB';
+            return (b/1024/1024/1024).toFixed(1) + ' GB';
+        }
+
+        function renderAttachments() {
+            const box = document.getElementById('attachmentsBox');
+            const list = document.getElementById('attachmentList');
+            if (!box || !list) return;
+            const atts = Array.isArray(currentAttachments) ? currentAttachments : [];
+            if (atts.length === 0) {
+                box.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+            box.style.display = 'block';
+            list.innerHTML = atts.map((a, idx) => {
+                const name = a.name || 'file';
+                const sub = `${(a.type || 'unknown')}` + (a.size ? ` · ${formatBytes(a.size)}` : '');
+                return `
+                    <div class="attachment-row">
+                        <div class="attachment-meta">
+                            <div class="attachment-name">${name}</div>
+                            <div class="attachment-sub">${sub}</div>
+                        </div>
+                        <div class="attachment-actions">
+                            <button class="mini-btn" onclick="openAttachmentByIndex(${idx}); event.stopPropagation();"><i data-lucide="folder-open" style="width:16px;"></i> 開啟</button>
+                            <button class="mini-btn danger" onclick="removeAttachment(${idx}); event.stopPropagation();"><i data-lucide="trash-2" style="width:16px;"></i> 刪</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function renderReadAttachments() {
+            const box = document.getElementById('readAttachmentsBox');
+            const list = document.getElementById('readAttachmentList');
+            if (!box || !list) return;
+            const atts = (currentEntryData && Array.isArray(currentEntryData.attachments)) ? currentEntryData.attachments : [];
+            if (atts.length === 0) {
+                box.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            }
+            box.style.display = 'block';
+            list.innerHTML = atts.map((a, idx) => {
+                const name = a.name || 'file';
+                const sub = `${(a.type || 'unknown')}` + (a.size ? ` · ${formatBytes(a.size)}` : '');
+                return `
+                    <div class="attachment-row">
+                        <div class="attachment-meta">
+                            <div class="attachment-name">${name}</div>
+                            <div class="attachment-sub">${sub}</div>
+                        </div>
+                        <div class="attachment-actions">
+                            <button class="mini-btn" onclick="openReadAttachmentByIndex(${idx}); event.stopPropagation();"><i data-lucide="folder-open" style="width:16px;"></i> 開啟</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function handleAttachmentUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            for (const file of Array.from(files)) {
+                const id = 'f_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+                await db.saveFile({ id, name: file.name, type: file.type || 'application/octet-stream', size: file.size, lastModified: file.lastModified || 0, blob: file });
+                currentAttachments.push({ id, name: file.name, type: file.type || 'application/octet-stream', size: file.size, lastModified: file.lastModified || 0 });
+            }
+            renderAttachments();
+            await silentAutoSave();
+            event.target.value = '';
+        }
+
+        async function openAttachmentByIndex(idx) {
+            const a = currentAttachments[idx];
+            if (!a || !a.id) return;
+            const rec = await db.getFile(a.id);
+            if (!rec || !rec.blob) { alert('搵唔到附件（可能已被清理或備份冇包含）。'); return; }
+            const url = URL.createObjectURL(rec.blob);
+            const win = window.open(url, '_blank');
+            if (!win) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = rec.name || 'file';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+
+        async function openReadAttachmentByIndex(idx) {
+            const atts = (currentEntryData && Array.isArray(currentEntryData.attachments)) ? currentEntryData.attachments : [];
+            const a = atts[idx];
+            if (!a || !a.id) return;
+            const rec = await db.getFile(a.id);
+            if (!rec || !rec.blob) { alert('搵唔到附件（可能已被清理或備份冇包含）。'); return; }
+            const url = URL.createObjectURL(rec.blob);
+            const win = window.open(url, '_blank');
+            if (!win) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = rec.name || 'file';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+
+        async function removeAttachment(idx) {
+            const a = currentAttachments[idx];
+            if (!a) return;
+            if (!confirm('確定刪除此附件？')) return;
+            try { if (a.id) await db.deleteFile(a.id); } catch (e) { console.error(e); }
+            currentAttachments.splice(idx, 1);
+            renderAttachments();
+            await silentAutoSave();
+        }
+
+        function openMoveCopyModal() {
+            if (!currentEntryData) {
+                alert('提示：要移動/複製，請先儲存一次，令佢變成「一份已存在嘅記事」。');
+                return;
+            }
+            const picker = document.getElementById('moveCopyTargetDate');
+            if (picker) picker.value = editingDateStr;
+            openModal('moveCopyModal');
+            lucide.createIcons();
+        }
+
+        async function cloneAttachmentsForCopy(attachments) {
+            // 重要：複製時為避免「刪咗其中一份附件=另一份都壞」，要連 blob 一齊複製成新 id
+            const atts = Array.isArray(attachments) ? attachments : [];
+            const out = [];
+            for (const a of atts) {
+                if (!a || !a.id) { out.push(a); continue; }
+                const rec = await db.getFile(a.id);
+                if (!rec || !rec.blob) { out.push(a); continue; }
+                const newFileId = 'f_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+                await db.saveFile({
+                    id: newFileId,
+                    name: rec.name,
+                    type: rec.type,
+                    size: rec.size,
+                    lastModified: rec.lastModified || 0,
+                    blob: rec.blob
+                });
+                // 保留原本附件 metadata（包括你之後可能加嘅「權限/狀態」欄位）
+                out.push({ ...a, id: newFileId });
+            }
+            return out;
+        }
+
+        async function applyMoveOrCopy(mode) {
+            const picker = document.getElementById('moveCopyTargetDate');
+            const target = picker ? picker.value : '';
+            if (!target) { alert('請先選擇目標日期'); return; }
+            if (!currentEntryData) { alert('未有可移動的記事'); return; }
+
+            // 先把你而家畫面嘅內容（顏色/附件清單等）同步入 currentEntryData
+            await silentAutoSave();
+
+            const sourceDate = currentEntryData.date;
+
+            // ✅ 保留「底色」：把來源日期嘅 day status 複製到目標日期（同時保留來源嗰日原狀）
+            try {
+                if (dayStatuses && sourceDate && dayStatuses[sourceDate] && !dayStatuses[target]) {
+                    dayStatuses[target] = dayStatuses[sourceDate];
+                    localStorage.setItem('diary_day_statuses', JSON.stringify(dayStatuses));
+                }
+            } catch (e) { console.error(e); }
+
+            if (mode === 'move') {
+                // ✅ 移動：同一份記事改 date
+                currentEntryData.date = target;
+                await db.save(currentEntryData);
+
+                editingDateStr = target;
+                const q = document.getElementById('quickDatePicker');
+                if (q) q.value = target;
+
+                closeModal('moveCopyModal');
+                closeModal('editorModal');
+                renderCalendar();
+                showToast('✅ 已移動到 ' + target, 'success');
+                return;
+            }
+
+            if (mode === 'copy') {
+                // ✅ 複製：保持顏色/底色/附件狀態；附件 blob 會複製成新 id
+                const newId = Date.now();
+                const newAttachments = await cloneAttachmentsForCopy(currentEntryData.attachments || []);
+                const copy = { ...currentEntryData, id: newId, date: target, timestamp: Date.now(), attachments: newAttachments };
+                await db.save(copy);
+
+                closeModal('moveCopyModal');
+                renderCalendar();
+                showToast('✅ 已複製到 ' + target, 'success');
+                return;
+            }
+        }
+
+function handleImageUpload(event) {
             const files = event.target.files; if (!files || files.length === 0) return;
             Array.from(files).forEach(file => {
                 const reader = new FileReader(); reader.readAsDataURL(file);
@@ -1277,7 +1578,7 @@
         async function silentAutoSave() {
             const text = document.getElementById('editorText').value.trim(); 
             // 避免新建一份完全空白的無效記錄
-            if (!text && currentImages.length === 0 && !selectedWeatherBadge && !currentEntryData) return; 
+            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && !selectedWeatherBadge && !currentEntryData) return; 
 
             const entryId = currentEntryData ? currentEntryData.id : Date.now();
             const entryTimestamp = currentEntryData ? currentEntryData.timestamp : Date.now();
@@ -1290,6 +1591,7 @@
                 color: selectedColor, 
                 textSize: currentTextSizeIdx, 
                 images: currentImages,
+                attachments: currentAttachments,
                 weather: selectedWeatherBadge 
             }; 
             
@@ -1346,7 +1648,7 @@
         // 手動儲存按鈕
         async function saveEntry() { 
             const text = document.getElementById('editorText').value.trim(); 
-            if (!text && currentImages.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片或選擇天氣狀態！'); return; } 
+            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
             await silentAutoSave();
             stopAutoSave();
             closeModal('editorModal'); 
@@ -1355,10 +1657,49 @@
         
         function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
 
-        async function exportData() { 
+        async function blobToDataUrl(blob) {
+            return await new Promise((resolve) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.readAsDataURL(blob);
+            });
+        }
+
+        async function dataUrlToBlob(dataUrl) {
+            const res = await fetch(dataUrl);
+            return await res.blob();
+        }
+
+        async function collectBackupFiles(maxTotalBytes = 25 * 1024 * 1024) {
+            const files = await db.getAllFiles();
+            let total = 0;
+            const out = [];
+            for (const f of files) {
+                const size = Number(f.size || 0);
+                if (total + size > maxTotalBytes) break;
+                const dataUrl = await blobToDataUrl(f.blob);
+                out.push({ id: f.id, name: f.name, type: f.type, size: size, lastModified: f.lastModified || 0, dataUrl });
+                total += size;
+            }
+            return { packedFiles: out, totalBytes: total, allFilesCount: files.length };
+        }
+
+        async function restoreBackupFiles(fileRecords) {
+            // 覆蓋式還原：先清空附件庫（就算備份入面冇 files 都要清）
+            await db.clearAllFiles();
+            if (!Array.isArray(fileRecords)) return;
+            for (const fr of fileRecords) {
+                if (!fr || !fr.id || !fr.dataUrl) continue;
+                const blob = await dataUrlToBlob(fr.dataUrl);
+                await db.saveFile({ id: fr.id, name: fr.name || 'file', type: fr.type || blob.type || 'application/octet-stream', size: fr.size || blob.size, lastModified: fr.lastModified || 0, blob });
+            }
+        }
+
+async function exportData() { 
             try { 
-                const entries = await db.getAll(); 
-                const backupObj = { version: "2.1", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames }; 
+                const entries = await db.getAll();
+                const filePack = await collectBackupFiles();
+                const backupObj = { version: "2.2", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames, files: filePack.packedFiles, filesMeta: { totalBytes: filePack.totalBytes, allFilesCount: filePack.allFilesCount, packedFilesCount: filePack.packedFiles.length } }; 
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); 
                 const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); 
             } catch (error) { alert("匯出失敗：" + error); } 
@@ -1373,7 +1714,8 @@
                 lucide.createIcons();
 
                 const entries = await db.getAll();
-                const backupObj = { version: "2.1", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames };
+                const filePack = await collectBackupFiles();
+                const backupObj = { version: "2.2", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames, files: filePack.packedFiles, filesMeta: { totalBytes: filePack.totalBytes, allFilesCount: filePack.allFilesCount, packedFilesCount: filePack.packedFiles.length } };
                 
                 const fileName = `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`;
                 const file = new File([JSON.stringify(backupObj)], fileName, { type: 'text/plain' });
@@ -1407,7 +1749,8 @@
                 try { 
                     const importedData = JSON.parse(e.target.result); 
                     if (!importedData.entries || !Array.isArray(importedData.entries)) throw new Error("備份檔案格式不正確"); 
-                    await db.clearAll(); 
+                    await db.clearAll();
+                    await restoreBackupFiles(importedData.files);
                     for (const entry of importedData.entries) await db.save(entry); 
                     
                     if(importedData.tagNames) { tagNames = importedData.tagNames; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); } 
