@@ -104,7 +104,7 @@
 
         .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden; contain: paint; }
         
-        .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; }
+        .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; min-height: 0; min-width: 0; }
         .day-cell:active { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--hover); }
         .day-cell.other-month { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--bg); opacity: 0.5; }
         
@@ -1637,7 +1637,7 @@
                     else numClass += ' holiday-num';
                 }
 
-                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 3).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 3 ? `<div class="event-chip" style="--event-color: transparent; color: var(--text-light); justify-content:center;">+${dayEntries.length - 3}</div>` : ''}</div>`;
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 2).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 2 ? `<div class="event-chip" style="--event-color: transparent; color: var(--text-light); justify-content:center; font-weight: bold;">+${dayEntries.length - 2}</div>` : ''}</div>`;
                 cell.onclick = () => openDayView(dateStr, dayEntries);
                 grid.appendChild(cell);
             }
