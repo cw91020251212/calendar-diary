@@ -110,14 +110,38 @@
         .lunar-subtext { font-size: 13px; color: var(--text-light); font-weight: normal; }
         .holiday-subtext { font-size: 13px; color: #e53e3e; font-weight: bold; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         
-        .dots-container { display: flex; flex-wrap: wrap; gap: 4px; max-width: 50%; justify-content: flex-end; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .dots-container {
+            width: 100%;
+            min-height: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(6px, 6px));
+            grid-auto-rows: 6px;
+            justify-content: start;
+            align-content: end;
+            gap: 2px;
+            margin-top: auto;
+            padding-top: 3px;
+            overflow: hidden;
+            flex: 1;
+        }
+        .dots-container:empty { display: none; }
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .dot-more {
+            display: none;
+        }
+        body.theme-dark .dot-more { border-color: rgba(255,255,255,0.22); }
 
-        /* 終極鎖定：第二層容器 events-preview 必須設定 min-height: 0 才能避免撐大 */
-        .events-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+        /* 月曆格仔只保留色點摘要，不再顯示文字事件預覽 */
+        .events-preview { display: none; }
         /* 終極鎖定：設定 flex-shrink: 0 確保每條事件不會被壓扁，超出直接隱藏 */
         .event-chip { font-size: 11px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--hover); color: var(--text-main); display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-        .event-chip.event-more { background: transparent; color: var(--text-light); justify-content: center; font-weight: 800; border: 1px dashed rgba(0,0,0,0.18); } 
+        .event-chip.event-more { background: transparent; color: var(--text-light); justify-content: center; font-weight: 800; border: 1px dashed rgba(0,0,0,0.18); cursor: pointer; user-select: none; }
+        .event-chip.event-more:active { transform: scale(0.98); opacity: 0.85; }
         body.theme-dark .event-chip.event-more { border-color: rgba(255,255,255,0.22); }
         .event-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--event-color, var(--primary)); flex-shrink: 0; }
         .has-photo-icon { width: 12px; height: 12px; color: var(--text-light); flex-shrink: 0;}
@@ -1548,7 +1572,8 @@
                     else numClass += ' holiday-num';
                 }
 
-                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 2).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 2 ? `<div class="event-chip event-more" style="--event-color: transparent;">+${dayEntries.length - 2}</div>` : ''}</div>`;
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div></div><div class="dots-container">${buildDotsHtml(dayEntries)}</div>`;
+
                 cell.onclick = () => openDayView(dateStr, dayEntries);
                 grid.appendChild(cell);
             }
@@ -1561,6 +1586,14 @@
 
         function resetToToday() { currentDate = new Date(); renderCalendar(); }
         function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+
+        // ✅ 日曆格仔：以細小正方形色塊顯示事件
+        function buildDotsHtml(dayEntries) {
+            return (dayEntries || []).map(e => {
+                const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
+                return `<div class="dot" style="background:${colorHex}" title="${(e.text || '事件').replace(/"/g, '&quot;')}"></div>`;
+            }).join('');
+        }
         function closeModal(id, event) {
             if (event && event.target.id !== id) return;
             document.getElementById(id).classList.remove('active');
@@ -2755,5 +2788,6 @@ async function exportData() {
             await tryConsumeSharedPayload();
         };
     </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
