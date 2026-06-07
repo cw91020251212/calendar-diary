@@ -50,6 +50,7 @@
             --text-main: #2d3748; --text-light: #718096;
             --border: #e2e8f0; --hover: #edf2f7;
             --gridline: rgba(0,0,0,0.18); /* 日曆格仔線顏色（更清晰） */
+            --outline: #4a5568; /* 元件最幼深灰輪廓線 */
             --header-h: 64px; --weekday-h: 36px;
         }
 
@@ -84,13 +85,13 @@
         .current-month { font-size: 20px; font-weight: bold; min-width: 90px; text-align: center; }
         .quick-date-picker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-        .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; }
 
         /* ✅ 整頁橫向滑動（星期列 + 日曆格） */
-        .calendar-viewport { flex: 1; overflow: hidden; position: relative; }
-        .calendar-track { height: 100%; display: flex; width: 100%; transform: translateX(0); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
+        .calendar-viewport { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; }
+        .calendar-track { height: 100%; display: flex; width: 100%; transform: translateX(0); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; contain: layout paint; }
         .calendar-track.no-anim { transition: none !important; }
-        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; }
+        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; }
 
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-bottom: 1px solid var(--border); transition: background-color 0.3s; }
         .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-light); }
@@ -103,7 +104,7 @@
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 1.5s linear infinite; }
 
-        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; }
+        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden; contain: paint; }
         
         .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; }
         .day-cell:active { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--hover); }
@@ -133,7 +134,7 @@
 
         .fab, .fab-mini {
             width: 52px; height: 52px; border-radius: 999px;
-            border: none; cursor: pointer;
+            border: 1px solid var(--outline); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 6px 18px rgba(0,0,0,0.18);
             transition: transform 0.18s ease, opacity 0.18s ease;
@@ -145,8 +146,8 @@
         .fab { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
         .fab:active, .fab-mini:active { transform: scale(0.96); }
 
-        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.75); color: var(--text-main); border: 1px solid rgba(0,0,0,0.08); display: none; }
-        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main); }
+        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.75); color: var(--text-main); border: 1px solid var(--outline); display: none; }
+        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid var(--outline); color: var(--text-main); }
 
         .fab-group.expanded .fab-mini { display: flex; animation: fabPop 160ms ease-out; }
         .fab-group.expanded .fab { opacity: 0.95; }
@@ -165,14 +166,14 @@
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
-        .entry-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
+        .entry-card { background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
         .entry-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--card-color, var(--primary)); }
         .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
         .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold; display: flex; gap: 8px; align-items: center;}
-        .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--border); }
+        .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--outline); }
         .entry-card-text { font-size: 16px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; line-height: 1.6;}
         .entry-card-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-top: 12px; }
-        .add-entry-btn { width: 100%; padding: 16px; border: 2px dashed var(--border); border-radius: 12px; background: none; color: var(--text-main); font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .add-entry-btn { width: 100%; padding: 16px; border: 2px dashed var(--outline); border-radius: 12px; background: none; color: var(--text-main); font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;}
 
         #readModal .modal-content { height: 100dvh; border-radius: 0; } 
         #readModal .modal-header { border-radius: 0; }
@@ -183,7 +184,7 @@
         .read-text.size-sm { font-size: 16px; }
         .read-text.size-lg { font-size: 24px; }
         .read-gallery { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; padding-bottom: 40px; }
-        .read-image { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .read-image { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid var(--outline); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
         .lightbox-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 300; display: none; align-items: center; justify-content: center; flex-direction: column; opacity: 0; transition: opacity 0.2s;}
         .lightbox-overlay.active { display: flex; opacity: 1; }
@@ -199,86 +200,86 @@
         .color-btn { width: 38px; height: 38px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .color-btn.selected { transform: scale(1.15); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main); }
         .tag-name-editor { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-        .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
-        .tag-name-input:focus { border-color: var(--primary); }
+        .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--outline); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
+        .tag-name-input:focus { border-color: var(--outline); }
 
         .editor-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
         
         .weather-toolbar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; flex-shrink: 0; }
         .weather-toolbar::-webkit-scrollbar { display: none; }
         .weather-toolbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
-        .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(102,126,234,0.3); }
+        .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
-        .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 12px 6px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main);}
+        .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--outline); padding: 12px 6px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main);}
         .tool-btn:hover { background: var(--border); }
-        .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: #feb2b2; }
+        .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: var(--outline); }
         .tool-btn-alarm:hover { background: #fed7d7; }
 
-        textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
-        textarea:focus { border-color: var(--primary); background: var(--surface); box-shadow: inset 0 0 0 1px var(--primary); }
+        textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
+        textarea:focus { border-color: var(--outline); background: var(--surface); box-shadow: inset 0 0 0 1px rgba(74,85,104,0.35); }
         textarea.size-sm { font-size: 16px; line-height: 1.5; }
         textarea.size-md { font-size: 20px; line-height: 1.6; }
         textarea.size-lg { font-size: 24px; line-height: 1.7; }
 
         .photo-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; flex-shrink: 0; }
-        .photo-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg); border: 1px solid var(--border); cursor: zoom-in;}
+        .photo-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative; background: var(--bg); border: 1px solid var(--outline); cursor: zoom-in;}
         .photo-item img { width: 100%; height: 100%; object-fit: cover; }
         .delete-photo-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         .editor-footer { display: flex; gap: 12px; margin-top: 16px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
         .btn { flex: 1; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-cancel { background: var(--bg); color: var(--text-main); border: 1px solid var(--border); }
-        .btn-save { background: var(--primary); color: white; }
+        .btn-cancel { background: var(--bg); color: var(--text-main); border: 1px solid var(--outline); }
+        .btn-save { background: var(--primary); color: white; border: 1px solid var(--outline); }
 
         .backup-info { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 15px; line-height: 1.6; border-left: 4px solid var(--primary); }
         .backup-info strong { color: var(--text-main); display: block; margin-bottom: 8px; font-size: 18px; }
         .action-group { display: flex; flex-direction: column; gap: 12px; }
-        .action-btn { width: 100%; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); transition: all 0.2s; }
+        .action-btn { width: 100%; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); transition: all 0.2s; }
         .action-btn:hover { background: var(--hover); }
-        .action-btn.primary { background: var(--primary); color: white; border: none; }
+        .action-btn.primary { background: var(--primary); color: white; border: 1px solid var(--outline); }
         .action-btn.primary:hover { background: var(--secondary); }
         
-        .tutorial-box { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .tutorial-box { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--outline); }
         .tutorial-title { color: var(--text-main); font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .tutorial-text { color: var(--text-light); font-size: 15px; line-height: 1.6; }
 
         #fileInput, #importInput { display: none; }
 
         /* 📎 附件（PDF/TXT/音訊等） */
-        .attachments-box { margin-top: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+        .attachments-box { margin-top: 12px; background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; padding: 12px; }
         .attachments-title { font-size: 14px; color: var(--text-light); font-weight: bold; margin-bottom: 8px; display:flex; align-items:center; gap:8px; }
         .attachments-list { display: flex; flex-direction: column; gap: 8px; }
-        .attachment-row { display:flex; align-items:center; justify-content: space-between; gap: 10px; padding: 10px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+        .attachment-row { display:flex; align-items:center; justify-content: space-between; gap: 10px; padding: 10px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--outline); }
         .attachment-meta { min-width: 0; display:flex; flex-direction: column; gap: 2px; }
         .attachment-name { font-size: 15px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .attachment-sub { font-size: 12px; color: var(--text-light); }
         .attachment-actions { display:flex; gap: 6px; flex-shrink: 0; }
-        .mini-btn { background: var(--hover); border: 1px solid var(--border); color: var(--text-main); padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:6px; }
-        .mini-btn.danger { background: #fff5f5; border-color: #feb2b2; color: #c53030; }
+        .mini-btn { background: var(--hover); border: 1px solid var(--outline); color: var(--text-main); padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:6px; }
+        .mini-btn.danger { background: #fff5f5; border-color: var(--outline); color: #c53030; }
 
         /* 🔁 移動/複製彈窗 */
         #moveCopyModal .modal-content { height: auto; max-height: 70dvh; }
-        .move-row { display:flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+        .move-row { display:flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; }
         .move-row label { font-size: 14px; color: var(--text-light); font-weight: bold; }
-        .move-row input[type=date] { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); font-size: 16px; }
+        .move-row input[type=date] { padding: 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; }
         .move-mode { display:flex; gap: 8px; margin-bottom: 10px; }
         .move-mode .mini-btn { flex: 1; justify-content: center; }
-        .move-mode .mini-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .move-mode .mini-btn.active { background: var(--primary); color: #fff; border-color: var(--outline); }
         .move-bulk { display:none; }
         .move-bulk .range-row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .move-bulk textarea { width: 100%; min-height: 84px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); font-size: 14px; resize: vertical; }
+        .move-bulk textarea { width: 100%; min-height: 84px; padding: 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 14px; resize: vertical; }
         .weekday-pills { display:flex; flex-wrap: wrap; gap: 8px; }
-        .weekday-pill { display:flex; align-items:center; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; font-size: 13px; font-weight: bold; color: var(--text-main); cursor: pointer; user-select:none; }
+        .weekday-pill { display:flex; align-items:center; gap: 6px; padding: 8px 10px; border: 1px solid var(--outline); background: var(--surface); border-radius: 999px; font-size: 13px; font-weight: bold; color: var(--text-main); cursor: pointer; user-select:none; }
         .weekday-pill input { accent-color: var(--primary); }
 
-        .mc-hint { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; color: var(--text-main); line-height: 1.35; }
+        .mc-hint { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); font-size: 13px; color: var(--text-main); line-height: 1.35; }
         .mc-hint b { color: var(--primary); }
-        .mc-preview { margin-top: 10px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; max-height: 180px; overflow: auto; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+        .mc-preview { margin-top: 10px; border: 1px solid var(--outline); background: var(--surface); border-radius: 10px; max-height: 180px; overflow: auto; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
         .mc-preview .empty { color: var(--text-light); font-family: inherit; }
         .mc-progress-wrap { margin-top: 10px; display:none; }
         .mc-progress-label { font-size: 12px; color: var(--text-light); margin-bottom: 6px; font-weight: bold; }
-        .mc-progress { width: 100%; height: 10px; border-radius: 999px; background: rgba(0,0,0,0.08); overflow: hidden; border: 1px solid var(--border); }
+        .mc-progress { width: 100%; height: 10px; border-radius: 999px; background: rgba(0,0,0,0.08); overflow: hidden; border: 1px solid var(--outline); }
         .mc-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.15s ease; }
 
         .move-actions { display:flex; gap: 10px; margin-top: 12px; }
@@ -356,7 +357,7 @@
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
-                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border);">
+                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--outline);">
                     <ul style="padding-left: 20px; color: var(--text-main); font-size: 16px; display: flex; flex-direction: column; gap: 10px;">
                         <li>點擊右下角 <strong style="color: var(--primary); font-size: 20px;">「+」</strong> 隨時新增記事。</li>
                         <li>用手指 <strong>「左右撥動畫面」</strong> 或點擊頂部年月，可快速切換日子。</li>
@@ -394,7 +395,7 @@
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <div style="margin-bottom: 12px; color: var(--text-light);">你揀咗日期之後，我先會打開「新增記事」並帶入分享文字/圖片。</div>
-                <input type="date" id="shareDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-main);" />
+                <input type="date" id="shareDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" />
                 <div style="display:flex; gap: 10px; margin-top: 14px;">
                     <button class="action-btn" onclick="closeShareDateModal(true, false)" style="flex:1;">取消 / 返回</button>
                     <button class="action-btn primary" onclick="confirmShareDate()" style="flex:1;">確定</button>
@@ -656,7 +657,7 @@
                 <!-- 📝 私人筆記 -->
                 <div class="section-header" onclick="toggleSection('private')">📝 私人備註 (僅此手機可見) <i data-lucide="chevron-down"></i></div>
                 <div id="private" class="section-content">
-                    <textarea id="privateNote" style="width:100%; height:110px; padding:12px; border-radius:10px; border:1px solid var(--border); background: var(--bg); color: var(--text-main);" oninput="savePrivateNote()" placeholder="輸入常用公司電話或聯絡簿..."></textarea>
+                    <textarea id="privateNote" style="width:100%; height:110px; padding:12px; border-radius:10px; border:1px solid var(--outline); background: var(--bg); color: var(--text-main);" oninput="savePrivateNote()" placeholder="輸入常用公司電話或聯絡簿..."></textarea>
                     <div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top: 8px;">提示：呢段內容會保存在你呢部手機嘅 localStorage，不會上傳雲端。</div>
                 </div>
             </div>
@@ -672,7 +673,7 @@
             </div>
             <div class="modal-body">
                 
-                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: #c6f6d5; margin-bottom:12px;" onclick="openHelpModal()">
+                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: var(--outline); margin-bottom:12px;" onclick="openHelpModal()">
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                 </button>
 
@@ -680,7 +681,7 @@
                     <i data-lucide="briefcase"></i> 打開工具箱
                 </button>
 
-                <div class="tutorial-box" style="border-color: #4285F4; background: #f8faff;">
+                <div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
                     <div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
                     <div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
                     <div style="font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 6px;">
@@ -691,12 +692,12 @@
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
-                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid #4285F4;" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
-                        <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed #feb2b2; display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
+                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+                        <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed var(--outline); display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
                     </div>
 
                     <!-- ✅ 自動雲端同步（頁面開住時） -->
-                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid rgba(66,133,244,0.25); background: rgba(66,133,244,0.06);">
+                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--outline); background: rgba(66,133,244,0.06);">
                         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
                             <div style="font-weight:bold; color:#1f4fbf; display:flex; align-items:center; gap:8px;">
                                 <i data-lucide="repeat" style="width:18px; height:18px;"></i>
@@ -720,11 +721,11 @@
                 
                 <div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
                 <div class="action-group">
-                    <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: #fed7d7;" onclick="printBlankCalendar()">
+                    <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: var(--outline);" onclick="printBlankCalendar()">
                         <i data-lucide="printer"></i> 🖨️ 列印空白月曆
                     </button>
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="exportData()"><i data-lucide="download"></i> 手動下載備份檔 (.txt)</button>
-                    <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8;"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
+                    <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 手動上傳並還原資料</button>
                     <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)" style="display:none" tabindex="-1" aria-hidden="true">
                 </div>
@@ -747,7 +748,7 @@
             <div class="modal-body">
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
                     <input id="searchInput" type="text" placeholder="輸入關鍵字，例如：2025" 
-                           style="flex:1; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;" 
+                           style="flex:1; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;" 
                            oninput="debouncedSearch()" />
                     <button class="icon-btn" onclick="clearSearch()" title="清除"><i data-lucide="eraser" style="width: 22px; height: 22px;"></i></button>
                 </div>
@@ -1222,6 +1223,28 @@
 
         function printBlankCalendar() { closeModal('backupModal'); setTimeout(() => { window.print(); }, 300); }
 
+        // ✅ 等 transition end：比 setTimeout 穩定，減少「窒」同「眨一下」
+        function waitTransitionOnce(el, fallbackMs = 420) {
+            return new Promise((resolve) => {
+                if (!el) return resolve();
+                let done = false;
+                const finish = () => {
+                    if (done) return;
+                    done = true;
+                    try { el.removeEventListener('transitionend', onEnd); } catch (_) {}
+                    if (t) clearTimeout(t);
+                    resolve();
+                };
+                const onEnd = (e) => {
+                    // 只處理 track 自己嗰個 transition end，避免子元素干擾
+                    if (e && e.target !== el) return;
+                    finish();
+                };
+                const t = setTimeout(finish, fallbackMs);
+                try { el.addEventListener('transitionend', onEnd); } catch (_) { /* fallback 用 timeout */ }
+            });
+        }
+
         async function changeMonth(delta) { 
             if (isAnimating) return; isAnimating = true;
 
@@ -1260,18 +1283,22 @@
                 // force reflow
                 void track.offsetWidth;
                 track.classList.remove('no-anim');
-                track.style.transform = 'translateX(-100%)';
+                requestAnimationFrame(() => {
+                    track.style.transform = 'translateX(-100%)';
+                });
             } else {
                 track.insertBefore(newSlide, currentSlide);
                 track.classList.add('no-anim');
                 track.style.transform = 'translateX(-100%)';
                 void track.offsetWidth;
                 track.classList.remove('no-anim');
-                track.style.transform = 'translateX(0)';
+                requestAnimationFrame(() => {
+                    track.style.transform = 'translateX(0)';
+                });
             }
 
-            // 等動畫完
-            await new Promise(r => setTimeout(r, 280));
+            // ✅ 等動畫完（用 transitionend + fallback timeout）
+            await waitTransitionOnce(track, 420);
 
             // 更新狀態：currentDate + header + quick picker
             currentDate = nextDate;
@@ -1303,8 +1330,9 @@
                 if (keptGrid) keptGrid.id = 'calendarGrid';
             }
 
-            // 4) 重新render一次（用正式renderCalendar）去保證 click handler / icon 100% 同步
-            await renderCalendar();
+            // 4) ⚠️ 唔再重 render（renderCalendar 會先清空 grid，再建 42 格，會造成「眨一下/閃」）
+            //    而家新一頁已經喺上面 renderCalendarFor(nextDate, newGrid, false) 建好 click handler 同 icons。
+            //    所以只保留新 slide 就夠，畫面會順好多。
 
             isAnimating = false;
         }
