@@ -47,8 +47,8 @@
             --bg: #f4f7f6; --surface: #ffffff;
             --text-main: #2d3748; --text-light: #718096;
             --border: #e2e8f0; --hover: #edf2f7;
-            --gridline: rgba(0,0,0,0.18); /* 日曆格仔線顏色（更清晰） */
-            --outline: #4a5568; /* 元件最幼深灰輪廓線 */
+            --gridline: rgba(0,0,0,0.18);
+            --outline: #4a5568;
             --header-h: 64px; --weekday-h: 36px;
         }
 
@@ -68,43 +68,34 @@
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
         .icon-btn:hover { background: var(--hover); }
 
-        /* 🔧 修補：摺疊選單 / 工具箱用摺疊區塊 */
         .section-header { padding: 16px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
         .section-content { display: none; flex-direction: column; gap: 8px; padding-bottom: 16px; }
         .section-content.active { display: flex; }
-
-        /* 工具箱內的 action 按鈕改為左對齊，不影響備份中心 */
         #toolboxModal .action-btn { justify-content: flex-start; }
-
-        /* 為了節省空間，只隱藏「日期視窗」內的底色選單（編輯器的標籤顏色保留） */
         #dayModal .color-picker-container { display: none; }
         
         .current-month-wrapper { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
         .current-month { font-size: 20px; font-weight: bold; min-width: 90px; text-align: center; }
         .quick-date-picker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-        .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; }
+        .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
 
-        /* ✅ 整頁橫向滑動（星期列 + 日曆格） */
-        .calendar-viewport { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; }
-        .calendar-track { height: 100%; display: flex; width: 100%; transform: translateX(0); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; contain: layout paint; }
+        .calendar-viewport { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
+        .calendar-track { height: 100%; display: flex; width: 100%; transform: translateX(0); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; contain: layout paint; min-height: 0; }
         .calendar-track.no-anim { transition: none !important; }
-        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; }
+        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; min-height: 0; }
 
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-bottom: 1px solid var(--border); transition: background-color 0.3s; }
         .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-light); }
         
-        @keyframes slideOutLeft { 0% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(-50px); opacity: 0; } }
-        @keyframes slideOutRight { 0% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(50px); opacity: 0; } }
-        @keyframes slideInLeft { 0% { transform: translateX(-50px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-        @keyframes slideInRight { 0% { transform: translateX(50px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-        
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 1.5s linear infinite; }
 
-        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden; contain: paint; }
+        /* 終極鎖定：加入 minmax(0, 1fr) */
+        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden; contain: paint; min-height: 0; }
         
-        .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; min-height: 0; min-width: 0; }
+        /* 終極鎖定：日曆格仔必須設定 min-height: 0 且 max-height: 100% */
+        .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; min-height: 0; min-width: 0; max-height: 100%; }
         .day-cell:active { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--hover); }
         .day-cell.other-month { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--bg); opacity: 0.5; }
         
@@ -122,36 +113,26 @@
         .dots-container { display: flex; flex-wrap: wrap; gap: 4px; max-width: 50%; justify-content: flex-end; }
         .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-        .events-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
-        .event-chip { font-size: 11px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--hover); color: var(--text-main); display: flex; align-items: center; gap: 4px;}
+        /* 終極鎖定：第二層容器 events-preview 必須設定 min-height: 0 才能避免撐大 */
+        .events-preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+        /* 終極鎖定：設定 flex-shrink: 0 確保每條事件不會被壓扁，超出直接隱藏 */
+        .event-chip { font-size: 11px; padding: 2px 4px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--hover); color: var(--text-main); display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .event-chip.event-more { background: transparent; color: var(--text-light); justify-content: center; font-weight: 800; border: 1px dashed rgba(0,0,0,0.18); } 
+        body.theme-dark .event-chip.event-more { border-color: rgba(255,255,255,0.22); }
         .event-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--event-color, var(--primary)); flex-shrink: 0; }
         .has-photo-icon { width: 12px; height: 12px; color: var(--text-light); flex-shrink: 0;}
 
-        /* ✅ 右下角：可展開FAB（細咗 + 半透明 + 唔遮住內容） */
+        /* ✅ 右下角：可展開FAB */
         .fab-group { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 120; display: flex; align-items: center; gap: 10px; }
-
-        .fab, .fab-mini {
-            width: 52px; height: 52px; border-radius: 999px;
-            border: 1px solid var(--outline); cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-            transition: transform 0.18s ease, opacity 0.18s ease;
-            opacity: 0.84; /* 半透明：睇到少少底 */
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-        }
-
+        .fab, .fab-mini { width: 52px; height: 52px; border-radius: 999px; border: 1px solid var(--outline); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.18); transition: transform 0.18s ease, opacity 0.18s ease; opacity: 0.84; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
         .fab { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
         .fab:active, .fab-mini:active { transform: scale(0.96); }
-
         .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.75); color: var(--text-main); border: 1px solid var(--outline); display: none; }
         body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid var(--outline); color: var(--text-main); }
-
         .fab-group.expanded .fab-mini { display: flex; animation: fabPop 160ms ease-out; }
         .fab-group.expanded .fab { opacity: 0.95; }
         .fab-rotate { transition: transform 0.22s ease; }
         .fab-group.expanded .fab-rotate { transform: rotate(45deg); }
-
         @keyframes fabPop { from { transform: translateX(8px) scale(0.92); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 0.84; } }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; opacity: 0; transition: opacity 0.3s; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
@@ -201,7 +182,6 @@
         .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--outline); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
         .tag-name-input:focus { border-color: var(--outline); }
 
-        /* ✅ 編輯器工具列：改做橫向滾動，慳高度畀文字框 */
         .editor-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
         .editor-toolbar::-webkit-scrollbar { display: none; }
         .editor-toolbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -212,63 +192,27 @@
         .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
-        /* ✅ 工具按鈕：縮細高度，並改為不強制平均分（方便橫向滑） */
         .tool-btn { flex: 0 0 auto; background: var(--bg); border: 1px solid var(--outline); padding: 9px 12px; border-radius: 999px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main); white-space: nowrap; }
         .tool-btn:hover { background: var(--border); }
         .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: var(--outline); }
         .tool-btn-alarm:hover { background: #fed7d7; }
 
         textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
-
-        /* 🩶 placeholder（示例文字）用淺灰，避免誤會已經有內容 */
         textarea::placeholder { color: #b8b8b8; opacity: 1; }
         textarea::-webkit-input-placeholder { color: #b8b8b8; opacity: 1; }
         textarea::-moz-placeholder { color: #b8b8b8; opacity: 1; }
         textarea:-ms-input-placeholder { color: #b8b8b8; }
         textarea::-ms-input-placeholder { color: #b8b8b8; }
 
-        /* ⤢ 輸入框右上角：細小放大按鈕（避免阻住打字） */
         .editor-text-wrap { position: relative; }
         .editor-text-wrap #editorText { padding-right: 52px; }
-        .ta-expand-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            border-radius: 10px;
-            border: 1px solid var(--outline);
-            background: rgba(255,255,255,0.0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0.55;
-        }
+        .ta-expand-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--outline); background: rgba(255,255,255,0.0); display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.55; }
         .ta-expand-btn:hover { opacity: 0.9; background: var(--hover); }
 
-        /* 🟦 全畫面輸入時：右下角浮動關閉掣 */
-        .wm-float-close {
-            position: fixed;
-            right: 16px;
-            bottom: calc(16px + env(safe-area-inset-bottom));
-            width: 54px;
-            height: 54px;
-            border-radius: 999px;
-            background: var(--primary);
-            color: #fff;
-            border: 1px solid var(--outline);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.22);
-            z-index: 9999;
-        }
-        /* 第一級：只放大「輸入欄」高度（唔改功能鍵／版面） */
+        .wm-float-close { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 999px; background: var(--primary); color: #fff; border: 1px solid var(--outline); display: none; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0,0,0,0.22); z-index: 9999; }
         #editorModal.writing-mode .wm-float-close { display: none; }
         #editorModal.writing-mode .ta-expand-btn { display: flex; }
 
-        /* 🟪 第二級：內容輸入真正全頁（連頂部/底部都收起） */
         #editorModal.text-fullscreen .modal-header,
         #editorModal.text-fullscreen .editor-footer,
         #editorModal.text-fullscreen .color-picker-container,
@@ -277,14 +221,7 @@
         #editorModal.text-fullscreen .photo-gallery,
         #editorModal.text-fullscreen .attachments-box { display: none !important; }
         #editorModal.text-fullscreen .modal-body { padding: 0 !important; }
-        #editorModal.text-fullscreen #editorText {
-            min-height: 100dvh !important;
-            height: 100dvh !important;
-            max-height: 100dvh !important;
-            overflow-y: auto !important;
-            border-radius: 0 !important;
-            border-left: none; border-right: none;
-        }
+        #editorModal.text-fullscreen #editorText { min-height: 100dvh !important; height: 100dvh !important; max-height: 100dvh !important; overflow-y: auto !important; border-radius: 0 !important; border-left: none; border-right: none; }
         #editorModal.text-fullscreen .wm-float-close { display: flex; }
         #editorModal.text-fullscreen .ta-expand-btn { display: none; }
 
@@ -299,33 +236,12 @@
         .delete-photo-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         .editor-footer { display: flex; gap: 10px; margin-top: 12px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
-        /* ✅ 底部按鈕：縮細少少，避免食咗文字框高度 */
         .btn { flex: 1; padding: 12px 12px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
         .btn-cancel { background: var(--bg); color: var(--text-main); border: 1px solid var(--outline); }
         .btn-save { background: var(--primary); color: white; border: 1px solid var(--outline); }
 
-        /* 第一級（writing-mode）：
-           - 唔改任何功能鍵／版面樣式
-           - 只將「輸入欄」本身變到至少同畫面一樣高（100dvh）
-           - 用家需要時用 modal-body 向上捲，頂部工具自然被推上面睇唔到（但仍然存在）
-           - 文字框繼續用 auto-grow（JS 會每次輸入都調整高度）
-        */
-        #editorModal.writing-mode #editorText {
-            flex: none;
-            height: auto !important;
-            min-height: 100dvh !important; /* 覆蓋 textarea inline min-height */
-            max-height: none;
-            overflow: hidden;
-        }
-
-        /* 第一級（writing-mode）：底部兩個掣要長住（唔跟住內容上落） */
-        #editorModal.writing-mode .editor-footer {
-            position: sticky;
-            bottom: 0;
-            background: var(--surface);
-            z-index: 5;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+        #editorModal.writing-mode #editorText { flex: none; height: auto !important; min-height: 100dvh !important; max-height: none; overflow: hidden; }
+        #editorModal.writing-mode .editor-footer { position: sticky; bottom: 0; background: var(--surface); z-index: 5; padding-bottom: env(safe-area-inset-bottom); }
 
         .backup-info { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 15px; line-height: 1.6; border-left: 4px solid var(--primary); }
         .backup-info strong { color: var(--text-main); display: block; margin-bottom: 8px; font-size: 18px; }
@@ -341,7 +257,6 @@
 
         #fileInput, #importInput { display: none; }
 
-        /* 📎 附件（PDF/TXT/音訊等） */
         .attachments-box { margin-top: 12px; background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; padding: 12px; }
         .attachments-title { font-size: 14px; color: var(--text-light); font-weight: bold; margin-bottom: 8px; display:flex; align-items:center; gap:8px; }
         .attachments-list { display: flex; flex-direction: column; gap: 8px; }
@@ -353,7 +268,6 @@
         .mini-btn { background: var(--hover); border: 1px solid var(--outline); color: var(--text-main); padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; display:flex; align-items:center; gap:6px; }
         .mini-btn.danger { background: #fff5f5; border-color: var(--outline); color: #c53030; }
 
-        /* 🔁 移動/複製彈窗 */
         #moveCopyModal .modal-content { height: auto; max-height: 70dvh; }
         .move-row { display:flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; }
         .move-row label { font-size: 14px; color: var(--text-light); font-weight: bold; }
@@ -379,7 +293,6 @@
 
         .move-actions { display:flex; gap: 10px; margin-top: 12px; }
         .move-actions .btn { padding: 14px; font-size: 16px; }
-
 
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; }
@@ -432,8 +345,6 @@
                     </div>
                 </div>
             </div>
-
-
         </div>
     </div>
 
@@ -1637,7 +1548,7 @@
                     else numClass += ' holiday-num';
                 }
 
-                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 2).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 2 ? `<div class="event-chip" style="--event-color: transparent; color: var(--text-light); justify-content:center; font-weight: bold;">+${dayEntries.length - 2}</div>` : ''}</div>`;
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div><div class="dots-container">${dayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="dot" style="background:${colorHex}"></div>`; }).join('')}</div></div><div class="events-preview">${dayEntries.slice(0, 2).map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; return `<div class="event-chip" style="--event-color: ${colorHex}">${e.text ? e.text.substring(0, 8) : '照片記錄'}${e.images && e.images.length > 0 ? `<i data-lucide="image" class="has-photo-icon"></i>` : ''}</div>`}).join('')}${dayEntries.length > 2 ? `<div class="event-chip event-more" style="--event-color: transparent;">+${dayEntries.length - 2}</div>` : ''}</div>`;
                 cell.onclick = () => openDayView(dateStr, dayEntries);
                 grid.appendChild(cell);
             }
