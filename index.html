@@ -203,20 +203,93 @@
         .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--outline); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
         .tag-name-input:focus { border-color: var(--outline); }
 
-        .editor-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
+        /* ✅ 編輯器工具列：改做橫向滾動，慳高度畀文字框 */
+        .editor-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+        .editor-toolbar::-webkit-scrollbar { display: none; }
+        .editor-toolbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .weather-toolbar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; flex-shrink: 0; }
+        .weather-toolbar { display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 6px; flex-shrink: 0; }
         .weather-toolbar::-webkit-scrollbar { display: none; }
         .weather-toolbar { -ms-overflow-style: none; scrollbar-width: none; }
         .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
-        .tool-btn { flex: 1; background: var(--bg); border: 1px solid var(--outline); padding: 12px 6px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main);}
+        /* ✅ 工具按鈕：縮細高度，並改為不強制平均分（方便橫向滑） */
+        .tool-btn { flex: 0 0 auto; background: var(--bg); border: 1px solid var(--outline); padding: 9px 12px; border-radius: 999px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main); white-space: nowrap; }
         .tool-btn:hover { background: var(--border); }
         .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: var(--outline); }
         .tool-btn-alarm:hover { background: #fed7d7; }
 
         textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
+
+        /* 🩶 placeholder（示例文字）用淺灰，避免誤會已經有內容 */
+        textarea::placeholder { color: #b8b8b8; opacity: 1; }
+        textarea::-webkit-input-placeholder { color: #b8b8b8; opacity: 1; }
+        textarea::-moz-placeholder { color: #b8b8b8; opacity: 1; }
+        textarea:-ms-input-placeholder { color: #b8b8b8; }
+        textarea::-ms-input-placeholder { color: #b8b8b8; }
+
+        /* ⤢ 輸入框右上角：細小放大按鈕（避免阻住打字） */
+        .editor-text-wrap { position: relative; }
+        .editor-text-wrap #editorText { padding-right: 52px; }
+        .ta-expand-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            border: 1px solid var(--outline);
+            background: rgba(255,255,255,0.0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.55;
+        }
+        .ta-expand-btn:hover { opacity: 0.9; background: var(--hover); }
+
+        /* 🟦 全畫面輸入時：右下角浮動關閉掣 */
+        .wm-float-close {
+            position: fixed;
+            right: 16px;
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            width: 54px;
+            height: 54px;
+            border-radius: 999px;
+            background: var(--primary);
+            color: #fff;
+            border: 1px solid var(--outline);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+            z-index: 9999;
+        }
+        /* 第一級：只放大「輸入欄」高度（唔改功能鍵／版面） */
+        #editorModal.writing-mode .wm-float-close { display: none; }
+        #editorModal.writing-mode .ta-expand-btn { display: flex; }
+
+        /* 🟪 第二級：內容輸入真正全頁（連頂部/底部都收起） */
+        #editorModal.text-fullscreen .modal-header,
+        #editorModal.text-fullscreen .editor-footer,
+        #editorModal.text-fullscreen .color-picker-container,
+        #editorModal.text-fullscreen .editor-toolbar,
+        #editorModal.text-fullscreen .weather-toolbar,
+        #editorModal.text-fullscreen .photo-gallery,
+        #editorModal.text-fullscreen .attachments-box { display: none !important; }
+        #editorModal.text-fullscreen .modal-body { padding: 0 !important; }
+        #editorModal.text-fullscreen #editorText {
+            min-height: 100dvh !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            overflow-y: auto !important;
+            border-radius: 0 !important;
+            border-left: none; border-right: none;
+        }
+        #editorModal.text-fullscreen .wm-float-close { display: flex; }
+        #editorModal.text-fullscreen .ta-expand-btn { display: none; }
+
         textarea:focus { border-color: var(--outline); background: var(--surface); box-shadow: inset 0 0 0 1px rgba(74,85,104,0.35); }
         textarea.size-sm { font-size: 16px; line-height: 1.5; }
         textarea.size-md { font-size: 20px; line-height: 1.6; }
@@ -227,10 +300,34 @@
         .photo-item img { width: 100%; height: 100%; object-fit: cover; }
         .delete-photo-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        .editor-footer { display: flex; gap: 12px; margin-top: 16px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
-        .btn { flex: 1; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .editor-footer { display: flex; gap: 10px; margin-top: 12px; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
+        /* ✅ 底部按鈕：縮細少少，避免食咗文字框高度 */
+        .btn { flex: 1; padding: 12px 12px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;}
         .btn-cancel { background: var(--bg); color: var(--text-main); border: 1px solid var(--outline); }
         .btn-save { background: var(--primary); color: white; border: 1px solid var(--outline); }
+
+        /* 第一級（writing-mode）：
+           - 唔改任何功能鍵／版面樣式
+           - 只將「輸入欄」本身變到至少同畫面一樣高（100dvh）
+           - 用家需要時用 modal-body 向上捲，頂部工具自然被推上面睇唔到（但仍然存在）
+           - 文字框繼續用 auto-grow（JS 會每次輸入都調整高度）
+        */
+        #editorModal.writing-mode #editorText {
+            flex: none;
+            height: auto !important;
+            min-height: 100dvh !important; /* 覆蓋 textarea inline min-height */
+            max-height: none;
+            overflow: hidden;
+        }
+
+        /* 第一級（writing-mode）：底部兩個掣要長住（唔跟住內容上落） */
+        #editorModal.writing-mode .editor-footer {
+            position: sticky;
+            bottom: 0;
+            background: var(--surface);
+            z-index: 5;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
 
         .backup-info { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 15px; line-height: 1.6; border-left: 4px solid var(--primary); }
         .backup-info strong { color: var(--text-main); display: block; margin-bottom: 8px; font-size: 18px; }
@@ -339,6 +436,8 @@
                     </div>
                 </div>
             </div>
+
+
         </div>
     </div>
 
@@ -377,12 +476,26 @@
                 <button class="icon-btn" onclick="closeModal('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今天的記事。<br>想看其他月份？只需在畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想找回很久以前的紀錄，點擊最頂部的 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 2. Google 雲端同步</div><div class="tutorial-text">喺「設定」入面登入 Google 帳號，就可以將資料安全備份去你嘅私人雲端。就算換新手機，都可以無縫秒速還原所有文字同圖片！</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 3. 雙重自動儲存機制</div><div class="tutorial-text">系統會喺你編輯時每 30 秒靜默儲存一次，並且喺你離開或切換 App 時觸發緊急儲存，無需擔心遺失進度。</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 4. 12 色標籤與底色狀態</div><div class="tutorial-text">除了為記事加上 12 色標籤外，你而家可以喺點擊日子後，設定成個日曆格嘅 <strong>背景底色</strong>（例如橙色代表放假）。</div></div>
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="bell-ring" style="color: #e53e3e;"></i> 5. 鬧鐘與「提提我」功能</div><div class="tutorial-text">輸入重要事項後，點擊編輯器中間的 <strong>「🔔 提提我」</strong> 按鈕，系統會為你製作一個日曆檔案。將其加入手機本身的行事曆，你的手機就會在指定日子響鬧鐘提醒你！</div></div>
-            </div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今日記事。<br>想看其他月份？只需喺畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想搵返好耐之前嘅紀錄，點擊最頂部嘅 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="pen-line" style="color: #805ad5;"></i> 2. 「新增記事」編輯器（你最常用嘅工具列）</div><div class="tutorial-text">入到編輯器後，上面一排按鈕就係快捷功能：<br><strong>「字體」</strong>：一鍵切換 <strong>細字／中字／大字</strong>，方便記事長短唔同都易睇。<br><strong>「加圖」</strong>：加入相片（可一次揀多張）。<br><strong>「加檔」</strong>：加入附件（例如 PDF／Word／錄音／任何檔案）。<br><strong>「提提我」</strong>：幫你生成日曆檔，加入手機行事曆後就會用手機原生鬧鐘提醒你。<br><strong>「移動/複製」</strong>：將呢篇記事搬去第二日，或者複製多份到其他日子。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 3. Google 雲端同步</div><div class="tutorial-text">喺「設定」入面登入 Google 帳號，就可以將資料安全備份去你嘅私人雲端。就算換新手機，都可以無縫秒速還原所有文字同圖片／附件！</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 4. 雙重自動儲存（放心打字唔怕冇存到）</div><div class="tutorial-text">你編輯緊嘅時候，系統會每 <strong>30 秒</strong> 靜默自動儲存一次；而且當你 <strong>關閉編輯器／切去其他 App</strong>，都會再做多一次安全儲存，盡量避免遺失進度。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 5. 12 色標籤 + 日期底色狀態</div><div class="tutorial-text">你可以為每篇記事加上 12 色標籤（亦可自訂每種顏色代表咩意思）。<br>另外，喺「日期視窗」可以為整個日曆格設定 <strong>背景底色</strong>（例如橙色代表放假、紅色代表重要日）。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="cloud-sun" style="color: #f6ad55;"></i> 6. 天氣／狀態圖案點樣加？</div><div class="tutorial-text">編輯器下面有一排 <strong>天氣/狀態按鈕</strong>（例如 ☀️ 晴天、🌧️ 落雨、🌀 8號風球 等）。<br>你只要 <strong>點一下</strong> 就會選中；如果想取消，就再 <strong>點多一次同一個</strong> 即可清除。<br>保存後，閱讀視窗會顯示你揀咗嘅天氣徽章，方便日後回憶當日情況。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="image-plus" style="color: #38b2ac;"></i> 7. 加入圖片（可多張／可放大／可刪）</div><div class="tutorial-text">喺編輯器按 <strong>「加圖」</strong>，可以一次揀多張相。系統會自動幫你 <strong>壓縮</strong>，慳位又快。<br>相片會出現喺編輯器下面：<br>— <strong>點相片</strong> 可以放大睇（燈箱模式）。<br>— 右上角 <strong>「✕」</strong> 可以刪除嗰張相。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="paperclip" style="color: #4a5568;"></i> 8. 加入附件檔案（開啟／刪除）</div><div class="tutorial-text">喺編輯器按 <strong>「加檔」</strong>，可以加入任何類型附件（例如 PDF、文件、錄音、相片原檔等）。<br>加入後會顯示檔名、類型、大小：<br>— 按 <strong>「開啟」</strong>：喺新分頁打開（如瀏覽器限制就會改為下載）。<br>— 按 <strong>「刪」</strong>：移除該附件。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="shuffle" style="color: #667eea;"></i> 9. 移動／複製（單一日期 + 批量）</div><div class="tutorial-text">想用「移動/複製」之前，請先確保呢篇記事已經 <strong>儲存過一次</strong>（變成「已存在」嘅記事）。<br><strong>單一日期</strong>：揀目標日期 → 選「移動」或「複製」。<br><strong>批量模式</strong>：你可以用「日期範圍 + 星期幾」去生成多個目標日期，或者直接貼一堆日期清單，幫你一次過大量複製。<br>做完批量操作後，如發現揀錯日期，畫面會提供 <strong>撤銷</strong> 按鈕，方便你即刻回復。</div></div>
+
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="copy" style="color: #2b6cb0;"></i> 10. 閱讀模式一鍵複製正文</div><div class="tutorial-text">打開一篇記事進入「閱讀視窗」後，右上角有 <strong>複製</strong> 圖示，可以一鍵複製正文文字（方便貼去 WhatsApp／Email／備忘錄）。</div></div>
+                        </div>
         </div>
     </div>
 
@@ -481,6 +594,9 @@
                 <!-- 💡 輕巧的自動儲存提示字眼 -->
                 <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: auto; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
                 
+                <!-- 🖊️ 全畫面輸入（收起工具，專心打字） -->
+                <button class="icon-btn" onclick="toggleWritingMode()" title="全畫面輸入"><i id="writingModeIcon" data-lucide="maximize-2" style="width: 26px; height: 26px;"></i></button>
+
                 <!-- X 按鈕改為調用 closeEditor() 觸發最後儲存 -->
                 <button class="icon-btn" onclick="closeEditor()"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
@@ -526,7 +642,12 @@
                     <button class="weather-btn" data-weather="🌋 地震" onclick="toggleWeather('🌋 地震')">🌋 地震</button>
                 </div>
 
-                <textarea id="editorText" class="size-md" placeholder="請盡情輸入，這裏的空間會根據你的文字無限向下延伸..."></textarea>
+                <div class="editor-text-wrap">
+                    <button class="ta-expand-btn" onclick="enterTextFullscreen()" title="全頁輸入">
+                        <i data-lucide="maximize-2" style="width: 18px; height: 18px;"></i>
+                    </button>
+                    <textarea id="editorText" class="size-md" placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></textarea>
+                </div>
                 <div class="photo-gallery" id="editorGallery"></div>
                 <div class="attachments-box" id="attachmentsBox" style="display:none;">
                     <div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
@@ -538,6 +659,11 @@
                     <button class="btn btn-save" onclick="saveEntry()"><i data-lucide="save"></i> 儲存記錄</button>
                 </div>
             </div>
+
+            <!-- 右下角浮動：退出全畫面（只會喺 writing-mode 出現） -->
+            <button class="wm-float-close" onclick="exitWritingModes()" title="關閉全畫面">
+                <i data-lucide="x" style="width: 26px; height: 26px;"></i>
+            </button>
         </div>
     </div>
     
@@ -643,7 +769,7 @@
                 <div id="traffic" class="section-content">
                     <a href="https://www.hkemobility.gov.hk/tc/traffic-information/live/cctv" target="_blank" rel="noopener" class="action-btn"><i data-lucide="camera"></i> 交通快拍（手機版／香港出行易）</a>
                     <a href="https://www.mtr.com.hk/ch/customer/jp/index.php" target="_blank" rel="noopener" class="action-btn"><i data-lucide="train-front"></i> 港鐵行程指南（路綫建議）</a>
-                    <a href="https://www.td.gov.hk/tc/special_traffic_news/index.html" target="_blank" rel="noopener" class="action-btn"><i data-lucide="alert-triangle"></i> 特別交通消息</a>
+                    <a href="https://www.td.gov.hk/tc/special_news/spnews.htm" target="_blank" rel="noopener" class="action-btn"><i data-lucide="alert-triangle"></i> 特別交通消息（運輸署）</a>
                 </div>
 
                 <!-- 🏛️ 生活與假期 -->
@@ -652,6 +778,13 @@
                     <a href="https://www.hko.gov.hk/tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="cloud-sun"></i> 香港天文台</a>
                     <a href="https://www.gov.hk/tc/about/abouthk/holiday/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="calendar"></i> 政府公眾假期</a>
                     <a href="https://www.gov.hk/tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="landmark"></i> GovHK 香港政府一站通（首頁）</a>
+                </div>
+
+                <!-- 🌍 國際日（聯合國） -->
+                <div class="section-header" onclick="toggleSection('intlDays')">🌍 國際日（聯合國） <i data-lucide="chevron-down"></i></div>
+                <div id="intlDays" class="section-content">
+                    <a href="https://www.un.org/zh/observances/international-days-and-weeks" target="_blank" rel="noopener" class="action-btn"><i data-lucide="globe"></i> 國際日與國際周（按月份）</a>
+                    <a href="https://www.un.org/zh/observances/list-days-weeks" target="_blank" rel="noopener" class="action-btn"><i data-lucide="list"></i> 國際日與國際周（完整列表）</a>
                 </div>
 
                 <!-- 📝 私人筆記 -->
@@ -765,7 +898,16 @@
     <script>
         lucide.createIcons();
 
-        const HK_HOLIDAYS_2026 = { "2026-01-01": "元旦", "2026-02-17": "農曆年初一", "2026-02-18": "農曆年初二", "2026-02-19": "農曆年初三", "2026-04-03": "耶穌受難節", "2026-04-04": "清明節 / 翌日", "2026-04-06": "復活節翌日", "2026-05-01": "勞動節", "2026-05-24": "佛誕", "2026-05-25": "佛誕翌日", "2026-06-19": "端午節", "2026-07-01": "特區成立日", "2026-09-25": "中秋節翌日", "2026-10-01": "國慶日", "2026-10-18": "重陽節", "2026-10-19": "重陽節翌日", "2026-12-25": "聖誕節", "2026-12-26": "聖誕節後首周日" };
+        // ✅ 香港公眾假期（GovHK 官方）
+        const HK_HOLIDAYS_2026 = { "2026-01-01": "一月一日", "2026-02-17": "農曆年初一", "2026-02-18": "農曆年初二", "2026-02-19": "農曆年初三", "2026-04-03": "耶穌受難節", "2026-04-04": "耶穌受難節翌日 / 清明節", "2026-04-06": "復活節星期一", "2026-05-01": "勞動節", "2026-05-24": "佛誕", "2026-05-25": "佛誕翌日", "2026-06-19": "端午節", "2026-07-01": "香港特別行政區成立紀念日", "2026-09-25": "中秋節翌日", "2026-10-01": "國慶日", "2026-10-18": "重陽節", "2026-10-19": "重陽節翌日", "2026-12-25": "聖誕節", "2026-12-26": "聖誕節後第一個周日" };
+        const HK_HOLIDAYS_2027 = { "2027-01-01": "一月一日", "2027-02-06": "農曆年初一", "2027-02-08": "農曆年初三", "2027-02-09": "農曆年初四", "2027-03-26": "耶穌受難節", "2027-03-27": "耶穌受難節翌日", "2027-03-29": "復活節星期一", "2027-04-05": "清明節", "2027-05-01": "勞動節", "2027-05-13": "佛誕", "2027-06-09": "端午節", "2027-07-01": "香港特別行政區成立紀念日", "2027-09-16": "中秋節翌日", "2027-10-01": "國慶日", "2027-10-08": "重陽節", "2027-12-25": "聖誕節", "2027-12-27": "聖誕節後第一個周日" };
+
+        function getHKHolidayName(dateStr) {
+            const y = String(dateStr || '').slice(0, 4);
+            const maps = { '2026': HK_HOLIDAYS_2026, '2027': HK_HOLIDAYS_2027 };
+            const m = maps[y];
+            return m ? (m[dateStr] || '') : '';
+        }
 
         const THEMES = [ { id: 'light', icon: 'sun', name: '明亮' }, { id: 'dark', icon: 'moon', name: '暗黑' }, { id: 'matcha', icon: 'leaf', name: '抹茶' }, { id: 'sakura', icon: 'flower', name: '櫻花' }, { id: 'ocean', icon: 'droplet', name: '海洋' }, { id: 'sunset', icon: 'sun-dim', name: '日落' } ];
         let currentThemeIdx = 0;
@@ -1511,7 +1653,8 @@
 
                 let holidayDisplay = '';
                 let isHoliday = false;
-                if (HK_HOLIDAYS_2026[dateStr]) { holidayDisplay = `<div class="holiday-subtext">${HK_HOLIDAYS_2026[dateStr]}</div>`; isHoliday = true; }
+                const hkHolidayName = getHKHolidayName(dateStr);
+                if (hkHolidayName) { holidayDisplay = `<div class="holiday-subtext">${hkHolidayName}</div>`; isHoliday = true; }
 
                 const dayEntries = entryMap[dateStr] || [];
 
@@ -1765,8 +1908,10 @@
                 selectedWeatherBadge = '';
             }
             updateWeatherUI(); 
-            renderEditorImages(); renderAttachments(); document.getElementById('editorModal').classList.add('active'); 
-            setTimeout(() => textarea.focus(), 400); 
+            renderEditorImages(); renderAttachments();
+            setupEditorTextareaAutoGrow();
+            document.getElementById('editorModal').classList.add('active'); 
+            setTimeout(() => { try { textarea.focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400); 
 
             // 🟩 Android 返回鍵：開啟編輯器時 push 一個 history state
             ensureBaseHistoryState();
@@ -1782,6 +1927,114 @@
         }
 
         function selectColor(colorId) { selectedColor = colorId; document.querySelectorAll('.color-btn').forEach(btn => { btn.classList.remove('selected'); if(btn.dataset.color === colorId) { btn.classList.add('selected'); btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } }); document.getElementById('tagNameInput').value = tagNames[colorId] || ''; }
+
+        // =========================
+        // ✍️ 第一級（writing-mode）：textarea 解除高度限制，自動長高
+        // =========================
+        let __editorAutoGrowBound = false;
+
+        function autoGrowEditorTextarea(ensureCaretVisible = false) {
+            const ta = document.getElementById('editorText');
+            const modal = document.getElementById('editorModal');
+            if (!ta || !modal) return;
+
+            // 先歸零再按內容長高
+            ta.style.height = 'auto';
+            ta.style.height = (ta.scrollHeight || 0) + 'px';
+
+            // 第一級模式：一路打一路向下推（上面工具會被推到上面但仍存在）
+            if (ensureCaretVisible && modal.classList.contains('writing-mode')) {
+                const body = modal.querySelector('.modal-body');
+                if (body) body.scrollTop = body.scrollHeight;
+            }
+        }
+
+        function setupEditorTextareaAutoGrow() {
+            const ta = document.getElementById('editorText');
+            if (!ta) return;
+
+            if (!__editorAutoGrowBound) {
+                ta.addEventListener('input', () => {
+                    const modal = document.getElementById('editorModal');
+                    const ensure = !!(modal && modal.classList.contains('writing-mode'));
+                    autoGrowEditorTextarea(ensure);
+                });
+
+                // 轉向 / 鍵盤彈出高度變化
+                window.addEventListener('resize', () => {
+                    const modal = document.getElementById('editorModal');
+                    if (!modal || !modal.classList.contains('active')) return;
+                    autoGrowEditorTextarea(false);
+                }, { passive: true });
+
+                __editorAutoGrowBound = true;
+            }
+
+            // 每次開啟 editor 都跑一次
+            autoGrowEditorTextarea(false);
+        }
+
+        // ✅ 全畫面輸入：收起工具列，集中打字（再按一次返回）
+        function toggleWritingMode(force) {
+            const modal = document.getElementById('editorModal');
+            if (!modal) return;
+
+            // 如果用標題列按鈕退出（或切換），一律先退出「第二級全頁」
+            if (force === false || force === undefined) {
+                modal.classList.remove('text-fullscreen');
+            }
+
+            const willEnable = (force === true) ? true : (force === false ? false : !modal.classList.contains('writing-mode'));
+            modal.classList.toggle('writing-mode', willEnable);
+
+            // 第一級開啟嗰刻：即時解除高度限制
+            if (willEnable) {
+                try { setupEditorTextareaAutoGrow(); } catch (_) {}
+                try { autoGrowEditorTextarea(true); } catch (_) {}
+            }
+
+            // 切換 icon
+            const icon = document.getElementById('writingModeIcon');
+            if (icon) icon.setAttribute('data-lucide', willEnable ? 'minimize-2' : 'maximize-2');
+            try { lucide.createIcons(); } catch (_) {}
+
+            // 盡量保持輸入體驗
+            const ta = document.getElementById('editorText');
+            if (ta) {
+                setTimeout(() => {
+                    try { ta.focus(); } catch (_) {}
+                    try { ta.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+                }, 60);
+            }
+        }
+
+        // 🟪 第二級：真正全頁輸入（由輸入框右上角細掣觸發）
+        function enterTextFullscreen() {
+            const modal = document.getElementById('editorModal');
+            if (!modal) return;
+            modal.classList.add('writing-mode');
+            modal.classList.add('text-fullscreen');
+            const icon = document.getElementById('writingModeIcon');
+            if (icon) icon.setAttribute('data-lucide', 'minimize-2');
+            try { lucide.createIcons(); } catch (_) {}
+            const ta = document.getElementById('editorText');
+            if (ta) setTimeout(() => { try { ta.focus(); } catch (_) {} }, 60);
+        }
+
+        // ✅ 右下角浮動關閉：會按狀態退出（第二級 -> 第一級 -> 正常）
+        function exitWritingModes() {
+            const modal = document.getElementById('editorModal');
+            if (!modal) return;
+            if (modal.classList.contains('text-fullscreen')) {
+                modal.classList.remove('text-fullscreen');
+                // 退出第二級後，保持第一級 writing-mode（你可繼續專心打字）
+                const ta = document.getElementById('editorText');
+                if (ta) setTimeout(() => { try { ta.focus(); } catch (_) {} }, 60);
+                return;
+            }
+            // 再按一次就退出第一級
+            toggleWritingMode(false);
+        }
         function saveTagName() { tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤'; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); }
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
         function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
