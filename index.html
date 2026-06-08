@@ -49,7 +49,7 @@
             --border: #e2e8f0; --hover: #edf2f7;
             --gridline: rgba(0,0,0,0.18);
             --outline: #4a5568;
-            --header-h: 64px; --weekday-h: 36px;
+            --header-h: 56px; --weekday-h: 36px;
         }
 
         body.theme-dark { --primary: #818cf8; --secondary: #a78bfa; --bg: #121212; --surface: #1e1e1e; --text-main: #e2e8f0; --text-light: #a0aec0; --border: #333333; --hover: #2d2d2d; --gridline: rgba(255,255,255,0.14); }
@@ -81,30 +81,42 @@
         .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
 
         .calendar-viewport { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
-        .calendar-track { height: 100%; display: flex; width: 100%; transform: translateX(0); transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; contain: layout paint; min-height: 0; }
+        .calendar-track { height: 100%; display: flex; width: 100%; transform: none !important; transition: none !important; min-height: 0; }
         .calendar-track.no-anim { transition: none !important; }
-        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; backface-visibility: hidden; -webkit-backface-visibility: hidden; transform-style: preserve-3d; min-height: 0; }
+        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 1; }
 
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-bottom: 1px solid var(--border); transition: background-color 0.3s; }
         .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-light); }
+
+        /* ✅ 依照你提供的月曆截圖：週日紅、週六綠（標題） */
+        .weekdays .weekday:nth-child(1) { color: #e53e3e; }
+        .weekdays .weekday:nth-child(7) { color: #38a169; }
         
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 1.5s linear infinite; }
 
         /* 終極鎖定：加入 minmax(0, 1fr) */
-        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); background: var(--gridline, var(--border)); gap: 1px; will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden; contain: paint; min-height: 0; }
+        .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); background: var(--gridline, var(--border)); gap: 1px; min-height: 0; transform: translateZ(0); }
         
         /* 終極鎖定：日曆格仔必須設定 min-height: 0 且 max-height: 100% */
         .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; min-height: 0; min-width: 0; max-height: 100%; }
         .day-cell:active { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--hover); }
         .day-cell.other-month { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--bg); opacity: 0.5; }
         
-        .day-cell.today .day-num-circle { background: var(--primary); color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        /* ✅ 依照你提供的月曆截圖：當日用藍色方框圈住「格仔外圍」 */
+        .day-cell.today { outline: 3px solid #3b82f6; outline-offset: -3px; }
+
+        /* 舊版本：用圓圈包住數字（保留 class 但唔再用） */
+        .day-cell.today .day-num-circle { background: transparent; color: inherit; border-radius: 0; width: auto; height: auto; display: inline-block; }
         
         .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
         .day-num-wrapper { display: flex; flex-direction: column; }
         .day-num-top { display: flex; align-items: baseline; gap: 4px; }
         .day-num { font-size: 22px; font-weight: bold; line-height: 1; transition: color 0.2s; }
+
+        /* ✅ 依照你提供的月曆截圖：週日（整欄）紅字、週六（整欄）綠字（包括日子數字） */
+        .day-cell.dow-0 .day-num { color: #e53e3e; }
+        .day-cell.dow-6 .day-num { color: #38a169; }
         .holiday-num { color: #e53e3e !important; }
 
         .lunar-subtext { font-size: 13px; color: var(--text-light); font-weight: normal; }
@@ -170,12 +182,34 @@
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
         .entry-card { background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
+
+        /* ✅ 批量刪除：工具列 + 勾選 */
+        .bulk-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); }
+        .entry-card.bulk-mode { padding-left: 52px; }
+        .bulk-check { position:absolute; left: 14px; top: 16px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--outline); background: rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; }
+        body.theme-dark .bulk-check { background: rgba(30,30,30,0.7); }
+        .entry-card.selected .bulk-check { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .entry-card.selected { outline: 3px solid rgba(66, 153, 225, 0.65); outline-offset: -3px; }
+        .entry-card .bulk-check i { width: 16px; height: 16px; }
         .entry-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--card-color, var(--primary)); }
         .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
         .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold; display: flex; gap: 8px; align-items: center;}
         .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--outline); }
         .entry-card-text { font-size: 16px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; line-height: 1.6;}
         .entry-card-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-top: 12px; }
+
+        /* 🔗 網址預覽卡片（GitHub Pages 版本：優先抓 og:image，冇就用截圖） */
+        .link-preview-container { position: relative; margin-top: 16px; padding-top: 8px; }
+        .link-preview { border: 1px solid var(--outline); border-radius: 12px; overflow: hidden; background: var(--surface); cursor: pointer; }
+        .link-preview:active { transform: scale(0.99); }
+        .link-preview-remove-btn { position: absolute; top: -12px; right: -6px; background: #ef4444; color: white; border: 2px solid white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; box-shadow: 0 2px 6px rgba(0,0,0,0.25); transition: transform 0.15s; }
+        .link-preview-remove-btn:active { transform: scale(0.85); }
+        .link-preview-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+        .link-preview-body { padding: 10px 12px; }
+        .link-preview-title { font-size: 14px; font-weight: 900; line-height: 1.35; margin-bottom: 4px; }
+        .link-preview-desc { font-size: 13px; color: var(--text-light); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .link-preview-url { margin-top: 6px; font-size: 12px; color: var(--text-light); opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .add-entry-btn { width: 100%; padding: 16px; border: 2px dashed var(--outline); border-radius: 12px; background: none; color: var(--text-main); font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;}
 
         #readModal .modal-content { height: 100dvh; border-radius: 0; } 
@@ -197,6 +231,11 @@
 
         #editorModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; }
         #editorModal .modal-header { border-radius: 0; }
+
+        /* ✅ 記事簿：開啟時置頂、用曬成個畫面 */
+        #notebookModal.modal-overlay { align-items: stretch; }
+        #notebookModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; }
+        #notebookModal .modal-header { border-radius: 0; }
         .color-picker-container { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; flex-shrink: 0; }
         .color-picker-scroll { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
         .color-picker { display: flex; gap: 12px; width: max-content; }
@@ -336,6 +375,21 @@
             .holiday-subtext { font-size: 10pt !important; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
+    
+
+        /* ✅ notebook：剛搬入／定位高亮動畫 */
+        .entry-card.entry-highlight {
+            outline: 3px solid rgba(99, 102, 241, .95);
+            box-shadow: 0 0 0 6px rgba(99, 102, 241, .18), 0 12px 30px rgba(0,0,0,.25);
+            animation: entryPulse 1.15s ease-in-out 0s 2;
+        }
+        @keyframes entryPulse {
+            0% { transform: scale(1); filter: brightness(1); }
+            35% { transform: scale(1.012); filter: brightness(1.05); }
+            70% { transform: scale(0.998); filter: brightness(1); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
     </style>
 </head>
 <body>
@@ -352,8 +406,9 @@
                 </div>
                 <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
                 
-                <button class="icon-btn" onclick="cycleTheme()"><i data-lucide="palette" id="themeIcon" style="width: 26px; height: 26px;"></i></button>
-					<button class="icon-btn" onclick="openBackupModal()"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
+                
+                <button class="icon-btn" onclick="openNotebookModal()" title="記事簿"><i data-lucide="notebook-text" style="width: 26px; height: 26px;"></i></button>
+					<button class="icon-btn" onclick="openBackupModal()" title="設定"><i data-lucide="settings" style="width: 26px; height: 26px;"></i></button>
             </div>
         </header>
 
@@ -373,6 +428,7 @@
     </div>
 
     <div class="fab-group" id="fabGroup">
+        <button class="fab-mini" onclick="cycleThemeFromFab()" title="整體轉顏色"><i data-lucide="palette" id="themeIcon" style="width: 22px; height: 22px;"></i></button>
         <button class="fab-mini" onclick="openSearchFromFab()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
         <button class="fab-mini" onclick="openAddFromFab()" title="新增記事"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
         <button class="fab" onclick="toggleFabMenu()" title="功能"><i data-lucide="plus" class="fab-rotate" style="width: 26px; height: 26px;"></i></button>
@@ -462,9 +518,19 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="dayModalTitle">日期</div>
-                <button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <div>
+                    <button class="icon-btn" id="dayBulkToggleBtn" onclick="toggleDayBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 26px; height: 26px;"></i></button>
+                    <button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                </div>
             </div>
             <div class="modal-body">
+                <div id="dayBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 12px;">
+                    <button class="tool-btn" onclick="dayBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
+                    <button class="tool-btn" onclick="dayBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
+                    <button class="tool-btn tool-btn-alarm" onclick="dayBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="dayBulkCount">0</span>)</button>
+                    <button class="tool-btn" onclick="exitDayBulkMode()"><i data-lucide="x" style="width:16px;"></i> 取消</button>
+                </div>
+
                 <div class="color-picker-container" style="margin-bottom: 20px;">
                     <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                         <i data-lucide="paint-bucket" style="width:20px; color:var(--secondary)"></i> 標記此日底色
@@ -489,6 +555,8 @@
                 <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
                 <div>
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
+									<button class="icon-btn" id="moveToNotebookBtn" onclick="moveCurrentEntryToNotebook()" title="移去記事簿" style="display:none;"><i data-lucide="folder-input" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" id="moveToCalendarBtn" onclick="moveNotebookEntryToCalendarPickDate(currentEntryData && currentEntryData.id)" title="移去日曆頁" style="display:none;"><i data-lucide="calendar-arrow-down" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
                 </div>
@@ -501,6 +569,7 @@
                 <div><span class="read-tag-badge" id="readTagBadge"></span></div>
                 <div id="readText" class="read-text"></div>
                 <div id="readGallery" class="read-gallery"></div>
+                <div id="readLinkPreview"></div>
                 <div class="attachments-box" id="readAttachmentsBox" style="display:none; margin-top:16px;">
                     <div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
                     <div class="attachments-list" id="readAttachmentList"></div>
@@ -509,7 +578,47 @@
         </div>
     </div>
     
-    <div class="modal-overlay" id="editorModal" onclick="handleEditorBackdropClick(event)">
+    
+
+    <!-- ✅ 選擇日期：用於「移去日曆頁」 -->
+    
+
+    <!-- ✅ 選擇資料夾：用於「移去記事簿」一次完成（分類 + 可選跳轉） -->
+    <div class="modal-overlay" id="pickFolderModal" onclick="closeModal('pickFolderModal', event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">移去記事簿</div>
+                <button class="icon-btn" onclick="closeModal('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請揀資料夾（或未分類）</div>
+                <select id="pickFolderSelect" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px;"></select>
+
+                <div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap;">
+                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="closeModal('pickFolderModal')">取消</button>
+                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="confirmPickFolder(false)">確定</button>
+                    <button class="action-btn primary" style="flex:1; min-width:160px;" onclick="confirmPickFolder(true)">確定並跳去</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="modal-overlay" id="pickDateModal" onclick="closeModal('pickDateModal', event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">選擇日期</div>
+                <button class="icon-btn" onclick="closeModal('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請直接揀日子（YYYY-MM-DD）</div>
+                <input id="pickDateInput" type="date" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px;" />
+                <div style="display:flex; gap:12px; margin-top:16px;">
+                    <button class="action-btn" style="flex:1;" onclick="closeModal('pickDateModal')">取消</button>
+                    <button class="action-btn primary" style="flex:1;" onclick="confirmPickDate()">確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="modal-overlay" id="editorModal" onclick="handleEditorBackdropClick(event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="editorTitle">編輯記事</div>
@@ -712,7 +821,10 @@
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> 設定與備份</div>
-                <button class="icon-btn" onclick="closeModal('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
+                    <button class="icon-btn" onclick="closeModal('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                </div>
             </div>
             <div class="modal-body">
                 
@@ -754,7 +866,26 @@
                             </div>
                         </div>
                         <div id="cloudAutoSyncStatus" style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
-                            提示：只會喺呢個網頁保持開住嗰陣自動上傳；關咗頁／退出瀏覽器就會停止。
+                            提示：只會喺呢個網頁保持開住嗰陣自動上傳。
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--outline); background: rgba(102,126,234,0.06);">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="font-weight:bold; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                                <i data-lucide="link" style="width:18px; height:18px;"></i>
+                                自動網址預覽
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <label class="switch" title="開/關 自動網址預覽">
+                                    <input id="autoLinkPreviewToggle" type="checkbox" onchange="toggleAutoLinkPreview()" checked />
+                                    <span class="slider"></span>
+                                </label>
+                                <span id="autoLinkPreviewLabel" style="font-weight:bold; min-width: 36px; text-align:right;">開啟</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
+                            提示：輸入網址後自動產生影片或網頁預覽。
                         </div>
                     </div>
                 </div>
@@ -778,6 +909,46 @@
     <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged Image"></div></div>
 
     <div id="toast" class="toast"></div>
+
+    <!-- ✅ 記事薄（參考你提供的 ColorNote 列表） -->
+    <div class="modal-overlay" id="notebookModal" onclick="closeModal('notebookModal', event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title"><i data-lucide="notebook-text" style="width: 22px;"></i> 記事薄</div>
+                <div>
+                    <button class="icon-btn" id="notebookBulkToggleBtn" onclick="toggleNotebookBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 22px; height: 22px;"></i></button>
+                    <button class="icon-btn" onclick="closeModal('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px; flex-wrap: wrap;">
+                    <select id="notebookFolder" onchange="renderNotebookList()" style="flex:1; min-width: 180px; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+                        <option value="all">全部資料夾</option>
+                    </select>
+                    <button class="icon-btn" onclick="manageNotebookFolders()" title="管理資料夾"><i data-lucide="folder" style="width: 22px; height: 22px;"></i></button>
+								<button class="icon-btn" onclick="addNotebookFolderQuick()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
+                    <select id="notebookSort" onchange="renderNotebookList()" style="flex:1; min-width: 180px; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+                        <option value="updated">依修改的時間排序</option>
+                        <option value="date">依日期排序（新 → 舊）</option>
+                        <option value="color">依標籤排序</option>
+                    </select>
+                    <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
+								<button class="icon-btn" onclick="closeModal('notebookModal'); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
+                </div>
+
+                <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 10px;">
+                    <button class="tool-btn" onclick="notebookBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
+                    <button class="tool-btn" onclick="notebookBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
+                    <button class="tool-btn tool-btn-alarm" onclick="notebookBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="notebookBulkCount">0</span>)</button>
+                    <button class="tool-btn" onclick="exitNotebookBulkMode()"><i data-lucide="x" style="width:16px;"></i> 取消</button>
+                </div>
+
+                <div id="notebookHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：可用「資料夾」篩選；點一下打開詳情。</div>
+
+                <div class="entry-list" id="notebookList"></div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="searchModal" onclick="closeModal('searchModal', event)">
         <div class="modal-content" style="height: 90dvh;">
@@ -803,6 +974,13 @@
     </div>
 
     <script>
+        // =========================
+        // 🧩 Space 分區（提前定義，避免載入途中點擊造成 TDZ）
+        // =========================
+        const SPACE_CALENDAR = 'calendar';
+        const SPACE_NOTEBOOK = 'notebook';
+        let currentSpaceContext = SPACE_CALENDAR;
+
         lucide.createIcons();
 
         // ✅ 香港公眾假期（GovHK 官方）
@@ -819,10 +997,308 @@
         const THEMES = [ { id: 'light', icon: 'sun', name: '明亮' }, { id: 'dark', icon: 'moon', name: '暗黑' }, { id: 'matcha', icon: 'leaf', name: '抹茶' }, { id: 'sakura', icon: 'flower', name: '櫻花' }, { id: 'ocean', icon: 'droplet', name: '海洋' }, { id: 'sunset', icon: 'sun-dim', name: '日落' } ];
         let currentThemeIdx = 0;
 
+        // =========================
+        // 🧹 批量刪除（Day / Notebook）
+        // =========================
+        let __dayBulkMode = false;
+        let __nbBulkMode = false;
+        let __dayBulkSelected = new Set();
+        let __nbBulkSelected = new Set();
+        let __dayVisibleIds = [];
+        let __nbVisibleIds = [];
+
+        function updateBulkUI() {
+            const dayBar = document.getElementById('dayBulkToolbar');
+            const nbBar = document.getElementById('notebookBulkToolbar');
+            const dayBtn = document.getElementById('dayBulkToggleBtn');
+            const nbBtn = document.getElementById('notebookBulkToggleBtn');
+            if (dayBar) dayBar.style.display = __dayBulkMode ? '' : 'none';
+            if (nbBar) nbBar.style.display = __nbBulkMode ? '' : 'none';
+
+            const dayCount = document.getElementById('dayBulkCount');
+            const nbCount = document.getElementById('notebookBulkCount');
+            if (dayCount) dayCount.textContent = String(__dayBulkSelected.size);
+            if (nbCount) nbCount.textContent = String(__nbBulkSelected.size);
+
+            // 進入批量模式時，按鈕變色提示
+            if (dayBtn) dayBtn.style.color = __dayBulkMode ? '#ef4444' : '';
+            if (nbBtn) nbBtn.style.color = __nbBulkMode ? '#ef4444' : '';
+
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        function toggleDayBulkMode() {
+            __dayBulkMode = !__dayBulkMode;
+            if (!__dayBulkMode) __dayBulkSelected = new Set();
+            try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+            updateBulkUI();
+        }
+
+        function exitDayBulkMode() {
+            __dayBulkMode = false;
+            __dayBulkSelected = new Set();
+            try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+            updateBulkUI();
+        }
+
+        function dayBulkSelectAll() {
+            (__dayVisibleIds || []).forEach(id => __dayBulkSelected.add(String(id)));
+            try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+            updateBulkUI();
+        }
+
+        function dayBulkClearSelection() {
+            __dayBulkSelected = new Set();
+            try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+            updateBulkUI();
+        }
+
+        async function dayBulkDeleteSelected() {
+            if (__dayBulkSelected.size === 0) { showToast('⚠️ 未有選擇任何記事', 'error'); return; }
+            const n = __dayBulkSelected.size;
+            if (!confirm(`確定要刪除已選擇的 ${n} 條紀錄嗎？\n\n⚠️ 無法復原哦。`)) return;
+
+            const ids = Array.from(__dayBulkSelected);
+            const all = await db.getAll();
+            all.forEach(normalizeEntrySpace);
+
+            for (const id of ids) {
+                const e = all.find(x => String(x.id) === String(id));
+                if (!e) continue;
+                const atts = Array.isArray(e.attachments) ? e.attachments : [];
+                for (const a of atts) { if (a && a.id) { try { await db.deleteFile(a.id); } catch (err) { console.error(err); } } }
+                try { await db.delete(e.id); } catch (err) { console.error(err); }
+            }
+
+            __dayBulkSelected = new Set();
+            __dayBulkMode = false;
+            // 更新 UI
+            try {
+                const all2 = await db.getAll();
+                all2.forEach(normalizeEntrySpace);
+                const dayEntries = all2.filter(x => x.date === editingDateStr && (x.space || SPACE_CALENDAR) === SPACE_CALENDAR);
+                openDayView(editingDateStr, dayEntries);
+            } catch (_) {}
+            try { renderCalendar(); } catch (_) {}
+            updateBulkUI();
+            showToast(`🗑️ 已刪除 ${n} 條紀錄`, 'success');
+        }
+
+        function handleDayCardClick(ev, entryId, entryJsonEncoded) {
+            try { if (ev) ev.stopPropagation(); } catch (_) {}
+            const idStr = String(entryId);
+            if (__dayBulkMode) {
+                if (__dayBulkSelected.has(idStr)) __dayBulkSelected.delete(idStr);
+                else __dayBulkSelected.add(idStr);
+                try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+                updateBulkUI();
+                return;
+            }
+            // 正常模式：開閱讀
+            openReadView(entryJsonEncoded);
+        }
+
+        function __cachedDayEntriesForBulk() {
+            // 重新拉一次當日 entries（避免 openDayView 被呼叫時丟失 entries）
+            // 這個函數會在需要重繪 Day list（但又唔想重新查 DB 太頻繁）時使用。
+            // 若取不到就回傳 []，openDayView 會顯示「無記事」。
+            try {
+                // 利用目前畫面 DOM 估算唔可靠，所以直接用同步快照：從 window.__lastDayEntries
+                return Array.isArray(window.__lastDayEntries) ? window.__lastDayEntries : [];
+            } catch (_) { return []; }
+        }
+
+        function toggleNotebookBulkMode() {
+            __nbBulkMode = !__nbBulkMode;
+            if (!__nbBulkMode) __nbBulkSelected = new Set();
+            try { renderNotebookList(); } catch (_) {}
+            updateBulkUI();
+        }
+
+        function exitNotebookBulkMode() {
+            __nbBulkMode = false;
+            __nbBulkSelected = new Set();
+            try { renderNotebookList(); } catch (_) {}
+            updateBulkUI();
+        }
+
+        function notebookBulkSelectAll() {
+            (__nbVisibleIds || []).forEach(id => __nbBulkSelected.add(String(id)));
+            try { renderNotebookList(); } catch (_) {}
+            updateBulkUI();
+        }
+
+        function notebookBulkClearSelection() {
+            __nbBulkSelected = new Set();
+            try { renderNotebookList(); } catch (_) {}
+            updateBulkUI();
+        }
+
+        async function notebookBulkDeleteSelected() {
+            if (__nbBulkSelected.size === 0) { showToast('⚠️ 未有選擇任何記事', 'error'); return; }
+            const n = __nbBulkSelected.size;
+            if (!confirm(`確定要刪除已選擇的 ${n} 條紀錄嗎？\n\n⚠️ 無法復原哦。`)) return;
+
+            const ids = Array.from(__nbBulkSelected);
+            const all = await db.getAll();
+            all.forEach(normalizeEntrySpace);
+
+            for (const id of ids) {
+                const e = all.find(x => String(x.id) === String(id));
+                if (!e) continue;
+                const atts = Array.isArray(e.attachments) ? e.attachments : [];
+                for (const a of atts) { if (a && a.id) { try { await db.deleteFile(a.id); } catch (err) { console.error(err); } } }
+                try { await db.delete(e.id); } catch (err) { console.error(err); }
+            }
+
+            __nbBulkSelected = new Set();
+            __nbBulkMode = false;
+            try { renderNotebookList(); } catch (_) {}
+            try { renderCalendar(); } catch (_) {}
+            updateBulkUI();
+            showToast(`🗑️ 已刪除 ${n} 條紀錄`, 'success');
+        }
+
+        function handleNotebookCardClick(ev, entryId, entryJsonEncoded) {
+            try { if (ev) ev.stopPropagation(); } catch (_) {}
+            const idStr = String(entryId);
+            if (__nbBulkMode) {
+                if (__nbBulkSelected.has(idStr)) __nbBulkSelected.delete(idStr);
+                else __nbBulkSelected.add(idStr);
+                try { renderNotebookList(); } catch (_) {}
+                updateBulkUI();
+                return;
+            }
+            closeModal('notebookModal');
+            openReadView(entryJsonEncoded);
+        }
+
         const APP_COLORS = [ { id: 'red', hex: '#fc8181', def: '緊急' }, { id: 'orange', hex: '#f6ad55', def: '待辦' }, { id: 'yellow', hex: '#f6e05e', def: '私人' }, { id: 'green', hex: '#68d391', def: '健康' }, { id: 'teal', hex: '#4fd1c5', def: '休閒' }, { id: 'blue', hex: '#63b3ed', def: '工作' }, { id: 'indigo', hex: '#7f9cf5', def: '學習' }, { id: 'purple', hex: '#b794f4', def: '靈感' }, { id: 'pink', hex: '#f687b3', def: '感情' }, { id: 'brown', hex: '#c05621', def: '家庭' }, { id: 'gray', hex: '#a0aec0', def: '其他' }, { id: 'black', hex: '#2d3748', def: '重要' } ];
         let tagNames = JSON.parse(localStorage.getItem('diary_tag_names')) || {};
         let currentAttachments = [];
         APP_COLORS.forEach(c => { if(!tagNames[c.id]) tagNames[c.id] = c.def; });
+
+        // =========================
+        // 📁 記事簿資料夾（分類）
+        // =========================
+        const NOTEBOOK_FOLDERS_KEY = 'diary_notebook_folders';
+        const NOTEBOOK_FOLDER_SELECTED_KEY = 'diary_notebook_folder_selected';
+        const DEFAULT_FOLDERS = [
+            { id: 'inbox', name: '收件匣' },
+            { id: 'work', name: '工作' },
+            { id: 'life', name: '生活' }
+        ];
+
+	        // =========================
+	        // 🧩 Space 分區：calendar / notebook
+	        // （已提前定義於 script 開頭，避免載入途中點擊）
+	        // =========================
+
+	        function normalizeEntrySpace(e) {
+	            if (!e) return e;
+	            if (!e.space) e.space = SPACE_CALENDAR; // 舊資料預設當作日曆記事
+	            return e;
+	        }
+
+
+        function loadNotebookFolders() {
+            try {
+                const raw = localStorage.getItem(NOTEBOOK_FOLDERS_KEY);
+                const arr = raw ? JSON.parse(raw) : null;
+                if (Array.isArray(arr) && arr.length > 0) return arr;
+            } catch (_) {}
+            return [...DEFAULT_FOLDERS];
+        }
+
+        function saveNotebookFolders(folders) {
+            try { localStorage.setItem(NOTEBOOK_FOLDERS_KEY, JSON.stringify(folders || [])); } catch (_) {}
+        }
+
+        function getNotebookFolderName(folderId, folders) {
+            const list = folders || loadNotebookFolders();
+            if (!folderId) return '';
+            const hit = list.find(f => f.id === folderId);
+            return hit ? hit.name : '';
+        }
+
+        function populateNotebookFolderSelect() {
+            const sel = document.getElementById('notebookFolder');
+            if (!sel) return;
+
+            const folders = loadNotebookFolders();
+            const selected = localStorage.getItem(NOTEBOOK_FOLDER_SELECTED_KEY) || 'all';
+
+            sel.innerHTML = ['<option value="all">全部資料夾</option>']
+                .concat(folders.map(f => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`))
+                .join('');
+
+            sel.value = selected;
+        }
+
+        function manageNotebookFolders() {
+            const folders = loadNotebookFolders();
+            const lines = folders.map(f => f.name).join('\n');
+            const input = prompt('管理資料夾：\n\n用「每行一個」輸入資料夾名稱。\n會自動同步建立/刪除（刪除只會令記事變回未分類）。\n\n目前：\n' + lines, lines);
+            if (input === null) return;
+
+            const names = String(input)
+                .split(/\r?\n/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            // 去重（按名稱）
+            const uniqNames = [];
+            names.forEach(n => { if (!uniqNames.includes(n)) uniqNames.push(n); });
+
+            // 重新生成 folders（保留穩定 id：用 slug + 去撞名）
+            const newFolders = [];
+            const usedIds = new Set();
+            uniqNames.forEach(name => {
+                let base = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-\u4e00-\u9fff]/g, '');
+                if (!base) base = 'folder';
+                let id = base;
+                let i = 2;
+                while (usedIds.has(id)) { id = base + '-' + i; i++; }
+                usedIds.add(id);
+                newFolders.push({ id, name });
+            });
+
+            saveNotebookFolders(newFolders);
+
+            // 如果選咗一個已不存在嘅資料夾，就退回 all
+            const selected = localStorage.getItem(NOTEBOOK_FOLDER_SELECTED_KEY) || 'all';
+            if (selected !== 'all' && !newFolders.find(f => f.id === selected)) {
+                localStorage.setItem(NOTEBOOK_FOLDER_SELECTED_KEY, 'all');
+            }
+
+            populateNotebookFolderSelect();
+            renderNotebookList();
+            showToast('✅ 已更新資料夾', 'success');
+        }
+
+
+		function addNotebookFolderQuick() {
+			const name = prompt('新增資料夾名稱：');
+			if (name === null) return;
+			const clean = String(name).trim();
+			if (!clean) { showToast('⚠️ 請輸入資料夾名稱', 'error'); return; }
+			const folders = loadNotebookFolders();
+			// 生成穩定 id（同 manageNotebookFolders 一致邏輯）
+			let base = clean.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-\u4e00-\u9fff]/g, '');
+			if (!base) base = 'folder';
+			let id = base;
+			let i = 2;
+			const used = new Set(folders.map(f => f.id));
+			while (used.has(id)) { id = base + '-' + i; i++; }
+			folders.push({ id, name: clean });
+			saveNotebookFolders(folders);
+			try { localStorage.setItem(NOTEBOOK_FOLDER_SELECTED_KEY, id); } catch (_) {}
+			populateNotebookFolderSelect();
+			const sel = document.getElementById('notebookFolder');
+			if (sel) sel.value = id;
+			renderNotebookList();
+			showToast('✅ 已新增資料夾：' + clean, 'success');
+		}
 
         const DAY_STATUS_COLORS = [
             { id: 'status-orange', rgba: 'rgba(237, 137, 54, 0.25)', border: '#ed8936', def: '放假' },
@@ -1233,6 +1709,15 @@
 
             // ☁️ 如果你之前開咗自動同步，返嚟會自動再開（但仍然只喺頁面開住時有效）
             try { initCloudAutoSyncFromStorage(); } catch (e) { console.error(e); }
+
+            // 🔗 初始化自動預覽開關 UI
+            try {
+                const autoPreviewEnabled = isAutoLinkPreviewEnabled();
+                const previewToggle = document.getElementById('autoLinkPreviewToggle');
+                const previewLabel = document.getElementById('autoLinkPreviewLabel');
+                if (previewToggle) previewToggle.checked = autoPreviewEnabled;
+                if (previewLabel) previewLabel.textContent = autoPreviewEnabled ? '開啟' : '關閉';
+            } catch (e) { console.error(e); }
         }
 
         function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
@@ -1241,13 +1726,15 @@
         // =========================
         // ✅ 右下角展開式FAB：搜尋 / 新增
         // =========================
-        let __fabExpanded = false;
+        // 用 var 避免某些瀏覽器/載入時序出現 TDZ（Cannot access before initialization）
+        var __fabExpanded = false;
         function toggleFabMenu() {
             const g = document.getElementById('fabGroup');
             if (!g) return;
             __fabExpanded = !__fabExpanded;
             g.classList.toggle('expanded', __fabExpanded);
             lucide.createIcons();
+            bindNotebookLongPress();
         }
         function closeFabMenu() {
             const g = document.getElementById('fabGroup');
@@ -1397,6 +1884,8 @@
         }
 
         function openShareDateModal() {
+            // 強制重繪背景以防殘影
+            document.body.offsetHeight;
             const modal = document.getElementById('shareDateModal');
             const picker = document.getElementById('shareDatePicker');
             if (!modal || !picker) return;
@@ -1492,14 +1981,14 @@
             const [y, m, d] = selectedVal.split('-'); currentDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
             await renderCalendar();
             const targetDateStr = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-            const allEntries = await db.getAll(); const dayEntries = allEntries.filter(e => e.date === targetDateStr);
+            const allEntries = await db.getAll(); allEntries.forEach(normalizeEntrySpace); const dayEntries = allEntries.filter(e => e.date === targetDateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
             openDayView(targetDateStr, dayEntries);
         }
 
         async function checkTodayBriefing() {
             const todayDateObj = new Date(); const todayStr = formatDate(todayDateObj.getFullYear(), todayDateObj.getMonth(), todayDateObj.getDate());
             const lastBriefing = localStorage.getItem('diary_last_briefing'); if (lastBriefing === todayStr) return;
-            const allEntries = await db.getAll(); const todayEntries = allEntries.filter(e => e.date === todayStr);
+            const allEntries = await db.getAll(); allEntries.forEach(normalizeEntrySpace); const todayEntries = allEntries.filter(e => e.date === todayStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
             if (todayEntries.length > 0) {
                 document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="closeModal('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
                 document.getElementById('briefingModal').classList.add('active'); localStorage.setItem('diary_last_briefing', todayStr);
@@ -1512,23 +2001,37 @@
 
         async function renderCalendarFor(dateObj, gridEl, updateHeader = true) {
             const year = dateObj.getFullYear(), month = dateObj.getMonth();
-            if (updateHeader) document.getElementById('currentMonthStr').textContent = `${year}年 ${month + 1}月`;
+            if (updateHeader) {
+                const headerEl = document.getElementById('currentMonthStr');
+                if (headerEl) headerEl.textContent = `${year}年 ${month + 1}月`;
+            }
 
-            const grid = gridEl || document.getElementById('calendarGrid');
+            let grid = gridEl || document.getElementById('calendarGrid');
             if (!grid) return;
-            grid.innerHTML = '';
+
+            // 🚀 激進修復：銷毀舊容器並創建全新的 DOM 節點，強制瀏覽器丟棄所有渲染緩存
+            const parent = grid.parentNode;
+            const newGrid = document.createElement('div');
+            newGrid.id = 'calendarGrid';
+            newGrid.className = 'days-grid';
+            parent.replaceChild(newGrid, grid);
+            grid = newGrid;
 
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const prevMonthDays = new Date(year, month, 0).getDate();
 
             const allEntries = await db.getAll();
-            const entryMap = {};
-            allEntries.forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
+	            allEntries.forEach(normalizeEntrySpace);
+	            const entryMap = {};
+	            allEntries.filter(e => (e && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR)).forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
 
             for (let i = 0; i < 42; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'day-cell';
+                // ✅ 加入星期幾 class：0=週日 ... 6=週六（用嚟上色）
+                const dow = i % 7;
+                cell.classList.add(`dow-${dow}`);
                 let dayNum, dateStr = '';
 
                 if (i < firstDay) {
@@ -1565,11 +2068,11 @@
 
                 const dayEntries = entryMap[dateStr] || [];
 
-                let numClass = cell.classList.contains('today') ? 'day-num-circle' : 'day-num';
+                let numClass = 'day-num';
                 let numStyle = '';
                 if (isHoliday) {
-                    if (cell.classList.contains('today')) numStyle = 'style="background: #e53e3e;"';
-                    else numClass += ' holiday-num';
+                    // 假期一律用紅字（優先過週六綠字）
+                    numClass += ' holiday-num';
                 }
 
                 cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div></div><div class="dots-container">${buildDotsHtml(dayEntries)}</div>`;
@@ -1597,6 +2100,12 @@
         function closeModal(id, event) {
             if (event && event.target.id !== id) return;
             document.getElementById(id).classList.remove('active');
+
+            // ✅ 記事簿全屏：關閉時還原 body
+            if (id === 'notebookModal') {
+                try { document.body.style.overflow = 'hidden'; } catch (_) {}
+                try { document.body.style.overflow = ''; } catch (_) {}
+            }
 
             // ✅ 你提議嘅行為：關閉「設定與備份」嗰一刻，如果已開自動同步 + 而家有網 + 已授權，就順手做一次靜默上傳
             if (id === 'backupModal') {
@@ -1658,6 +2167,294 @@
                 .replace(/'/g, '&#39;');
         }
 
+        // =========================
+        // 🔗 網址預覽（可靠版：內容更吻合）
+        // - 先用 Microlink 抽 og:title/description/og:image
+        // - 如果 og:image 冇/唔準，就用 Microlink screenshot=true 截圖（通常最吻合）
+        // - Microlink 失敗/限流：最後先用 thum.io
+        // - 用 localStorage 快取，避免次次都重新抓
+        // =========================
+        const LINK_PREVIEW_CACHE_KEY = 'diary_link_preview_cache_v2';
+        const AUTO_LINK_PREVIEW_KEY = 'diary_auto_link_preview';
+        const __linkPreviewInFlight = {};
+
+        function toggleAutoLinkPreview() {
+            const cb = document.getElementById('autoLinkPreviewToggle');
+            const label = document.getElementById('autoLinkPreviewLabel');
+            if (!cb) return;
+            localStorage.setItem(AUTO_LINK_PREVIEW_KEY, cb.checked ? 'true' : 'false');
+            if (label) label.textContent = cb.checked ? '開啟' : '關閉';
+            showToast(cb.checked ? '自動預覽已開啟' : '自動預覽已關閉', 'success');
+        }
+
+        function isAutoLinkPreviewEnabled() {
+            return localStorage.getItem(AUTO_LINK_PREVIEW_KEY) !== 'false';
+        }
+
+        function extractFirstUrl(text) {
+            const t = String(text || '');
+            const m = t.match(/https?:\/\/[\w\-._~:/?#[\]@!$\u0026'()*+,;=%]+/i);
+            return m ? m[0] : '';
+        }
+
+        function safeHostname(url) {
+            try { return new URL(url).hostname; } catch (_) { return ''; }
+        }
+
+        function loadLinkPreviewCache() {
+            try { return JSON.parse(localStorage.getItem(LINK_PREVIEW_CACHE_KEY) || '{}') || {}; } catch (_) { return {}; }
+        }
+
+        function saveLinkPreviewCache(cache) {
+            try { localStorage.setItem(LINK_PREVIEW_CACHE_KEY, JSON.stringify(cache || {})); } catch (_) {}
+        }
+
+        function getCachedLinkPreview(url) {
+            const cache = loadLinkPreviewCache();
+            const hit = cache[url];
+            
+            // 🚀 核心修復：如果發現是 YouTube 網址，但快取圖片含有 "thum.io" 或 "microlink"，
+            // 說明這是舊的「亂糟糟截圖」快取，強制失效並重新抓取。
+            if (hit && getYouTubeThumbnail(url)) {
+                const img = String(hit.image || '');
+                if (img.includes('thum.io') || img.includes('microlink')) return null;
+            }
+
+            const TTL = 30 * 24 * 60 * 60 * 1000;
+            if (hit && hit.ts && (Date.now() - hit.ts) < TTL) return hit;
+            return null;
+        }
+
+        function setCachedLinkPreview(url, data) {
+            const cache = loadLinkPreviewCache();
+            cache[url] = { ...(data || {}), url, ts: Date.now() };
+            saveLinkPreviewCache(cache);
+        }
+
+        function thumioScreenshotUrl(url) {
+            return `https://image.thum.io/get/width/1200/wait/5/${url}`;
+        }
+
+        // 🎥 YouTube 專用：獲取影片縮圖（極速通道，100% 成功率）
+        function getYouTubeThumbnail(url) {
+            try {
+                const u = new URL(String(url || '').trim());
+                let vid = '';
+                const host = u.hostname.toLowerCase();
+                const path = u.pathname;
+
+                if (host === 'youtu.be') {
+                    vid = path.slice(1).split(/[?#]/)[0];
+                } else if (host.includes('youtube.com')) {
+                    if (path.startsWith('/shorts/') || path.startsWith('/live/') || path.startsWith('/embed/')) {
+                        vid = path.split('/')[2].split(/[?#]/)[0];
+                    } else if (path.startsWith('/v/')) {
+                        vid = path.split('/')[2].split(/[?#]/)[0];
+                    } else {
+                        vid = u.searchParams.get('v');
+                    }
+                }
+                
+                if (vid && vid.length >= 10) { // YouTube ID 通常係 11 位
+                    return `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+                }
+            } catch (_) {}
+            return null;
+        }
+
+        async function fetchLinkPreviewViaMicrolink(url) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 10000);
+            try {
+                const api = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true`;
+                const res = await fetch(api, { signal: controller.signal });
+                if (!res.ok) throw new Error('microlink http ' + res.status);
+                const j = await res.json();
+                if (!j || j.status !== 'success' || !j.data) throw new Error('microlink bad payload');
+
+                const title = String(j.data.title || '') || safeHostname(url) || url;
+                const desc = String(j.data.description || '');
+                const ogImg = (j.data.image && j.data.image.url) ? String(j.data.image.url) : '';
+                const shot = (j.data.screenshot && j.data.screenshot.url) ? String(j.data.screenshot.url) : '';
+
+                // ✅ 圖片策略：
+                // 1) 有 og:image 就用（多數係內容主圖）
+                // 2) 無就用 screenshot（最吻合頁面）
+                const image = ogImg || shot;
+
+                return { url, title, description: desc, image, ogImage: ogImg, screenshot: shot };
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function getOrFetchLinkPreview(url) {
+            if (!url) return null;
+            const cached = getCachedLinkPreview(url);
+            if (cached) return cached;
+            if (__linkPreviewInFlight[url]) return await __linkPreviewInFlight[url];
+
+            __linkPreviewInFlight[url] = (async () => {
+                try {
+                    // 🚀 YouTube 快速通道：如果是 YouTube，直接生成結果，不再等待 Microlink
+                    const ytThumb = getYouTubeThumbnail(url);
+                    if (ytThumb) {
+                        const out = { 
+                            url, 
+                            title: 'YouTube 影片', 
+                            description: '點擊以播放影片', 
+                            image: ytThumb, 
+                            ogImage: ytThumb, 
+                            screenshot: '' 
+                        };
+                        // 嘗試在背景抓標題，但不影響圖片顯示
+                        fetchLinkPreviewViaMicrolink(url).then(meta => {
+                            if (meta && meta.title) {
+                                out.title = meta.title;
+                                out.description = meta.description;
+                                setCachedLinkPreview(url, out);
+                            }
+                        }).catch(() => {});
+                        
+                        setCachedLinkPreview(url, out);
+                        return out;
+                    }
+
+                    const meta = await fetchLinkPreviewViaMicrolink(url);
+                    const image = meta.image || thumioScreenshotUrl(url);
+                    const out = { url, title: meta.title, description: meta.description, image, ogImage: meta.ogImage || '', screenshot: meta.screenshot || '' };
+                    setCachedLinkPreview(url, out);
+                    return out;
+                } catch (_) {
+                    const ytThumb = getYouTubeThumbnail(url);
+                    const out = { url, title: safeHostname(url) || url, description: '', image: ytThumb || thumioScreenshotUrl(url), ogImage: '', screenshot: '' };
+                    setCachedLinkPreview(url, out);
+                    return out;
+                } finally {
+                    delete __linkPreviewInFlight[url];
+                }
+            })();
+
+            return await __linkPreviewInFlight[url];
+        }
+
+        // 🗑️ 手動移除預覽（當用戶唔想要呢個預覽嗰陣）
+        async function removeLinkPreview(evt, dateStr, timestamp) {
+            if (evt) evt.stopPropagation();
+            if (!confirm('確定要移除此連結預覽嗎？（文字連結會保留）')) return;
+
+            // ✅ 立即從畫面移除（唔等重渲染），避免「撳咗都仲喺度」
+            try {
+                const btn = evt && (evt.currentTarget || evt.target);
+                const box = btn && btn.closest ? btn.closest('.link-preview-container') : null;
+                if (box) box.remove();
+            } catch (_) {}
+            
+            // 🚀 關鍵修復：同時更新記憶體中正在編輯的數據
+            if (currentEntryData && currentEntryData.date === dateStr && currentEntryData.timestamp === timestamp) {
+                delete currentEntryData.linkPreview;
+            }
+
+            const all = await db.getAll();
+            const entry = all.find(e => e.date === dateStr && e.timestamp === timestamp);
+            if (entry) {
+                delete entry.linkPreview;
+                await db.save(entry);
+                
+                // 立即清空畫面上所有可能的預覽區域
+                ['linkPreviewArea', 'linkPreviewAreaRead'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '';
+                });
+
+                const readModal = document.getElementById('readModal');
+                if (readModal && readModal.classList.contains('active')) {
+                    const readPreviewArea = readModal.querySelector('#linkPreviewAreaRead');
+                    if (readPreviewArea) readPreviewArea.innerHTML = '';
+                }
+                
+                // 重新渲染底層日曆和列表
+                await renderCalendar();
+                try { if (document.getElementById('notebookModal')?.classList.contains('active')) renderNotebookList(); } catch (_) {}
+                
+                showToast('預覽已移除', 'success');
+            }
+        }
+
+        // 🔄 手動刷新預覽（用戶發現圖不對時可以點擊）
+        async function refreshLinkPreview(evt, url, dateStr, timestamp) {
+            if (evt) evt.stopPropagation();
+            const cache = loadLinkPreviewCache();
+            delete cache[url];
+            saveLinkPreviewCache(cache);
+            
+            // 找到對應的記事並重新渲染
+            const all = await db.getAll();
+            const entry = all.find(e => e.date === dateStr && e.timestamp === timestamp);
+            if (entry) {
+                const lp = await getOrFetchLinkPreview(url);
+                entry.linkPreview = lp;
+                await db.save(entry);
+                
+                // 如果在編輯器中，更新預覽
+                if (document.getElementById('editorModal').classList.contains('active')) {
+                    const previewArea = document.getElementById('linkPreviewArea');
+                    if (previewArea) previewArea.innerHTML = renderLinkPreviewThumb(entry);
+                }
+                
+                // 如果在讀取視窗中
+                const readModal = document.getElementById('readModal');
+                if (readModal && readModal.classList.contains('active')) {
+                    const readPreviewArea = readModal.querySelector('#linkPreviewAreaRead');
+                    if (readPreviewArea) readPreviewArea.innerHTML = renderLinkPreviewRead(entry);
+                }
+                
+                showToast('預覽已更新', 'success');
+            }
+        }
+
+        function renderLinkPreviewThumb(e) {
+            try {
+                const lp = e && e.linkPreview ? e.linkPreview : null;
+                if (!lp || !lp.url) return '';
+
+                const imgUrl = lp.image || thumioScreenshotUrl(lp.url);
+                const encUrl = encodeURIComponent(lp.url);
+                const title = escapeHtml(lp.title || safeHostname(lp.url) || lp.url);
+                const desc = escapeHtml(lp.description || '');
+                const host = escapeHtml(safeHostname(lp.url) || lp.url);
+                const dateStr = e.date || '';
+                const ts = e.timestamp || 0;
+
+                // ✅ 優化移除按鈕：移出圖片外圍，加大觸控範圍，防止誤觸
+                return `
+                    <div class="link-preview-container">
+                        <button class="link-preview-remove-btn" onclick="removeLinkPreview(event,'${dateStr}', ${ts})" title="移除預覽">
+                            <i data-lucide="x" style="width:18px; height:18px;"></i>
+                        </button>
+                        <div class="link-preview" onclick="event.stopPropagation(); window.open(decodeURIComponent('${encUrl}'), '_blank')">
+                            <img src="${escapeHtml(imgUrl)}" class="link-preview-img" loading="lazy">
+                            <div class="link-preview-body">
+                                <div class="link-preview-title">${title}</div>
+                                ${desc ? `<div class="link-preview-desc">${desc}</div>` : ''}
+                                <div class="link-preview-url" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>${host}</span>
+                                    <button class="icon-btn" style="min-width:auto; min-height:auto; padding:2px;" onclick="refreshLinkPreview(event,'${lp.url}', '${dateStr}', ${ts})" title="重新整理預覽">
+                                        <i data-lucide="refresh-cw" style="width:14px; height:14px; opacity:0.6;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function renderLinkPreviewRead(e) {
+            return renderLinkPreviewThumb(e);
+        }
+
         function highlightHtml(text, query) {
             const t = String(text ?? '');
             const q = String(query ?? '').trim();
@@ -1682,6 +2479,8 @@
 
             const q = qRaw.toLowerCase();
             const all = await db.getAll();
+	            try { all.forEach(normalizeEntrySpace); } catch (_) {}
+	            all.forEach(normalizeEntrySpace);
 
             const hits = all.filter(e => {
                 const text = String(e.text ?? '');
@@ -1709,22 +2508,153 @@
                 const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
                 const entryJson = encodeURIComponent(JSON.stringify(e));
 
-                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="closeModal('searchModal'); openReadView('${entryJson}')">
-                    <div class="entry-card-header">
-                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
-                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
-                    </div>
-                    <div class="entry-card-text" style="-webkit-line-clamp: 4;">${highlightHtml(preview, qRaw)}</div>
-                </div>`;
+	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="closeModal('searchModal'); openReadView('${entryJson}')">
+	                    <div class="entry-card-header">
+	                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
+	                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+	                    </div>
+	                    <div class="entry-card-text" style="-webkit-line-clamp: 4;">${highlightHtml(preview, qRaw)}</div>
+	                </div>`;
             }).join('');
 
             lucide.createIcons();
         }
 
+        // =========================
+        // 🗒️ 記事薄（ColorNote 風格列表）
+        // =========================
+        function openNotebookModal() {
+			currentSpaceContext = SPACE_NOTEBOOK;
+            const m = document.getElementById('notebookModal');
+            if (!m) return;
+
+            // ✅ 記住排序選擇
+            const sel = document.getElementById('notebookSort');
+            if (sel) sel.value = localStorage.getItem('diary_notebook_sort') || (sel.value || 'updated');
+
+            // ✅ 初始化資料夾下拉
+            populateNotebookFolderSelect();
+
+            // ✅ 全屏置頂：避免背後日曆可以捲/被點
+            try { document.body.style.overflow = 'hidden'; } catch (_) {}
+
+            m.classList.add('active');
+            renderNotebookList();
+            setTimeout(() => { try { bindNotebookLongPress(); } catch(_){} }, 80);
+            lucide.createIcons();
+        }
+
+        async function renderNotebookList() {
+            // 記住排序
+            try {
+                const sel = document.getElementById('notebookSort');
+                if (sel) localStorage.setItem('diary_notebook_sort', sel.value || 'updated');
+            } catch (_) {}
+
+            const list = document.getElementById('notebookList');
+            const hint = document.getElementById('notebookHint');
+            const sel = document.getElementById('notebookSort');
+            if (!list) return;
+
+            const sortMode = sel ? sel.value : 'updated';
+            const folderSel = document.getElementById('notebookFolder');
+            const folderId = folderSel ? folderSel.value : (localStorage.getItem(NOTEBOOK_FOLDER_SELECTED_KEY) || 'all');
+            try { localStorage.setItem(NOTEBOOK_FOLDER_SELECTED_KEY, folderId); } catch (_) {}
+
+            const all = await db.getAll();
+
+            // 兼容舊資料：如果冇 updatedAt，就用 timestamp 當作最後修改時間
+            all.forEach(e => { if (e && !e.updatedAt) e.updatedAt = e.timestamp || 0; });
+
+            let rows = all.filter(e => (e && (e.space || SPACE_CALENDAR) === SPACE_NOTEBOOK));
+
+            // ✅ 資料夾篩選（folderId 存喺 entry.folderId）
+            if (folderId && folderId !== 'all') {
+                rows = rows.filter(e => (e && e.folderId) === folderId);
+            }
+            if (sortMode === 'updated') {
+                rows.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            } else if (sortMode === 'date') {
+                rows.sort((a, b) => {
+                    if (a.date !== b.date) return String(b.date).localeCompare(String(a.date));
+                    return (b.updatedAt || 0) - (a.updatedAt || 0);
+                });
+            } else if (sortMode === 'color') {
+                rows.sort((a, b) => String(a.color || '').localeCompare(String(b.color || '')));
+            }
+
+            if (hint) hint.textContent = `共 ${rows.length} 條記事`;
+
+            // ✅ 批量模式：記低目前列表可見 id（用於全選）
+            try { __nbVisibleIds = rows.map(x => x && x.id).filter(Boolean); } catch (_) { __nbVisibleIds = []; }
+
+            if (rows.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:16px;">暫時未有任何記事。</div>';
+                return;
+            }
+
+            list.innerHTML = rows.map(e => {
+                const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
+                const tagName = tagNames[e.color] || '標籤';
+                const dateText = e.date ? e.date.replace(/-/g, '/') : '';
+
+                const ts = e.updatedAt || e.timestamp || 0;
+                const timeText = ts ? new Date(ts).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'}) : '';
+
+                const body = String(e.text ?? '').trim();
+                const firstLine = body.split('\n').map(s => s.trim()).find(Boolean) || '';
+                const title = firstLine || ((e.images && e.images.length) ? '[ 圖片紀錄 ]' : ((e.attachments && e.attachments.length) ? '[ 附件紀錄 ]' : '[ 空白 ]'));
+
+                const rest = body && body !== firstLine ? body.replace(firstLine, '').trim() : '';
+                const preview = rest ? (rest.length > 90 ? rest.slice(0, 90) + '…' : rest) : '';
+
+                const entryJson = encodeURIComponent(JSON.stringify(e));
+
+                const folderName = getNotebookFolderName(e.folderId);
+                const folderBadge = folderName ? `<span class="entry-card-tag" style="opacity:.85; border-style:dashed;">📁 ${escapeHtml(folderName)}</span>` : '';
+
+                return `<div class="entry-card ${__nbBulkMode ? 'bulk-mode' : ''} ${__nbBulkSelected.has(String(e.id)) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleNotebookCardClick(event, ${e.id}, '${entryJson}')" oncontextmenu="if(!__nbBulkMode){ showNotebookEntryMenu(event, ${e.id}); } return false;">${__nbBulkMode ? `<div class=\"bulk-check\">${__nbBulkSelected.has(String(e.id)) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}
+                    <div class="entry-card-header">
+                        <span style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <span class="entry-card-tag">${escapeHtml(tagName)}</span>
+                            ${folderBadge}
+                        </span>
+                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+                    </div>
+                    <div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${escapeHtml(title)}</div>
+                    ${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${escapeHtml(preview)}</div>` : ''}
+                    ${renderLinkPreviewThumb(e)}
+                </div>`;
+            }).join('');
+
+            
+
+            // ✅ 若剛「確定並跳去」，就定位並高亮該條 entry
+            try {
+                if (__pendingNotebookFocus && __pendingNotebookFocus.entryId) {
+                    const targetId = String(__pendingNotebookFocus.entryId);
+                    const card = list.querySelector(`.entry-card[data-entry-id="${targetId}"]`);
+                    if (card) {
+                        card.classList.add('entry-highlight');
+                        try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+                        setTimeout(() => { try { card.classList.remove('entry-highlight'); } catch (_) {} }, 2600);
+                    }
+                    __pendingNotebookFocus = null;
+                }
+            } catch (e) { console.error(e); }
+lucide.createIcons();
+        }
+
         function openDayView(dateStr, entries) {
+            // ✅ 記低當日 entries（俾批量模式重繪用）
+            try { window.__lastDayEntries = Array.isArray(entries) ? entries : []; } catch (_) {}
+
             editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
             renderDayStatusUI();
             const listEl = document.getElementById('dayEntryList');
+            // ✅ 批量模式：記低可見 id
+            try { __dayVisibleIds = (entries || []).map(e => e && e.id).filter(Boolean); } catch (_) { __dayVisibleIds = []; }
+
             if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
             } else { 
                 listEl.innerHTML = entries.map(e => { 
@@ -1733,10 +2663,15 @@
                     const tagName = tagNames[e.color] || '標籤'; 
                     const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'});
                     const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
-                    return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="openReadView('${entryJson}')"><div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    const idStr = String(e.id);
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
             }
             document.getElementById('dayModal').classList.add('active');
+            updateBulkUI();
+            // ✅ 手機長按快速進入批量模式
+            setTimeout(() => { try { bindDayLongPress(); } catch(_){} }, 60);
+            try { lucide.createIcons(); } catch (_) {}
         }
 
         function renderDayStatusUI() {
@@ -1772,7 +2707,8 @@
         }
 
         function openReadView(entryJsonEncoded) {
-            currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded)); document.getElementById('dayModal').classList.remove('active');
+            currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded));
+			try { if (!currentEntryData.space) currentEntryData.space = SPACE_CALENDAR; } catch (_) {} document.getElementById('dayModal').classList.remove('active');
             const dateObj = new Date(currentEntryData.timestamp); 
             document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
             document.getElementById('readWeatherBadge').textContent = currentEntryData.weather ? `[ ${currentEntryData.weather} ]` : '';
@@ -1780,16 +2716,26 @@
             const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
             document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
             if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
+
+            // 🔗 網址預覽
+            try {
+                const lpHtml = renderLinkPreviewRead(currentEntryData);
+                const holder = document.getElementById('readLinkPreview');
+                if (holder) holder.innerHTML = lpHtml || '';
+            } catch (_) {}
+
             renderReadAttachments();
             lucide.createIcons();
             document.getElementById('readModal').classList.add('active');
+			try { updateReadMoveButtonUI(); } catch (_) {}
         }
 
-        function backToDayView() { closeModal('readModal'); db.getAll().then(all => { openDayView(editingDateStr, all.filter(e => e.date === editingDateStr)); }); }
+        function backToDayView() { closeModal('readModal'); db.getAll().then(all => { all.forEach(normalizeEntrySpace); openDayView(editingDateStr, all.filter(e => e.date === editingDateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR)); }); }
         function openLightbox(imgSrc) { document.getElementById('lightboxImg').src = imgSrc; document.getElementById('lightbox').classList.add('active'); }
         function closeLightbox(event) { if (event && event.target.id === 'lightboxImg') return; document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImg').src = ''; }
-        function openEditorForToday() { editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()); openEditor(null); }
-        function openEditorFromDayView() { closeModal('dayModal'); setTimeout(() => openEditor(null), 200); }
+        function openEditorForToday() { currentSpaceContext = SPACE_CALENDAR; editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()); openEditor(null); }
+		function openEditorForNotebook() { currentSpaceContext = SPACE_NOTEBOOK; editingDateStr = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()); openEditor(null); }
+        function openEditorFromDayView() { currentSpaceContext = SPACE_CALENDAR; closeModal('dayModal'); setTimeout(() => openEditor(null), 200); }
         function editFromReadView() { closeModal('readModal'); setTimeout(() => openEditor(currentEntryData), 200); }
 
         async function deleteFromReadView() {
@@ -1814,6 +2760,8 @@
                 currentImages = entryData.images ? [...entryData.images] : [];
                 currentAttachments = entryData.attachments ? [...entryData.attachments] : [];
                 selectedWeatherBadge = entryData.weather || '';
+                // 保留原本資料夾
+                currentEntryData.folderId = entryData.folderId || '';
             } else { 
                 document.getElementById('editorTitle').textContent = '新增記事'; 
                 textarea.value = ''; 
@@ -1843,6 +2791,329 @@
         }
 
         function selectColor(colorId) { selectedColor = colorId; document.querySelectorAll('.color-btn').forEach(btn => { btn.classList.remove('selected'); if(btn.dataset.color === colorId) { btn.classList.add('selected'); btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } }); document.getElementById('tagNameInput').value = tagNames[colorId] || ''; }
+
+        // =========================
+        // 📁 記事簿：把記事移去資料夾
+        // =========================
+        async function moveEntryToFolder(entryId, folderId) {
+            const all = await db.getAll();
+            const e = all.find(x => String(x.id) === String(entryId));
+            if (!e) return;
+            e.folderId = folderId || '';
+            e.updatedAt = Date.now();
+            await db.save(e);
+            renderNotebookList();
+            showToast('✅ 已移動到資料夾', 'success');
+        }
+
+	        // =========================
+	        // 🔁 Space 互相移動：calendar ↔ notebook
+	        // =========================
+	        function updateReadMoveButtonUI() {
+            const btnToNotebook = document.getElementById('moveToNotebookBtn');
+            const btnToCalendar = document.getElementById('moveToCalendarBtn');
+            if (!btnToNotebook && !btnToCalendar) return;
+            try {
+                const sp = (currentEntryData && currentEntryData.space) ? currentEntryData.space : SPACE_CALENDAR;
+                if (btnToNotebook) btnToNotebook.style.display = (sp === SPACE_CALENDAR) ? 'inline-flex' : 'none';
+                if (btnToCalendar) btnToCalendar.style.display = (sp === SPACE_NOTEBOOK) ? 'inline-flex' : 'none';
+            } catch (_) {
+                if (btnToNotebook) btnToNotebook.style.display = 'none';
+                if (btnToCalendar) btnToCalendar.style.display = 'none';
+            }
+        }
+
+        async function moveCurrentEntryToNotebook() {
+            try {
+                if (!currentEntryData || !currentEntryData.id) return;
+                // ✅ 一鍵：彈出資料夾選擇（一次完成 + 可選跳轉）
+                openPickFolderModal(currentEntryData.id);
+            } catch (e) { console.error(e); }
+        }
+
+
+	        
+        // =========================
+        
+        // =========================
+        // 📁 移去記事簿：彈出資料夾選擇（一次完成 + 可選跳轉 + 高亮）
+        // =========================
+        const NOTEBOOK_LAST_FOLDER_KEY = 'diary_notebook_last_folder';
+        let __pickFolderEntryId = null;
+        // 用 var 避免在極端載入時序下觸發 TDZ
+        var __pendingNotebookFocus = null; // { folderId, entryId }
+
+        function fillPickFolderSelect(selectedId) {
+            const sel = document.getElementById('pickFolderSelect');
+            if (!sel) return;
+            const folders = loadNotebookFolders();
+
+            const opts = [{ id: '', name: '未分類' }].concat(folders.map(f => ({ id: f.id, name: f.name })));
+            sel.innerHTML = opts.map(o => `<option value="${escapeHtml(String(o.id))}">${escapeHtml(String(o.name))}</option>`).join('');
+
+            const v = (typeof selectedId === 'string') ? selectedId : '';
+            sel.value = v;
+        }
+
+        function openPickFolderModal(entryId) {
+            __pickFolderEntryId = entryId || null;
+            const last = localStorage.getItem(NOTEBOOK_LAST_FOLDER_KEY) || '';
+            fillPickFolderSelect(last);
+            openModal('pickFolderModal');
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        async function confirmPickFolder(jumpAfter) {
+            const entryId = __pickFolderEntryId;
+            __pickFolderEntryId = null;
+            if (!entryId) { closeModal('pickFolderModal'); return; }
+
+            const sel = document.getElementById('pickFolderSelect');
+            const folderId = sel ? String(sel.value || '') : '';
+            try { localStorage.setItem(NOTEBOOK_LAST_FOLDER_KEY, folderId); } catch (_) {}
+
+            closeModal('pickFolderModal');
+            await moveCalendarEntryToNotebookWithFolder(entryId, folderId, !!jumpAfter);
+        }
+
+        async function moveCalendarEntryToNotebookWithFolder(entryId, folderId, jumpAfter) {
+            const all = await db.getAll();
+            all.forEach(normalizeEntrySpace);
+            const e = all.find(x => String(x.id) === String(entryId));
+            if (!e) return;
+
+            // 一次完成：space + folderId 同步寫入
+            e.space = SPACE_NOTEBOOK;
+            e.folderId = folderId || '';
+            e.updatedAt = Date.now();
+            await db.save(e);
+
+            // 如果而家係讀頁，更新 currentEntryData，順手更新按鈕顯示
+            try {
+                if (currentEntryData && String(currentEntryData.id) === String(entryId)) {
+                    currentEntryData = e;
+                    updateReadMoveButtonUI();
+                }
+            } catch (_) {}
+
+            try { renderCalendar(); } catch (_) {}
+
+            if (jumpAfter) {
+                __pendingNotebookFocus = { folderId: folderId || '', entryId: e.id };
+                try { closeModal('readModal'); } catch (_) {}
+                try { closeModal('dayModal'); } catch (_) {}
+                openNotebookModal();
+                // openNotebookModal 之後會 renderNotebookList；但為保險，延遲一下再 set folder + render
+                setTimeout(() => {
+                    try {
+                        const folderSel = document.getElementById('notebookFolder');
+                        if (folderSel) {
+                            folderSel.value = (folderId || 'all') === '' ? 'all' : folderId; // 如果未分類：顯示 all + 用高亮定位
+                            try { localStorage.setItem(NOTEBOOK_FOLDER_SELECTED_KEY, folderSel.value); } catch (_) {}
+                        }
+                    } catch (_) {}
+                    try { renderNotebookList(); } catch (_) {}
+                }, 120);
+
+                showToast('✅ 已移去記事簿並跳轉', 'success');
+            } else {
+                showToast('✅ 已移去記事簿', 'success');
+            }
+        }
+
+// 📅 移去日曆：彈出月曆/日期選擇器
+        // =========================
+        let __pickDateCallback = null;
+
+        function openPickDateModal(initialDateStr, cb) {
+            __pickDateCallback = (typeof cb === 'function') ? cb : null;
+            const input = document.getElementById('pickDateInput');
+            if (input) input.value = initialDateStr || '';
+            openModal('pickDateModal');
+            try { setTimeout(() => { if (input) input.focus(); }, 50); } catch (_) {}
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        function confirmPickDate() {
+            const input = document.getElementById('pickDateInput');
+            const v = input ? String(input.value || '').trim() : '';
+            if (!v) { showToast('⚠️ 請先揀一個日期', 'error'); return; }
+            closeModal('pickDateModal');
+            const cb = __pickDateCallback;
+            __pickDateCallback = null;
+            if (cb) cb(v);
+        }
+
+        async function moveNotebookEntryToCalendarToDate(entryId, dateStr) {
+            const ds = normalizeDateStr(String(dateStr || '').trim());
+            if (!ds) { showToast('⚠️ 日期格式不正確', 'error'); return; }
+
+            const all = await db.getAll();
+            all.forEach(normalizeEntrySpace);
+            const e = all.find(x => String(x.id) === String(entryId));
+            if (!e) return;
+
+            e.space = SPACE_CALENDAR;
+            e.date = ds;
+            e.folderId = '';
+            e.updatedAt = Date.now();
+            await db.save(e);
+
+            // UI：回到日曆並定位
+            try { closeModal('readModal'); } catch (_) {}
+            try { closeModal('notebookModal'); } catch (_) {}
+
+            const parts = ds.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, d = parseInt(parts[2], 10);
+                if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) currentDate = new Date(y, m, d);
+            }
+            await renderCalendar();
+            const all2 = await db.getAll();
+            all2.forEach(normalizeEntrySpace);
+            const dayEntries = all2.filter(x => x.date === ds && (x.space || SPACE_CALENDAR) === SPACE_CALENDAR);
+            openDayView(ds, dayEntries);
+
+            showToast('✅ 已移去日曆：' + ds, 'success');
+        }
+
+        async function moveNotebookEntryToCalendarPickDate(entryId) {
+            const def = formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+            const initial = (editingDateStr && normalizeDateStr(editingDateStr)) ? normalizeDateStr(editingDateStr) : def;
+            openPickDateModal(initial, (picked) => {
+                moveNotebookEntryToCalendarToDate(entryId, picked);
+            });
+        }
+
+async function moveNotebookEntryToCalendarAskDate(entryId) {
+            // (兼容舊按鈕/舊選單)
+            return moveNotebookEntryToCalendarPickDate(entryId);
+        }
+
+
+        function showNotebookEntryMenu(ev, entryId) {
+	            try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (_) {}
+
+	            const folders = loadNotebookFolders();
+	            const folderOptions = ['(0) 取消', '(1) 未分類']
+	                .concat(folders.map((f, idx) => `(${idx + 2}) ${f.name}`));
+
+	            const hint = [
+	                '你想做咩？',
+	                'A) 移動到資料夾（輸入數字）',
+	                'B) 移去日曆（指定日期，輸入：d）'
+	            ].join('\n');
+
+	            const ans = prompt(hint + '\n\n' + folderOptions.join('\n'), '1');
+	            if (ans === null) return;
+	            const v = String(ans).trim().toLowerCase();
+	            if (v === 'd') {
+	                moveNotebookEntryToCalendarPickDate(entryId);
+	                return;
+	            }
+
+	            const n = parseInt(v, 10);
+	            if (!Number.isFinite(n) || n === 0) return;
+
+	            if (n === 1) {
+	                moveEntryToFolder(entryId, '');
+	                return;
+	            }
+	            const pick = folders[n - 2];
+	            if (!pick) return;
+	            moveEntryToFolder(entryId, pick.id);
+	        }
+
+	        // ✅ 長按（手機）打開記事選單
+        function bindNotebookLongPress() {
+            const list = document.getElementById('notebookList');
+            if (!list || list.__lpBound) return;
+            list.__lpBound = true;
+
+            let timer = null;
+            let targetId = null;
+
+            const start = (e) => {
+                const card = e.target && e.target.closest ? e.target.closest('.entry-card') : null;
+                if (!card) return;
+                // 從 oncontextmenu 已傳 entryId；手機就靠 dataset
+                targetId = card.getAttribute('data-entry-id');
+                if (!targetId) return;
+
+                timer = setTimeout(() => {
+                    timer = null;
+                    // 長按：優先進入批量模式（方便大量刪除）
+                    if (!__nbBulkMode) {
+                        __nbBulkMode = true;
+                        __nbBulkSelected = new Set([String(targetId)]);
+                        try { renderNotebookList(); } catch (_) {}
+                        updateBulkUI();
+                        showToast('已進入批量模式，可多選後刪除', 'success');
+                        return;
+                    }
+                    // 已在批量模式：長按等同切換選取
+                    const idStr = String(targetId);
+                    if (__nbBulkSelected.has(idStr)) __nbBulkSelected.delete(idStr);
+                    else __nbBulkSelected.add(idStr);
+                    try { renderNotebookList(); } catch (_) {}
+                    updateBulkUI();
+                }, 520);
+            };
+            const end = () => { if (timer) { clearTimeout(timer); timer = null; } targetId = null; };
+
+            list.addEventListener('touchstart', start, { passive: true });
+            list.addEventListener('touchend', end);
+            list.addEventListener('touchmove', end);
+        }
+
+        // ✅ 長按（手機）快速進入「批量刪除」模式（Day）
+        function bindDayLongPress() {
+            const list = document.getElementById('dayEntryList');
+            if (!list || list.__lpBound) return;
+            list.__lpBound = true;
+
+            let timer = null;
+            let targetId = null;
+
+            const start = (e) => {
+                const card = e.target && e.target.closest ? e.target.closest('.entry-card') : null;
+                if (!card) return;
+                // Day list 內 onclick 係 handleDayCardClick(event, id, ...)
+                // 我哋從 onclick 抽 id 可能唔穩定，所以用 dataset 做備援：
+                targetId = card.getAttribute('data-entry-id');
+                if (!targetId) {
+                    // fallback：從 onclick 字串抽數字
+                    const oc = card.getAttribute('onclick') || '';
+                    const m = oc.match(/handleDayCardClick\(event,\s*([0-9]+)\s*,/);
+                    if (m) targetId = m[1];
+                }
+                if (!targetId) return;
+
+                timer = setTimeout(() => {
+                    timer = null;
+                    if (!__dayBulkMode) {
+                        __dayBulkMode = true;
+                        __dayBulkSelected = new Set([String(targetId)]);
+                        try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+                        updateBulkUI();
+                        showToast('已進入批量模式，可多選後刪除', 'success');
+                    } else {
+                        // 已在批量模式：長按等同切換選取
+                        const idStr = String(targetId);
+                        if (__dayBulkSelected.has(idStr)) __dayBulkSelected.delete(idStr);
+                        else __dayBulkSelected.add(idStr);
+                        try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
+                        updateBulkUI();
+                    }
+                }, 520);
+            };
+
+            const end = () => { if (timer) { clearTimeout(timer); timer = null; } targetId = null; };
+
+            list.addEventListener('touchstart', start, { passive: true });
+            list.addEventListener('touchend', end);
+            list.addEventListener('touchmove', end);
+        }
 
         // =========================
         // ✍️ 第一級（writing-mode）：textarea 解除高度限制，自動長高
@@ -2385,7 +3656,9 @@
                 } catch (e) { console.error(e); }
 
                 currentEntryData.date = target;
-                await db.save(currentEntryData);
+                // ✅ 記錄最後修改時間（記事薄可用「依修改時間排序」）
+            currentEntryData.updatedAt = Date.now();
+            await db.save(currentEntryData);
 
                 editingDateStr = target;
                 const q = document.getElementById('quickDatePicker');
@@ -2500,18 +3773,50 @@ function handleImageUpload(event) {
             const entryId = currentEntryData ? currentEntryData.id : Date.now();
             const entryTimestamp = currentEntryData ? currentEntryData.timestamp : Date.now();
 
+            const folderId = (currentSpaceContext === SPACE_NOTEBOOK) ? ((currentEntryData && currentEntryData.folderId) ? currentEntryData.folderId : (localStorage.getItem(NOTEBOOK_FOLDER_SELECTED_KEY) || '')) : '';
+
             currentEntryData = { 
                 id: entryId, 
                 date: editingDateStr, 
                 timestamp: entryTimestamp, 
+                updatedAt: Date.now(),
                 text: text, 
                 color: selectedColor, 
                 textSize: currentTextSizeIdx, 
                 images: currentImages,
                 attachments: currentAttachments,
-                weather: selectedWeatherBadge 
+                weather: selectedWeatherBadge,
+			space: currentSpaceContext,
+                folderId: (currentSpaceContext === SPACE_NOTEBOOK && folderId && folderId !== 'all') ? folderId : ''
             }; 
-            
+
+            // 🔗 自動網址預覽（可靠版）
+            try {
+                const firstUrl = extractFirstUrl(text);
+                if (firstUrl && isAutoLinkPreviewEnabled()) {
+                    const cached = getCachedLinkPreview(firstUrl);
+                    // 先用快取/臨時縮圖頂住
+                    currentEntryData.linkPreview = cached || { url: firstUrl, title: safeHostname(firstUrl) || firstUrl, description: '', image: thumioScreenshotUrl(firstUrl) };
+
+                    // 背景更新（唔阻你儲存）
+                    getOrFetchLinkPreview(firstUrl).then(async (lp) => {
+                        try {
+                            const liveUrl = extractFirstUrl(String(currentEntryData && currentEntryData.text || ''));
+                            if (!lp || !lp.url || !liveUrl || lp.url !== liveUrl) return;
+                            currentEntryData.linkPreview = lp;
+                            await db.save({ ...currentEntryData, linkPreview: lp });
+
+                            // 刷新畫面（如果開緊）
+                            try { if (document.getElementById('notebookModal')?.classList.contains('active')) renderNotebookList(); } catch (_) {}
+                            try { if (document.getElementById('readModal')?.classList.contains('active')) openReadView(encodeURIComponent(JSON.stringify(currentEntryData))); } catch (_) {}
+                            try { renderCalendar(); } catch (_) {}
+                        } catch (_) {}
+                    });
+                } else {
+                    delete currentEntryData.linkPreview;
+                }
+            } catch (_) {}
+
             await db.save(currentEntryData);
             
             // 閃動「已自動儲存」提示
@@ -2573,6 +3878,12 @@ function handleImageUpload(event) {
         }
         
         function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
+
+        // ✅ 由右下角「+」展開嘅調色：先收起 FAB，再轉顏色
+        function cycleThemeFromFab() {
+            closeFabMenu();
+            cycleTheme();
+        }
 
         async function blobToDataUrl(blob) {
             return await new Promise((resolve) => {
@@ -2759,7 +4070,20 @@ async function exportData() {
                     sessionStorage.setItem('diary_pending_shared_images', JSON.stringify(images || []));
                 } catch (_) {}
 
+                // 在彈出分享選擇前，先強制刷新一次月曆，確保底層乾淨
+                await renderCalendar();
+                
+                // 增加一個微小的延遲，讓瀏覽器完成 DOM 的銷毀與重建
+                await new Promise(r => setTimeout(r, 50));
+                
                 beginShareDatePicking(combinedText, images);
+                
+                // 強制重繪以消除殘影
+                setTimeout(() => {
+                    document.body.style.display = 'none';
+                    document.body.offsetHeight;
+                    document.body.style.display = '';
+                }, 100);
 
                 // 用完即清：避免下次重入又彈一次
                 await cache.delete('/__share_payload__');
