@@ -516,14 +516,29 @@
     </div>
 
     <div class="modal-overlay" id="shareDateModal" onclick="handleShareDateBackdropClick(event)">
-        <div class="modal-content" style="max-height: 55dvh; height: auto;">
+        <div class="modal-content" style="max-height: 60dvh; height: auto;">
             <div class="modal-header">
-                <div class="modal-title" style="color: var(--primary);"><i data-lucide="calendar"></i> 選擇保存日期</div>
+                <div class="modal-title" style="color: var(--primary);"><i data-lucide="share-2"></i> 分享內容保存到</div>
                 <button class="icon-btn" onclick="closeShareDateModal(true, false)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
-                <div style="margin-bottom: 12px; color: var(--text-light);">你揀咗日期之後，我先會打開「新增記事」並帶入分享文字/圖片。</div>
-                <input type="date" id="shareDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" />
+                <div style="display:flex; gap:10px; margin-bottom: 12px;">
+                    <button id="shareTargetCalendarBtn" class="tool-btn" style="flex:1; justify-content:center;" onclick="setShareTarget('calendar')"><i data-lucide="calendar" style="width:16px;"></i> 日曆</button>
+                    <button id="shareTargetNotebookBtn" class="tool-btn" style="flex:1; justify-content:center;" onclick="setShareTarget('notebook')"><i data-lucide="notebook-text" style="width:16px;"></i> 記事簿</button>
+                </div>
+
+                <div id="shareCalendarBox">
+                    <div style="margin-bottom: 12px; color: var(--text-light);">你揀咗日期之後，我先會打開「新增記事」並帶入分享文字/圖片。</div>
+                    <input type="date" id="shareDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" />
+                </div>
+
+                <div id="shareNotebookBox" style="display:none;">
+                    <div style="margin-bottom: 12px; color: var(--text-light);">會直接打開「記事簿新增記事」，你可以再揀資料夾（可留空）。</div>
+                    <select id="shareNotebookFolder" style="width:100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+                        <option value="">(未分類)</option>
+                    </select>
+                </div>
+
                 <div style="display:flex; gap: 10px; margin-top: 14px;">
                     <button class="action-btn" onclick="closeShareDateModal(true, false)" style="flex:1;">取消 / 返回</button>
                     <button class="action-btn primary" onclick="confirmShareDate()" style="flex:1;">確定</button>
@@ -1909,10 +1924,51 @@
         // 📲 分享後：先選日期（有取消/返回）
         // =========================
         let __pendingShared = null; // { text: string, images: string[] }
+        let __pendingShareTarget = 'calendar'; // 'calendar' | 'notebook'
         let __shareDateHistoryPushed = false;
 
         function normalizeNewlines(str) {
             return String(str ?? '').replace(/\r\n/g, '\n');
+        }
+
+        function setShareTarget(target) {
+            __pendingShareTarget = (target === 'notebook') ? 'notebook' : 'calendar';
+            updateShareTargetUI(true);
+        }
+
+        function updateShareTargetUI(skipPickerPopup = false) {
+            const calBtn = document.getElementById('shareTargetCalendarBtn');
+            const nbBtn = document.getElementById('shareTargetNotebookBtn');
+            const calBox = document.getElementById('shareCalendarBox');
+            const nbBox = document.getElementById('shareNotebookBox');
+            const picker = document.getElementById('shareDatePicker');
+
+            if (calBtn) calBtn.classList.toggle('active', __pendingShareTarget === 'calendar');
+            if (nbBtn) nbBtn.classList.toggle('active', __pendingShareTarget === 'notebook');
+
+            if (calBox) calBox.style.display = (__pendingShareTarget === 'calendar') ? '' : 'none';
+            if (nbBox) nbBox.style.display = (__pendingShareTarget === 'notebook') ? '' : 'none';
+
+            // 只有「日曆」模式先嘗試彈出 date picker
+            if (!skipPickerPopup && __pendingShareTarget === 'calendar') {
+                setTimeout(() => {
+                    try {
+                        if (picker && picker.showPicker) picker.showPicker();
+                        else if (picker) { picker.focus(); picker.click(); }
+                    } catch (_) {
+                        try { if (picker) picker.focus(); } catch (_) {}
+                    }
+                }, 120);
+            }
+        }
+
+        function populateShareNotebookFolderSelect() {
+            const sel = document.getElementById('shareNotebookFolder');
+            if (!sel) return;
+            const folders = loadNotebookFolders();
+            const opts = ['<option value="">(未分類)</option>']
+                .concat(folders.map(f => `<option value="${String(f.id)}">${escapeHtml(f.name)}</option>`));
+            sel.innerHTML = opts.join('');
         }
 
         function openShareDateModal() {
@@ -1925,7 +1981,12 @@
             const now = new Date();
             picker.value = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
 
+            // 預設：保存到日曆（可切去記事簿）
+            __pendingShareTarget = 'calendar';
+            try { populateShareNotebookFolderSelect(); } catch (_) {}
+
             modal.classList.add('active');
+            updateShareTargetUI(true);
 
             // 🟩 Android 返回鍵：為「選日期彈窗」push 一個 history state
             ensureBaseHistoryState();
@@ -1975,13 +2036,45 @@
         }
 
         async function confirmShareDate() {
+            if (!__pendingShared) { closeShareDateModal(true, false); return; }
+
+            // 依你選擇：保存到「日曆」或「記事簿」
+            if (__pendingShareTarget === 'notebook') {
+                const folderSel = document.getElementById('shareNotebookFolder');
+                const folderId = folderSel ? String(folderSel.value || '') : '';
+
+                closeShareDateModal(false, false);
+
+                // 直接開記事簿新增
+                openEditorForNotebook();
+
+                // 帶入分享內容
+                const textarea = document.getElementById('editorText');
+                if (textarea && __pendingShared.text) textarea.value = __pendingShared.text;
+                if (__pendingShared.images && __pendingShared.images.length > 0) {
+                    currentImages = __pendingShared.images;
+                    renderEditorImages();
+                }
+
+                // 記低資料夾（可留空）
+                try {
+                    if (!currentEntryData) currentEntryData = {};
+                    currentEntryData.folderId = folderId;
+                } catch (_) {}
+
+                __pendingShared = null;
+                try { showToast('✅ 已帶入分享內容（記事簿），請按「儲存記錄」', 'success'); } catch (_) {}
+                return;
+            }
+
+            // 預設：保存到日曆（選日期）
             const picker = document.getElementById('shareDatePicker');
             const val = picker ? picker.value : '';
             if (!val) return;
-            if (!__pendingShared) { closeShareDateModal(true, false); return; }
 
             closeShareDateModal(false, false);
 
+            try { currentSpaceContext = SPACE_CALENDAR; } catch (_) {}
             editingDateStr = val;
             const [y, m, d] = val.split('-');
             currentDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
@@ -1997,7 +2090,7 @@
             }
 
             __pendingShared = null;
-            try { showToast('✅ 已帶入分享內容，請按「儲存記錄」', 'success'); } catch (_) {}
+            try { showToast('✅ 已帶入分享內容（日曆），請按「儲存記錄」', 'success'); } catch (_) {}
         }
 
         function beginShareDatePicking(text, images) {
