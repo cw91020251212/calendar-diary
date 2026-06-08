@@ -1923,7 +1923,7 @@
         // =========================
         // 📲 分享後：先選日期（有取消/返回）
         // =========================
-        let __pendingShared = null; // { text: string, images: string[] }
+        let __pendingShared = null; // { text: string, images: string[], attachments: any[] }
         let __pendingShareTarget = 'calendar'; // 'calendar' | 'notebook'
         let __shareDateHistoryPushed = false;
 
@@ -2056,6 +2056,12 @@
                     renderEditorImages();
                 }
 
+                // 帶入附件（例如 mp3/mp4/pdf）
+                if (__pendingShared.attachments && __pendingShared.attachments.length > 0) {
+                    currentAttachments = Array.isArray(__pendingShared.attachments) ? __pendingShared.attachments : [];
+                    renderAttachments();
+                }
+
                 // 記低資料夾（可留空）
                 try {
                     if (!currentEntryData) currentEntryData = {};
@@ -2089,14 +2095,21 @@
                 renderEditorImages();
             }
 
+            // 帶入附件（例如 mp3/mp4/pdf）
+            if (__pendingShared.attachments && __pendingShared.attachments.length > 0) {
+                currentAttachments = Array.isArray(__pendingShared.attachments) ? __pendingShared.attachments : [];
+                renderAttachments();
+            }
+
             __pendingShared = null;
             try { showToast('✅ 已帶入分享內容（日曆），請按「儲存記錄」', 'success'); } catch (_) {}
         }
 
-        function beginShareDatePicking(text, images) {
+        function beginShareDatePicking(text, images, attachments) {
             __pendingShared = {
                 text: normalizeNewlines(text || ''),
-                images: Array.isArray(images) ? images.filter(Boolean).map(String) : []
+                images: Array.isArray(images) ? images.filter(Boolean).map(String) : [],
+                attachments: Array.isArray(attachments) ? attachments : []
             };
             openShareDateModal();
         }
@@ -4157,24 +4170,39 @@ async function exportData() {
 
                 const payload = await payloadResp.json();
 
-                // 讀取圖片（如果有）
+                // 讀取分享檔案：圖片會當作相片；其他（mp3/mp4/pdf...）會當作「附件」
                 let images = [];
+                let attachments = [];
 
                 // 1) 優先用 cache 計數
                 const countResp = (await cache.match('/__share_files_count__')) || (await cache.match('__share_files_count__'));
                 const filesCount = countResp ? parseInt(await countResp.text(), 10) : (payload.filesCount || 0);
 
-                // 2) 從 cache 逐張讀（同時試兩種 key）
+                // 2) 從 cache 逐個讀（同時試兩種 key）
                 for (let i = 0; i < filesCount; i++) {
                     const r = (await cache.match(`/__share_file___${i}`)) || (await cache.match(`__share_file___${i}`));
                     if (!r) continue;
+
                     const blob = await r.blob();
-                    const dataUrl = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    });
-                    images.push(String(dataUrl));
+                    const nameRaw = r.headers.get('X-File-Name') || r.headers.get('x-file-name') || '';
+                    const fileName = (() => {
+                        try { return nameRaw ? decodeURIComponent(nameRaw) : (`file_${i}`); } catch (_) { return nameRaw || (`file_${i}`); }
+                    })();
+                    const fileType = blob.type || r.headers.get('Content-Type') || 'application/octet-stream';
+
+                    // 圖片：轉 dataUrl 當相片；其他：存入附件庫（IndexedDB）
+                    if (String(fileType).startsWith('image/')) {
+                        const dataUrl = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+                        images.push(String(dataUrl));
+                    } else {
+                        const id = 'f_' + Date.now() + '_' + i + '_' + Math.random().toString(16).slice(2);
+                        await db.saveFile({ id, name: fileName, type: fileType || 'application/octet-stream', size: blob.size || 0, lastModified: Date.now(), blob });
+                        attachments.push({ id, name: fileName, type: fileType || 'application/octet-stream', size: blob.size || 0, lastModified: Date.now() });
+                    }
                 }
 
                 // 3) 後備：如果 cache 冇讀到，但 payload 本身有帶 dataUrl 陣列（不同 SW 版本可能會咁做）
@@ -4189,10 +4217,11 @@ async function exportData() {
                 if (payload.url) parts.push(normalizeNewlines(payload.url));
                 const combinedText = parts.filter(v => v !== null && v !== undefined && String(v).length > 0).join('\n\n');
 
-                // ✅ 收到分享內容：先存起嚟，立即彈出日期選擇器畀你揀保存日子
+                // ✅ 收到分享內容：先存起嚟，立即彈出選擇器畀你揀保存去邊
                 try {
                     sessionStorage.setItem('diary_pending_shared_text', combinedText || '');
                     sessionStorage.setItem('diary_pending_shared_images', JSON.stringify(images || []));
+                    sessionStorage.setItem('diary_pending_shared_attachments', JSON.stringify(attachments || []));
                 } catch (_) {}
 
                 // 在彈出分享選擇前，先強制刷新一次月曆，確保底層乾淨
@@ -4201,7 +4230,7 @@ async function exportData() {
                 // 增加一個微小的延遲，讓瀏覽器完成 DOM 的銷毀與重建
                 await new Promise(r => setTimeout(r, 50));
                 
-                beginShareDatePicking(combinedText, images);
+                beginShareDatePicking(combinedText, images, attachments);
                 
                 // 強制重繪以消除殘影
                 setTimeout(() => {
