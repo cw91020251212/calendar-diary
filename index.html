@@ -47,12 +47,12 @@
             --bg: #f4f7f6; --surface: #ffffff;
             --text-main: #2d3748; --text-light: #718096;
             --border: #e2e8f0; --hover: #edf2f7;
-            --gridline: rgba(0,0,0,0.18);
+            --gridline: rgba(0,0,0,0.38);
             --outline: #4a5568;
             --header-h: 56px; --weekday-h: 36px;
         }
 
-        body.theme-dark { --primary: #818cf8; --secondary: #a78bfa; --bg: #121212; --surface: #1e1e1e; --text-main: #e2e8f0; --text-light: #a0aec0; --border: #333333; --hover: #2d2d2d; --gridline: rgba(255,255,255,0.14); }
+        body.theme-dark { --primary: #818cf8; --secondary: #a78bfa; --bg: #121212; --surface: #1e1e1e; --text-main: #e2e8f0; --text-light: #a0aec0; --border: #333333; --hover: #2d2d2d; --gridline: rgba(255,255,255,0.26); }
         body.theme-matcha { --primary: #48bb78; --secondary: #38a169; --bg: #f0fff4; --surface: #ffffff; --text-main: #276749; --text-light: #4a5568; --border: #c6f6d5; --hover: #e6fffa; }
         body.theme-sakura { --primary: #ed64a6; --secondary: #d53f8c; --bg: #fff5f7; --surface: #ffffff; --text-main: #702459; --text-light: #a0aec0; --border: #fed7e2; --hover: #fff0f6; }
         body.theme-ocean { --primary: #4299e1; --secondary: #3182ce; --bg: #ebf8ff; --surface: #ffffff; --text-main: #2a4365; --text-light: #4a5568; --border: #bee3f8; --hover: #e2f1f8; }
@@ -66,6 +66,29 @@
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
+
+        /* ✅ Modal 內按鈕：四個掣統一大細（慳位但一致） */
+        .modal-header .icon-btn {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
+            padding: 0;
+            border-radius: 10px;
+        }
+        /* Lucide SVG 會有 inline width/height，呢度強制統一 */
+        .modal-header .icon-btn svg { width: 20px !important; height: 20px !important; }
+
+        /* ✅ 只針對兩個頁面右上角按鈕加「捆邊」更清晰 */
+        #dayModal .modal-header .icon-btn,
+        #notebookModal .modal-header .icon-btn {
+            border: 1px solid var(--outline);
+            background: rgba(255,255,255,0.25);
+        }
+        body.theme-dark #dayModal .modal-header .icon-btn,
+        body.theme-dark #notebookModal .modal-header .icon-btn {
+            background: rgba(30,30,30,0.25);
+        }
         .icon-btn:hover { background: var(--hover); }
 
         .section-header { padding: 16px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
@@ -85,8 +108,8 @@
         .calendar-track.no-anim { transition: none !important; }
         .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 1; }
 
-        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-bottom: 1px solid var(--border); transition: background-color 0.3s; }
-        .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-light); }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-top: 1px solid var(--outline); border-bottom: 1px solid var(--outline); transition: background-color 0.3s; }
+        .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-main); font-family: 'KaiTi', 'Kaiti TC', 'Kaiti SC', 'STKaiti', 'DFKai-SB', 'Noto Serif TC', 'Noto Serif SC', 'Songti SC', 'PMingLiU', serif; }
 
         /* ✅ 依照你提供的月曆截圖：週日紅、週六綠（標題） */
         .weekdays .weekday:nth-child(1) { color: #e53e3e; }
@@ -176,8 +199,12 @@
         .modal-content { background: var(--surface); width: 100%; max-width: 700px; max-height: 90dvh; height: 90dvh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.1, 0.8, 0.2, 1); box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         .modal-overlay.active .modal-content { transform: translateY(0); }
         
-        .modal-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); border-radius: 20px 20px 0 0;}
-        .modal-title { font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 8px;}
+        .modal-header { padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); border-radius: 20px 20px 0 0; min-height: 40px; }
+
+        /* ✅ 右上角兩個功能鍵：打橫排、唔要直排慳位 */
+        .modal-header > div:last-child { display:flex; flex-direction: row; gap: 8px; align-items: center; flex-wrap: nowrap; }
+        .modal-header .icon-btn { display: inline-flex; }
+        .modal-title { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
@@ -236,6 +263,11 @@
         #notebookModal.modal-overlay { align-items: stretch; }
         #notebookModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; }
         #notebookModal .modal-header { border-radius: 0; }
+
+        /* ✅ 日曆「當日記事」：同樣置頂全屏（避免上面留白） */
+        #dayModal.modal-overlay { align-items: stretch; }
+        #dayModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; }
+        #dayModal .modal-header { border-radius: 0; }
         .color-picker-container { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; flex-shrink: 0; }
         .color-picker-scroll { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
         .color-picker { display: flex; gap: 12px; width: max-content; }
