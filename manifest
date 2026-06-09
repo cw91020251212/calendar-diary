@@ -29,6 +29,7 @@
           "name": "files",
           "accept": [
             "text/html",
+            "text/x-html",
             ".html",
             ".htm",
             "text/plain",
