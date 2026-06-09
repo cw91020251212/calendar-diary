@@ -30,6 +30,7 @@
           "accept": [
             "text/html",
             ".html",
+            ".htm",
             "text/plain",
             ".txt",
             "audio/mpeg",
@@ -39,8 +40,6 @@
             "audio/mp4",
             "audio/wav",
             ".wav",
-            "audio/webm",
-            "audio/ogg",
             "application/pdf",
             ".pdf",
             "image/*"
