@@ -1167,15 +1167,6 @@
                     </button>
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="exportData()"><i data-lucide="download"></i> 手動下載備份檔 (.txt)</button>
                     <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
-                    <div style="margin-top: 15px; padding: 12px; border: 1px dashed var(--outline); border-radius: 12px; background: rgba(102,126,234,0.06);">
-                        <div style="font-size: 13px; color: var(--text-main); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="file-code" style="width: 16px; height: 16px;"></i> 導入 HTML 記事 (解決分享失敗)
-                        </div>
-                        <input type="file" id="html-importer" accept=".html,.htm" style="display:none">
-                        <button class="action-btn" style="background: #667eea; color: white; border: none;" onclick="document.getElementById('html-importer').click()">
-                            <i data-lucide="plus-circle"></i> 選取並導入 HTML 檔案
-                        </button>
-                    </div>
                     <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 手動上傳並還原資料</button>
                     <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)" style="display:none" tabindex="-1" aria-hidden="true">
                 </div>
@@ -6178,45 +6169,6 @@ async function exportData() {
             }; 
             reader.readAsText(file); event.target.value = ''; 
         }
-
-        // 🟢 導入 HTML 檔案邏輯
-        document.addEventListener('DOMContentLoaded', () => {
-            const htmlImporter = document.getElementById('html-importer');
-            if (htmlImporter) {
-                htmlImporter.addEventListener('change', async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    try {
-                        const text = await file.text();
-                        const now = new Date();
-                        const dateStr = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
-                        
-                        const entry = {
-                            id: 'e_' + Date.now() + '_' + Math.random().toString(16).slice(2),
-                            date: dateStr,
-                            text: text,
-                            images: [],
-                            attachments: [],
-                            weather: '',
-                            lastModified: Date.now(),
-                            space: 'calendar'
-                        };
-
-                        await db.save(entry);
-                        alert(`🎉 導入成功！\n檔案「${file.name}」已存入今天的日曆中。`);
-                        
-                        closeModal('backupModal');
-                        renderCalendar();
-                    } catch (err) {
-                        console.error("導入失敗：", err);
-                        alert('導入失敗，請確保檔案是正確的 HTML 格式。');
-                    } finally {
-                        e.target.value = '';
-                    }
-                });
-            }
-        });
 
         // 🟢 防彈出機制：當你切換 App (visibilitychange) 或離開網頁 (pagehide) 時強制儲存
         document.addEventListener('visibilitychange', () => {
