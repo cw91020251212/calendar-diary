@@ -28,19 +28,22 @@
         {
           "name": "files",
           "accept": [
-            "image/*",
-            "audio/*",
-            "video/*",
-            "application/*",
             "text/html",
+            ".html",
             "text/plain",
-            "text/markdown",
-            "application/pdf",
+            ".txt",
             "audio/mpeg",
-            "audio/ogg",
+            ".mp3",
+            "video/mp4",
+            ".mp4",
+            "audio/mp4",
             "audio/wav",
+            ".wav",
             "audio/webm",
-            "audio/mp4"
+            "audio/ogg",
+            "application/pdf",
+            ".pdf",
+            "image/*"
           ]
         }
       ]
