@@ -1,0 +1,35 @@
+{
+  "name": "日曆記事本",
+  "short_name": "日曆",
+  "description": "日曆記事本 - 記錄每一天的美好時刻",
+  "lang": "zh-Hant",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*", "audio/*", "video/*", "application/*"]
+        }
+      ]
+    }
+  }
+}
