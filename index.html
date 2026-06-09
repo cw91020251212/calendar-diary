@@ -6282,11 +6282,14 @@ async function exportData() {
                 }, 100);
 
                 // 用完即清：避免下次重入又彈一次
+                await cache.delete('share_payload');
                 await cache.delete('/__share_payload__');
                 await cache.delete('__share_payload__');
+                await cache.delete('share_files_count');
                 await cache.delete('/__share_files_count__');
                 await cache.delete('__share_files_count__');
                 for (let i = 0; i < filesCount; i++) {
+                    await cache.delete(`share_file_${i}`);
                     await cache.delete(`/__share_file___${i}`);
                     await cache.delete(`__share_file___${i}`);
                 }
