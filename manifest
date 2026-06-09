@@ -27,7 +27,21 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*", "audio/*", "video/*", "application/*"]
+          "accept": [
+            "image/*",
+            "audio/*",
+            "video/*",
+            "application/*",
+            "text/html",
+            "text/plain",
+            "text/markdown",
+            "application/pdf",
+            "audio/mpeg",
+            "audio/ogg",
+            "audio/wav",
+            "audio/webm",
+            "audio/mp4"
+          ]
         }
       ]
     }
