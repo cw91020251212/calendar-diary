@@ -6338,28 +6338,16 @@ async function exportData() {
                 const url = new URL(window.location.href);
                 if (url.searchParams.get('shared') !== '1') return;
 
-                // ✅ 如果你係「分享過嚟」但乜都冇發生，通常係接收端冇真正收到 payload
-                // 下面會盡量比到用家一個清晰提示，而唔係靜靜 return。
-                if (!('caches' in window)) {
-                    try { alert('⚠️ 未能接收分享內容：呢個開啟方式/瀏覽器唔支援接收分享（Cache API 不可用）。\n\n你可以改用「匯入檔案」按鈕作為後備。'); } catch (_) {}
-                    return;
-                }
+                if (!('caches' in window)) return;
                 const cache = await caches.open('diary-share-cache-v1');
 
                 // 同時兼容不同部署路徑：嘗試用相對 key
 
                 // 兼容不同 key（有啲機/瀏覽器對 leading slash 行為唔一致）
                 const payloadResp = (await cache.match('/__share_payload__')) || (await cache.match('__share_payload__'));
-                if (!payloadResp) {
-                    try { alert('⚠️ 未能接收分享內容：日曆已被打開，但搵唔到分享資料（可能 Service Worker/接口冇成功寫入）。\n\n請試用「匯入檔案」按鈕作為後備。'); } catch (_) {}
-                    return;
-                }
+                if (!payloadResp) return;
 
-                let payload = null;
-                try { payload = await payloadResp.json(); } catch (e) {
-                    try { alert('⚠️ 分享資料格式讀取失敗。\n\n請試用「匯入檔案」按鈕作為後備。'); } catch (_) {}
-                    return;
-                }
+                const payload = await payloadResp.json();
 
                 // 讀取分享檔案：圖片會當作相片；其他（mp3/mp4/pdf...）會當作「附件」
                 let images = [];
@@ -6462,67 +6450,6 @@ async function exportData() {
             try { await initApp(); } catch (e) { console.error(e); }
             try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
         };
-    </script>
-
-    <!-- ✅ 後備：手動匯入（當「分享」帶唔到檔案入嚟時用） -->
-    <button id="importFallbackBtn" style="position:fixed; right:16px; bottom:calc(56px + env(safe-area-inset-bottom)); z-index:9999; padding:12px 14px; border-radius:999px; border:1px solid rgba(0,0,0,0.18); background:#111827; color:#fff; font-weight:900; font-size:14px; box-shadow:0 10px 24px rgba(0,0,0,0.22);">匯入檔案</button>
-    <input id="importFallbackInput" type="file" style="display:none" multiple />
-
-    <script>
-      // 目標：就算系統分享失敗，都可以用「匯入檔案」走返同一條接收流程（彈出揀位置）
-      (function(){
-        const btn = document.getElementById('importFallbackBtn');
-        const inp = document.getElementById('importFallbackInput');
-        if (!btn || !inp) return;
-
-        btn.addEventListener('click', () => {
-          try { inp.value = ''; inp.click(); } catch (e) { alert('無法開啟檔案選擇器：' + e); }
-        });
-
-        inp.addEventListener('change', async (e) => {
-          try {
-            const files = Array.from((e.target && e.target.files) ? e.target.files : []);
-            if (!files.length) return;
-
-            let images = [];
-            let attachments = [];
-
-            for (let i=0;i<files.length;i++) {
-              const f = files[i];
-              if (!f) continue;
-              if ((f.type || '').startsWith('image/')) {
-                const dataUrl = await new Promise((resolve) => {
-                  const r = new FileReader();
-                  r.onload = () => resolve(String(r.result || ''));
-                  r.readAsDataURL(f);
-                });
-                if (dataUrl) images.push(dataUrl);
-              } else {
-                // 非圖片：當附件處理（如果 IndexedDB 可用會存入附件庫）
-                const id = 'f_' + Date.now() + '_' + i + '_' + Math.random().toString(16).slice(2);
-                try {
-                  if (window.db && db.saveFile) {
-                    await db.saveFile({ id, name: f.name || ('file_' + i), type: f.type || 'application/octet-stream', size: f.size || 0, lastModified: f.lastModified || Date.now(), blob: f });
-                    attachments.push({ id, name: f.name || ('file_' + i), type: f.type || 'application/octet-stream', size: f.size || 0, lastModified: f.lastModified || Date.now() });
-                  }
-                } catch (_) {
-                  // 兼容模式可能唔支援附件；至少保留檔名提示
-                  attachments.push({ id, name: f.name || ('file_' + i), type: f.type || 'application/octet-stream', size: f.size || 0, lastModified: f.lastModified || Date.now() });
-                }
-              }
-            }
-
-            // 直接走返你原本「分享接收」嗰條路：彈出揀位置
-            try {
-              beginShareDatePicking('（由匯入帶入）', images, attachments);
-            } catch (err) {
-              alert('匯入後未能打開接收介面：' + err);
-            }
-          } catch (err) {
-            alert('匯入失敗：' + err);
-          }
-        });
-      })();
     </script>
 </body>
 </html>
