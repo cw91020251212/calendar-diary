@@ -125,7 +125,36 @@
         body.theme-sunset { --primary: #ed8936; --secondary: #dd6b20; --bg: #fffaf0; --surface: #ffffff; --text-main: #7b341e; --text-light: #a0aec0; --border: #feebc8; --hover: #fff5e6; }
 
         html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text-main); transition: background-color 0.3s, color 0.3s; }
-        .app-container { display: flex; flex-direction: column; height: 100dvh; padding-bottom: var(--statusbar-h); }
+
+        /* ✅ 桌面瀏覽器：用「手機外框」包住個 App，放喺畫面中央 */
+        .desktop-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 18px; }
+        .device-frame {
+            width: min(430px, 100%);
+            height: min(932px, 100%);
+            background: var(--bg);
+            border-radius: 34px;
+            border: 1px solid rgba(0,0,0,0.18);
+            box-shadow: 0 18px 55px rgba(0,0,0,0.28);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 手機實機 / 細屏：外框退場，變回全屏 */
+        @media (max-width: 520px) {
+            .desktop-stage { padding: 0; }
+            .device-frame { width: 100%; height: 100%; border-radius: 0; border: none; box-shadow: none; }
+        }
+
+        /* App 本體高度跟住外框走（唔再用 100dvh 硬鎖） */
+        .app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: var(--statusbar-h); }
+
+        /* ✅ 將原本 fixed 嘅浮層/按鈕，限制喺手機外框入面 */
+        .device-frame .toast { position: absolute; max-width: 92%; }
+        .device-frame .fab-group { position: absolute; }
+        .device-frame .wm-float-close { position: absolute; }
+        .device-frame .modal-overlay { position: absolute; inset: 0; }
+        .device-frame .lightbox-overlay { position: absolute; inset: 0; }
+        .device-frame .modal-content { max-height: 90% !important; }
 
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
         .header-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
@@ -513,6 +542,8 @@
 
         @media print {
             body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; }
+            .desktop-stage { padding: 0 !important; }
+            .device-frame { width: 100% !important; height: auto !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
             .fab, .modal-overlay, .events-preview, .dots-container, .header-title, .icon-btn, .month-selector button { display: none !important; }
             .app-container { height: 95vh !important; display: flex !important; flex-direction: column !important; box-sizing: border-box !important; page-break-inside: avoid; }
             header { justify-content: center !important; padding: 10px 0 !important; border: none !important; height: auto !important; }
@@ -565,7 +596,10 @@
 </head>
 <body>
 
-    <div class="app-container">
+    <div class="desktop-stage">
+        <div class="device-frame" id="deviceFrame">
+
+            <div class="app-container">
         <header>
             <div class="header-title"><span>月曆</span></div>
             <div class="month-selector">
@@ -1314,6 +1348,9 @@
 
                 <div class="entry-list" id="searchResultList"></div>
             </div>
+        </div>
+    </div>
+
         </div>
     </div>
 
@@ -6344,7 +6381,12 @@ async function exportData() {
                 // 同時兼容不同部署路徑：嘗試用相對 key
 
                 // 兼容不同 key（有啲機/瀏覽器對 leading slash 行為唔一致）
-                const payloadResp = (await cache.match('/__share_payload__')) || (await cache.match('__share_payload__'));
+                // ✅ 優先用 SW 寫入嘅正式 key（sw.js: share_payload）
+                // 再兼容舊版本用過嘅 key（帶底線/leading slash）
+                const payloadResp = (await cache.match('share_payload'))
+                    || (await cache.match('/share_payload'))
+                    || (await cache.match('/__share_payload__'))
+                    || (await cache.match('__share_payload__'));
                 if (!payloadResp) return;
 
                 const payload = await payloadResp.json();
@@ -6354,12 +6396,18 @@ async function exportData() {
                 let attachments = [];
 
                 // 1) 優先用 cache 計數
-                const countResp = (await cache.match('/__share_files_count__')) || (await cache.match('__share_files_count__'));
+                const countResp = (await cache.match('share_files_count'))
+                    || (await cache.match('/share_files_count'))
+                    || (await cache.match('/__share_files_count__'))
+                    || (await cache.match('__share_files_count__'));
                 const filesCount = countResp ? parseInt(await countResp.text(), 10) : (payload.filesCount || 0);
 
                 // 2) 從 cache 逐個讀（同時試兩種 key）
                 for (let i = 0; i < filesCount; i++) {
-                    const r = (await cache.match(`/__share_file___${i}`)) || (await cache.match(`__share_file___${i}`));
+                    const r = (await cache.match(`share_file_${i}`))
+                        || (await cache.match(`/share_file_${i}`))
+                        || (await cache.match(`/__share_file___${i}`))
+                        || (await cache.match(`__share_file___${i}`));
                     if (!r) continue;
 
                     const blob = await r.blob();
