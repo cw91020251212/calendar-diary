@@ -124,10 +124,10 @@
         body.theme-ocean { --primary: #4299e1; --secondary: #3182ce; --bg: #ebf8ff; --surface: #ffffff; --text-main: #2a4365; --text-light: #4a5568; --border: #bee3f8; --hover: #e2f1f8; }
         body.theme-sunset { --primary: #ed8936; --secondary: #dd6b20; --bg: #fffaf0; --surface: #ffffff; --text-main: #7b341e; --text-light: #a0aec0; --border: #feebc8; --hover: #fff5e6; }
 
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text-main); transition: background-color 0.3s, color 0.3s; }
+        html, body { width: 100%; height: 100%; min-height: 100dvh; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text-main); transition: background-color 0.3s, color 0.3s; }
 
         /* ✅ 桌面瀏覽器：用「手機外框」包住個 App，放喺畫面中央 */
-        .desktop-stage { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 18px; }
+        .desktop-stage { width: 100%; height: 100%; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 18px; }
         .device-frame {
             width: min(430px, 100%);
             height: min(932px, 100%);
@@ -142,11 +142,11 @@
         /* 手機實機 / 細屏：外框退場，變回全屏 */
         @media (max-width: 520px) {
             .desktop-stage { padding: 0; }
-            .device-frame { width: 100%; height: 100%; border-radius: 0; border: none; box-shadow: none; }
+            .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
 
         /* App 本體高度跟住外框走（唔再用 100dvh 硬鎖） */
-        .app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: var(--statusbar-h); }
+        .app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: calc(var(--statusbar-h) + env(safe-area-inset-bottom)); }
 
         /* ✅ 將原本 fixed 嘅浮層/按鈕，限制喺手機外框入面 */
         .device-frame .toast { position: absolute; max-width: 92%; }
@@ -154,7 +154,23 @@
         .device-frame .wm-float-close { position: absolute; }
         .device-frame .modal-overlay { position: absolute; inset: 0; }
         .device-frame .lightbox-overlay { position: absolute; inset: 0; }
-        .device-frame .modal-content { max-height: 90% !important; }
+        .device-frame .modal-content { max-height: 100% !important; height: 100% !important; }
+
+        /* ✅ 盡用畫面：所有「視窗/子頁」（例如記事簿、日期視窗、編輯器、設定、教學等）改做全屏置頂 */
+        .modal-overlay { align-items: stretch !important; justify-content: stretch !important; }
+        .modal-content {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            border-radius: 0 !important;
+            transform: translateY(100%);
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0) !important; }
+        .modal-body { flex: 1 1 auto; overflow: auto; -webkit-overflow-scrolling: touch; }
+
+        /* 部分 modal 之前用 inline style 設咗 height:auto / max-height:xxdvh，呢度一律覆蓋 */
+        .modal-content[style] { height: 100% !important; max-height: 100% !important; }
 
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
         .header-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
