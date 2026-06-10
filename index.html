@@ -170,9 +170,9 @@
         .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
 
         .calendar-viewport { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
-        .calendar-track { height: 100%; display: flex; width: 100%; transform: none !important; transition: none !important; min-height: 0; }
+        .calendar-track { height: 100%; display: flex; width: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); will-change: transform; min-height: 0; }
         .calendar-track.no-anim { transition: none !important; }
-        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 1; }
+        .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 1; transform: translateZ(0); }
 
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-top: 1px solid var(--outline); border-bottom: 1px solid var(--outline); transition: background-color 0.3s; }
         .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-main); font-family: 'KaiTi', 'Kaiti TC', 'Kaiti SC', 'STKaiti', 'DFKai-SB', 'Noto Serif TC', 'Noto Serif SC', 'Songti SC', 'PMingLiU', serif; }
@@ -2735,15 +2735,55 @@
         const FILE_STORE = 'files';
         const db = {
             dbInstance: null,
-            async init() { return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, 2);
+            disabled: false,
+            __fallbackEntriesKey: 'DiaryProDB_fallback_entries_v1',
+            __fallbackFilesKey: 'DiaryProDB_fallback_files_v1',
+            __readFallbackEntries() {
+                try {
+                    const raw = localStorage.getItem(this.__fallbackEntriesKey);
+                    const arr = raw ? __safeJson(raw, []) : [];
+                    return Array.isArray(arr) ? arr : [];
+                } catch (_) { return []; }
+            },
+            __writeFallbackEntries(arr) {
+                try { localStorage.setItem(this.__fallbackEntriesKey, JSON.stringify(arr || [])); } catch (_) {}
+            },
+            __safeWarnOnce: false,
+            __warnFallbackOnce() {
+                if (this.__safeWarnOnce) return;
+                this.__safeWarnOnce = true;
+                try {
+                    showToast('⚠️ 呢個瀏覽器/開啟方式唔支援 IndexedDB，已轉為兼容模式（附件/大檔可能受限）。建議用 HTTPS/localhost 開啟。', 'error');
+                } catch (_) {}
+            },
+            async init() { return new Promise((resolve) => {
+                try {
+                    if (!('indexedDB' in window) || !window.indexedDB) {
+                        this.disabled = true;
+                        this.__warnFallbackOnce();
+                        return resolve();
+                    }
+                    const req = indexedDB.open(DB_NAME, 2);
                 req.onupgradeneeded = (e) => {
                     const dbi = e.target.result;
                     if (!dbi.objectStoreNames.contains(STORE_NAME)) dbi.createObjectStore(STORE_NAME, { keyPath: 'id' });
                     if (!dbi.objectStoreNames.contains(FILE_STORE)) dbi.createObjectStore(FILE_STORE, { keyPath: 'id' });
                 };
                 req.onsuccess = (e) => { this.dbInstance = e.target.result; resolve(); };
-                req.onerror = (e) => reject(e.target.error);
+                    req.onerror = (e) => {
+                        console.error('IndexedDB open failed:', e && e.target && e.target.error);
+                        this.disabled = true;
+                        this.dbInstance = null;
+                        this.__warnFallbackOnce();
+                        resolve();
+                    };
+                } catch (err) {
+                    console.error('IndexedDB init exception:', err);
+                    this.disabled = true;
+                    this.dbInstance = null;
+                    this.__warnFallbackOnce();
+                    resolve();
+                }
             }); },
             async getAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll(); req.onsuccess = () => resolve(req.result); }); },
             async save(entry) { return new Promise((resolve, reject) => {
@@ -2756,14 +2796,86 @@
                     req.onerror = () => reject(req.error || new Error('IndexedDB save failed'));
                 } catch (e) { reject(e); }
             }); },
-            async delete(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id); req.onsuccess = () => resolve(); }); },
-            async clearAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).clear(); req.onsuccess = () => resolve(); }); },
+            async delete(id) {
+                if (this.disabled || !this.dbInstance) {
+                    try {
+                        this.__warnFallbackOnce();
+                        const all = this.__readFallbackEntries();
+                        const out = all.filter(x => !(x && x.id == id));
+                        this.__writeFallbackEntries(out);
+                    } catch (_) {}
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id);
+                    req.onsuccess = () => resolve();
+                });
+            },
+            async clearAll() {
+                if (this.disabled || !this.dbInstance) {
+                    try {
+                        this.__warnFallbackOnce();
+                        this.__writeFallbackEntries([]);
+                    } catch (_) {}
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).clear();
+                    req.onsuccess = () => resolve();
+                });
+            },
             // 📎 附件 blob 儲存
-            async saveFile(fileObj) { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).put(fileObj); req.onsuccess = () => resolve(); }); },
-            async getFile(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).get(id); req.onsuccess = () => resolve(req.result || null); }); },
-            async deleteFile(id) { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).delete(id); req.onsuccess = () => resolve(); }); },
-            async getAllFiles() { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).getAll(); req.onsuccess = () => resolve(req.result || []); }); },
-            async clearAllFiles() { return new Promise((resolve) => { const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).clear(); req.onsuccess = () => resolve(); }); }
+            async saveFile(fileObj) {
+                if (this.disabled || !this.dbInstance) {
+                    this.__warnFallbackOnce();
+                    // 兼容模式：唔儲存 blob（避免 localStorage 爆 quota）
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).put(fileObj);
+                    req.onsuccess = () => resolve();
+                });
+            },
+            async getFile(id) {
+                if (this.disabled || !this.dbInstance) {
+                    this.__warnFallbackOnce();
+                    return null;
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).get(id);
+                    req.onsuccess = () => resolve(req.result || null);
+                });
+            },
+            async deleteFile(id) {
+                if (this.disabled || !this.dbInstance) {
+                    this.__warnFallbackOnce();
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).delete(id);
+                    req.onsuccess = () => resolve();
+                });
+            },
+            async getAllFiles() {
+                if (this.disabled || !this.dbInstance) {
+                    this.__warnFallbackOnce();
+                    return [];
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                });
+            },
+            async clearAllFiles() {
+                if (this.disabled || !this.dbInstance) {
+                    this.__warnFallbackOnce();
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const req = this.dbInstance.transaction(FILE_STORE, 'readwrite').objectStore(FILE_STORE).clear();
+                    req.onsuccess = () => resolve();
+                });
+            }
         };
 
         // =========================
@@ -2808,28 +2920,54 @@
 
                 // 只喺「明顯橫向」先鎖定
                 if (!locked) {
-                    if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) locked = true;
+                    if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+                        locked = true;
+                        const track = document.getElementById('calendarTrack');
+                        if (track) track.classList.add('no-anim');
+                    }
                     else return;
                 }
 
                 // 已鎖定橫向：阻止瀏覽器預設（例如橡皮筋/滾動）
                 try { e.preventDefault(); } catch (_) {}
+
+                // 即時跟隨滑動
+                const track = document.getElementById('calendarTrack');
+                if (track) {
+                    track.style.transform = `translateX(${dx}px)`;
+                }
             };
 
             const onEnd = () => {
                 if (!tracking) return;
                 tracking = false;
-                if (!locked || edgeBlocked) return;
+                if (!locked || edgeBlocked) {
+                    const track = document.getElementById('calendarTrack');
+                    if (track) {
+                        track.classList.remove('no-anim');
+                        track.style.transform = 'translateX(0)';
+                    }
+                    return;
+                }
 
                 const now = Date.now();
-                if (now - lastNavAt < 220) return; // debounce
+                const track = document.getElementById('calendarTrack');
+                if (track) track.classList.remove('no-anim');
 
-                // 門檻：至少 40px
-                if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy) * 1.15) return;
+                // 門檻：至少 50px 或者速度快
+                if (Math.abs(dx) < 50) {
+                    if (track) track.style.transform = 'translateX(0)';
+                    return;
+                }
+
+                if (now - lastNavAt < 220) {
+                    if (track) track.style.transform = 'translateX(0)';
+                    return;
+                }
 
                 lastNavAt = now;
-                if (dx > 0) changeMonth(-1);
-                else changeMonth(1);
+                if (dx > 0) changeMonth(-1, true);
+                else changeMonth(1, true);
             };
 
             // Touch
@@ -2879,7 +3017,7 @@
             const savedThemeId = localStorage.getItem('diary_theme_github') || 'light';
             currentThemeIdx = THEMES.findIndex(t => t.id === savedThemeId) >= 0 ? THEMES.findIndex(t => t.id === savedThemeId) : 0;
             applyTheme(THEMES[currentThemeIdx]);
-            initColorPickerUI(); await db.init();
+            initColorPickerUI(); try { await db.init(); } catch (e) { console.error(e); }
             // 🚨 開機檢查：如果曾經有資料但而家變空，提示用家按備份/雲端補救
             try { await checkPossibleDataLossAndGuide(); } catch (e) { console.error(e); }
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
@@ -2967,13 +3105,12 @@
             });
         }
 
-        async function changeMonth(delta) { 
+        async function changeMonth(delta, fromSwipe = false) { 
             if (isAnimating) return; isAnimating = true;
 
             const track = document.getElementById('calendarTrack');
             const currentSlide = document.getElementById('calendarSlideCurrent');
             if (!track || !currentSlide) {
-                // fallback：如果搵唔到新結構，就用舊方法直接render
                 currentDate.setMonth(currentDate.getMonth() + delta);
                 document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), 1);
                 await renderCalendar();
@@ -2984,42 +3121,47 @@
             const nextDate = new Date(currentDate);
             nextDate.setMonth(nextDate.getMonth() + delta);
 
-            // 建立下一頁 slide（包含星期列 + grid）
             const newSlide = document.createElement('div');
             newSlide.className = 'calendar-slide';
             const weekdaysHTML = currentSlide.querySelector('.weekdays') ? currentSlide.querySelector('.weekdays').outerHTML : '';
             const newGrid = document.createElement('div');
             newGrid.className = 'days-grid';
-
             newSlide.innerHTML = weekdaysHTML;
             newSlide.appendChild(newGrid);
 
-            // 先render下一月到新grid（唔改header，等動畫完先改）
             await renderCalendarFor(nextDate, newGrid, false);
 
-            // 放入 track：向左（下一月）= append；向右（上一月）= prepend
             if (delta > 0) {
                 track.appendChild(newSlide);
-                track.classList.add('no-anim');
-                track.style.transform = 'translateX(0)';
-                // force reflow
-                void track.offsetWidth;
-                track.classList.remove('no-anim');
+                if (!fromSwipe) {
+                    track.classList.add('no-anim');
+                    track.style.transform = 'translateX(0)';
+                    void track.offsetWidth;
+                    track.classList.remove('no-anim');
+                }
                 requestAnimationFrame(() => {
                     track.style.transform = 'translateX(-100%)';
                 });
             } else {
                 track.insertBefore(newSlide, currentSlide);
-                track.classList.add('no-anim');
-                track.style.transform = 'translateX(-100%)';
-                void track.offsetWidth;
-                track.classList.remove('no-anim');
+                if (!fromSwipe) {
+                    track.classList.add('no-anim');
+                    track.style.transform = 'translateX(-100%)';
+                    void track.offsetWidth;
+                    track.classList.remove('no-anim');
+                } else {
+                    // 如果係 swipe，目前位置可能係 dx，要補償返
+                    track.classList.add('no-anim');
+                    const currentX = parseFloat(track.style.transform.replace('translateX(', '').replace('px)', '')) || 0;
+                    track.style.transform = `translateX(${currentX - track.offsetWidth}px)`;
+                    void track.offsetWidth;
+                    track.classList.remove('no-anim');
+                }
                 requestAnimationFrame(() => {
                     track.style.transform = 'translateX(0)';
                 });
             }
 
-            // ✅ 等動畫完（用 transitionend + fallback timeout）
             await waitTransitionOnce(track, 420);
 
             // 更新狀態：currentDate + header + quick picker
@@ -3286,13 +3428,8 @@
             let grid = gridEl || document.getElementById('calendarGrid');
             if (!grid) return;
 
-            // 🚀 激進修復：銷毀舊容器並創建全新的 DOM 節點，強制瀏覽器丟棄所有渲染緩存
-            const parent = grid.parentNode;
-            const newGrid = document.createElement('div');
-            newGrid.id = 'calendarGrid';
-            newGrid.className = 'days-grid';
-            parent.replaceChild(newGrid, grid);
-            grid = newGrid;
+            // 優化：只在必要時清空內容，而不是替換整個 DOM 節點
+            grid.innerHTML = '';
 
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -3303,10 +3440,13 @@
 	            const entryMap = {};
 	            allEntries.filter(e => (e && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR)).forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
 
+            const fragment = document.createDocumentFragment();
+            const today = new Date();
+            const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+
             for (let i = 0; i < 42; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'day-cell';
-                // ✅ 加入星期幾 class：0=週日 ... 6=週六（用嚟上色）
                 const dow = i % 7;
                 cell.classList.add(`dow-${dow}`);
                 let dayNum, dateStr = '';
@@ -3318,8 +3458,7 @@
                 } else if (i >= firstDay && i < firstDay + daysInMonth) {
                     dayNum = i - firstDay + 1;
                     dateStr = formatDate(year, month, dayNum);
-                    const today = new Date();
-                    if (year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate()) cell.classList.add('today');
+                    if (dateStr === todayStr) cell.classList.add('today');
                 } else {
                     dayNum = i - firstDay - daysInMonth + 1;
                     cell.classList.add('other-month');
@@ -3328,7 +3467,7 @@
 
                 const currentDayStatus = dayStatuses[dateStr];
                 if (currentDayStatus && currentDayStatus !== 'none') {
-                    const statusObj = DAY_STATUS_COLORS.find(c => c.id === currentDayStatus);
+                    const statusObj = DAY_STATUS_TYPES.find(s => s.id === currentDayStatus);
                     if (statusObj) cell.style.setProperty('--day-bg-overlay', statusObj.rgba);
                 }
 
@@ -3344,19 +3483,14 @@
                 if (hkHolidayName) { holidayDisplay = `<div class="holiday-subtext">${hkHolidayName}</div>`; isHoliday = true; }
 
                 const dayEntries = entryMap[dateStr] || [];
+                let numClass = 'day-num' + (isHoliday ? ' holiday-num' : '');
 
-                let numClass = 'day-num';
-                let numStyle = '';
-                if (isHoliday) {
-                    // 假期一律用紅字（優先過週六綠字）
-                    numClass += ' holiday-num';
-                }
-
-                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}" ${numStyle}>${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div></div><div class="dots-container">${buildDotsHtml(dayEntries)}</div>`;
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}">${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div></div><div class="dots-container">${buildDotsHtml(dayEntries)}</div>`;
 
                 cell.onclick = () => openDayView(dateStr, dayEntries);
-                grid.appendChild(cell);
+                fragment.appendChild(cell);
             }
+            grid.appendChild(fragment);
 
             // ✅ 逐格計算：色點太多就自動縮細，唔夠位先縮
             try { adjustCalendarDots(grid); } catch (_) {}
@@ -3379,23 +3513,23 @@
             }).join('');
         }
 
-        // ✅ 色點自動縮放：每一格獨立計算，唔夠位先縮細
+        // ✅ 色點自動縮放：優化效能，減少重繪
         function adjustCalendarDots(gridEl) {
             const grid = gridEl || document.getElementById('calendarGrid');
             if (!grid) return;
 
-            const containers = Array.from(grid.querySelectorAll('.dots-container'));
+            const containers = grid.querySelectorAll('.dots-container');
+            if (containers.length === 0) return;
+
+            // 取得一次容器寬高即可（假設所有格仔大細一致，或者只攞第一個做參考）
+            const firstContainer = containers[0];
+            const W = Math.max(0, firstContainer.offsetWidth - 2);
+            const H = Math.max(0, firstContainer.offsetHeight - 2);
+
             for (const c of containers) {
-                const n = c.querySelectorAll('.dot').length;
-                if (!n) continue;
+                const n = c.children.length;
+                if (n === 0) continue;
 
-                // 可用空間（預留少少 padding）
-                const rect = c.getBoundingClientRect();
-                const W = Math.max(0, rect.width - 2);
-                const H = Math.max(0, rect.height - 2);
-
-                // 由大到細試，直到容納到所有 dot
-                // 你想再細分：加入更細候選尺寸（直到 2px）
                 const CANDIDATES = [6, 5, 4, 3, 2];
                 let chosen = 4;
                 let gap = 1;
@@ -3411,8 +3545,11 @@
                     }
                 }
 
-                c.style.setProperty('--dot-size', chosen + 'px');
-                c.style.setProperty('--dot-gap', gap + 'px');
+                // 只有喺唔同嘅時候先更新 style，減少 DOM 操作
+                if (c.style.getPropertyValue('--dot-size') !== chosen + 'px') {
+                    c.style.setProperty('--dot-size', chosen + 'px');
+                    c.style.setProperty('--dot-gap', gap + 'px');
+                }
             }
         }
         function closeModal(id, event) {
@@ -6201,16 +6338,28 @@ async function exportData() {
                 const url = new URL(window.location.href);
                 if (url.searchParams.get('shared') !== '1') return;
 
-                if (!('caches' in window)) return;
+                // ✅ 如果你係「分享過嚟」但乜都冇發生，通常係接收端冇真正收到 payload
+                // 下面會盡量比到用家一個清晰提示，而唔係靜靜 return。
+                if (!('caches' in window)) {
+                    try { alert('⚠️ 未能接收分享內容：呢個開啟方式/瀏覽器唔支援接收分享（Cache API 不可用）。\n\n你可以改用「匯入檔案」按鈕作為後備。'); } catch (_) {}
+                    return;
+                }
                 const cache = await caches.open('diary-share-cache-v1');
 
                 // 同時兼容不同部署路徑：嘗試用相對 key
 
                 // 兼容不同 key（有啲機/瀏覽器對 leading slash 行為唔一致）
                 const payloadResp = (await cache.match('/__share_payload__')) || (await cache.match('__share_payload__'));
-                if (!payloadResp) return;
+                if (!payloadResp) {
+                    try { alert('⚠️ 未能接收分享內容：日曆已被打開，但搵唔到分享資料（可能 Service Worker/接口冇成功寫入）。\n\n請試用「匯入檔案」按鈕作為後備。'); } catch (_) {}
+                    return;
+                }
 
-                const payload = await payloadResp.json();
+                let payload = null;
+                try { payload = await payloadResp.json(); } catch (e) {
+                    try { alert('⚠️ 分享資料格式讀取失敗。\n\n請試用「匯入檔案」按鈕作為後備。'); } catch (_) {}
+                    return;
+                }
 
                 // 讀取分享檔案：圖片會當作相片；其他（mp3/mp4/pdf...）會當作「附件」
                 let images = [];
@@ -6275,11 +6424,14 @@ async function exportData() {
                 beginShareDatePicking(combinedText, images, attachments);
                 
                 // 強制重繪以消除殘影
-                setTimeout(() => {
-                    document.body.style.display = 'none';
-                    document.body.offsetHeight;
-                    document.body.style.display = '';
-                }, 100);
+                // ⚠️ 兼容：避免用 display none 觸發整頁白屏（某些瀏覽器/裝置會中招）
+                try {
+                    requestAnimationFrame(() => {
+                        const root = document.documentElement;
+                        root.style.transform = 'translateZ(0)';
+                        setTimeout(() => { try { root.style.transform = ''; } catch (_) {} }, 50);
+                    });
+                } catch (_) {}
 
                 // 用完即清：避免下次重入又彈一次
                 await cache.delete('share_payload');
@@ -6306,10 +6458,71 @@ async function exportData() {
         // （留空，實際 key 由 SW 產生，見 tryConsumeSharedPayload）
 
         window.onload = async () => {
-            await registerServiceWorker();
-            await initApp();
-            await tryConsumeSharedPayload();
+            try { await registerServiceWorker(); } catch (e) { console.error(e); }
+            try { await initApp(); } catch (e) { console.error(e); }
+            try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
         };
+    </script>
+
+    <!-- ✅ 後備：手動匯入（當「分享」帶唔到檔案入嚟時用） -->
+    <button id="importFallbackBtn" style="position:fixed; right:16px; bottom:calc(56px + env(safe-area-inset-bottom)); z-index:9999; padding:12px 14px; border-radius:999px; border:1px solid rgba(0,0,0,0.18); background:#111827; color:#fff; font-weight:900; font-size:14px; box-shadow:0 10px 24px rgba(0,0,0,0.22);">匯入檔案</button>
+    <input id="importFallbackInput" type="file" style="display:none" multiple />
+
+    <script>
+      // 目標：就算系統分享失敗，都可以用「匯入檔案」走返同一條接收流程（彈出揀位置）
+      (function(){
+        const btn = document.getElementById('importFallbackBtn');
+        const inp = document.getElementById('importFallbackInput');
+        if (!btn || !inp) return;
+
+        btn.addEventListener('click', () => {
+          try { inp.value = ''; inp.click(); } catch (e) { alert('無法開啟檔案選擇器：' + e); }
+        });
+
+        inp.addEventListener('change', async (e) => {
+          try {
+            const files = Array.from((e.target && e.target.files) ? e.target.files : []);
+            if (!files.length) return;
+
+            let images = [];
+            let attachments = [];
+
+            for (let i=0;i<files.length;i++) {
+              const f = files[i];
+              if (!f) continue;
+              if ((f.type || '').startsWith('image/')) {
+                const dataUrl = await new Promise((resolve) => {
+                  const r = new FileReader();
+                  r.onload = () => resolve(String(r.result || ''));
+                  r.readAsDataURL(f);
+                });
+                if (dataUrl) images.push(dataUrl);
+              } else {
+                // 非圖片：當附件處理（如果 IndexedDB 可用會存入附件庫）
+                const id = 'f_' + Date.now() + '_' + i + '_' + Math.random().toString(16).slice(2);
+                try {
+                  if (window.db && db.saveFile) {
+                    await db.saveFile({ id, name: f.name || ('file_' + i), type: f.type || 'application/octet-stream', size: f.size || 0, lastModified: f.lastModified || Date.now(), blob: f });
+                    attachments.push({ id, name: f.name || ('file_' + i), type: f.type || 'application/octet-stream', size: f.size || 0, lastModified: f.lastModified || Date.now() });
+                  }
+                } catch (_) {
+                  // 兼容模式可能唔支援附件；至少保留檔名提示
+                  attachments.push({ id, name: f.name || ('file_' + i), type: f.type || 'application/octet-stream', size: f.size || 0, lastModified: f.lastModified || Date.now() });
+                }
+              }
+            }
+
+            // 直接走返你原本「分享接收」嗰條路：彈出揀位置
+            try {
+              beginShareDatePicking('（由匯入帶入）', images, attachments);
+            } catch (err) {
+              alert('匯入後未能打開接收介面：' + err);
+            }
+          } catch (err) {
+            alert('匯入失敗：' + err);
+          }
+        });
+      })();
     </script>
 </body>
 </html>
