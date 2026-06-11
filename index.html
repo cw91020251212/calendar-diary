@@ -34,7 +34,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         /* ☁️ 小提示 toast（唔會遮住畫面） */
-        .toast { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.78); color: #fff; padding: 10px 14px; border-radius: 999px; font-size: 13px; z-index: 9999; max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+        .toast { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.78); color: #fff; padding: 10px 14px; border-radius: 999px; font-size: calc(13px * var(--ui-font-scale)); z-index: 9999; max-width: 92vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
         .toast.show { opacity: 1; }
         .toast.success { background: rgba(34, 197, 94, 0.92); }
         .toast.error { background: rgba(239, 68, 68, 0.92); }
@@ -60,7 +60,7 @@
         }
         body.theme-dark .statusbar { background: rgba(30,30,30,0.72); border-top: 1px solid rgba(255,255,255,0.12); }
         .statusbar-dot { width: 8px; height: 8px; border-radius: 999px; background: #22c55e; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(34,197,94,0.12); }
-        .statusbar-text { font-size: 13px; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .statusbar-text { font-size: calc(13px * var(--ui-font-scale)); color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .statusbar-action { margin-left: auto; border: 1px solid var(--outline); background: transparent; color: var(--text-main); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; cursor: pointer; display: none; }
         .statusbar-action:active { transform: scale(0.98); }
 
@@ -116,6 +116,9 @@
             --gridline: rgba(0,0,0,0.38);
             --outline: #4a5568;
             --header-h: 56px; --weekday-h: 36px; --statusbar-h: 32px;
+
+            /* ✅ 介面字體大小（1=預設；可由底部按鈕調整） */
+            --ui-font-scale: 1;
         }
 
         body.theme-dark { --primary: #818cf8; --secondary: #a78bfa; --bg: #121212; --surface: #1e1e1e; --text-main: #e2e8f0; --text-light: #a0aec0; --border: #333333; --hover: #2d2d2d; --gridline: rgba(255,255,255,0.26); }
@@ -173,7 +176,7 @@
         .modal-content[style] { height: 100% !important; max-height: 100% !important; }
 
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
-        .header-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
+        .header-title { display: flex; align-items: center; gap: 8px; font-size: calc(22px * var(--ui-font-scale)); font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
@@ -209,18 +212,18 @@
         #dayModal .color-picker-container { display: none; }
         
         .current-month-wrapper { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
-        .current-month { font-size: 20px; font-weight: bold; min-width: 90px; text-align: center; }
+        .current-month { font-size: calc(20px * var(--ui-font-scale)); font-weight: bold; min-width: 90px; text-align: center; }
         .quick-date-picker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
         .calendar-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
 
         .calendar-viewport { flex: 1; overflow: hidden; position: relative; touch-action: pan-y; overscroll-behavior: contain; min-height: 0; }
-        .calendar-track { height: 100%; display: flex; width: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); will-change: transform; min-height: 0; }
+        .calendar-track { height: 100%; display: flex; width: 100%; transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94); will-change: transform; min-height: 0; }
         .calendar-track.no-anim { transition: none !important; }
         .calendar-slide { flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 1; transform: translateZ(0); }
 
         .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); height: var(--weekday-h); background: var(--surface); border-top: 1px solid var(--outline); border-bottom: 1px solid var(--outline); transition: background-color 0.3s; }
-        .weekday { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--text-main); font-family: 'KaiTi', 'Kaiti TC', 'Kaiti SC', 'STKaiti', 'DFKai-SB', 'Noto Serif TC', 'Noto Serif SC', 'Songti SC', 'PMingLiU', serif; }
+        .weekday { display: flex; align-items: center; justify-content: center; font-size: calc(16px * var(--ui-font-scale)); font-weight: bold; color: var(--text-main); font-family: 'KaiTi', 'Kaiti TC', 'Kaiti SC', 'STKaiti', 'DFKai-SB', 'Noto Serif TC', 'Noto Serif SC', 'Songti SC', 'PMingLiU', serif; }
 
         /* ✅ 依照你提供的月曆截圖：週日紅、週六綠（標題） */
         .weekdays .weekday:nth-child(1) { color: #e53e3e; }
@@ -231,6 +234,19 @@
 
         /* 終極鎖定：加入 minmax(0, 1fr) */
         .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); background: var(--gridline, var(--border)); gap: 1px; min-height: 0; transform: translateZ(0); }
+
+        /* ✅ 平板/電腦橫屏：更善用橫向空間（加少少 padding、令內容更易睇） */
+        @media (orientation: landscape) and (min-width: 768px) {
+            .day-cell { padding: 8px; }
+            .day-num { font-size: calc(24px * var(--ui-font-scale)); }
+            .lunar-subtext { font-size: calc(14px * var(--ui-font-scale)); }
+            .holiday-subtext { font-size: calc(14px * var(--ui-font-scale)); }
+        }
+
+        /* ✅ 桌面大螢幕：再鬆動少少 */
+        @media (min-width: 1100px) {
+            .day-cell { padding: 10px; }
+        }
         
         /* 終極鎖定：日曆格仔必須設定 min-height: 0 且 max-height: 100% */
         .day-cell { background: linear-gradient(var(--day-bg-overlay, rgba(0,0,0,0)), var(--day-bg-overlay, rgba(0,0,0,0))), var(--surface); display: flex; flex-direction: column; padding: 6px; cursor: pointer; transition: background 0.2s; position: relative; overflow: hidden; min-height: 0; min-width: 0; max-height: 100%; }
@@ -246,15 +262,31 @@
         .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
         .day-num-wrapper { display: flex; flex-direction: column; }
         .day-num-top { display: flex; align-items: baseline; gap: 4px; }
-        .day-num { font-size: 22px; font-weight: bold; line-height: 1; transition: color 0.2s; }
+        .day-num { font-size: calc(22px * var(--ui-font-scale)); font-weight: bold; line-height: 1; transition: color 0.2s; }
 
         /* ✅ 依照你提供的月曆截圖：週日（整欄）紅字、週六（整欄）綠字（包括日子數字） */
         .day-cell.dow-0 .day-num { color: #e53e3e; }
         .day-cell.dow-6 .day-num { color: #38a169; }
         .holiday-num { color: #e53e3e !important; }
 
-        .lunar-subtext { font-size: 13px; color: var(--text-light); font-weight: normal; }
-        .holiday-subtext { font-size: 13px; color: #e53e3e; font-weight: bold; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .lunar-subtext { font-size: calc(13px * var(--ui-font-scale)); color: var(--text-light); font-weight: normal; }
+        .holiday-subtext {
+            font-size: calc(13px * var(--ui-font-scale));
+            color: #e53e3e;
+            font-weight: bold;
+            margin-top: 2px;
+            /* ✅ 公眾假期名稱：唔夠位就分行，唔用…截斷 */
+            white-space: normal;
+            overflow: hidden;
+            text-overflow: clip;
+            max-width: 100%;
+            line-height: 1.15;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
         
         .dots-container {
             width: 100%;
@@ -262,7 +294,9 @@
             display: grid;
             /* ✅ 月曆色點（正方形）：預設大啲，但唔夠位會自動縮細（由 JS 逐格計） */
             /* 你想「格仔細返少少」：預設用更細嘅正方形 */
-            --dot-size: 4px;
+            /* ✅ 月曆格仔內小正方形：再細少少 */
+            /* ✅ 月曆格仔內小方格（色點）：預設更大；如完全放唔落先由 JS 統一縮細 */
+            --dot-size: 6px;
             --dot-gap: 1px;
             grid-template-columns: repeat(auto-fill, minmax(var(--dot-size), var(--dot-size)));
             grid-auto-rows: var(--dot-size);
@@ -297,12 +331,43 @@
         .has-photo-icon { width: 12px; height: 12px; color: var(--text-light); flex-shrink: 0;}
 
         /* ✅ 右下角：可展開FAB */
-        .fab-group { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom) + var(--statusbar-h)); z-index: 120; display: flex; align-items: center; gap: 10px; }
-        .fab, .fab-mini { width: 52px; height: 52px; border-radius: 999px; border: 1px solid var(--outline); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.18); transition: transform 0.18s ease, opacity 0.18s ease; opacity: 0.84; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-        .fab { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .fab-group {
+            position: fixed;
+            /* ✅ 改用 right 位移（唔受展開寬度影響）
+               46px 的 30% ≈ 14px，所以未展開時藏右邊緣 14px（露出約 70%） */
+            right: -7px;
+            bottom: calc(18px + env(safe-area-inset-bottom) + var(--statusbar-h));
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: right 0.18s ease;
+        }
+        /* 展開時全露出，方便撳入面掣 */
+        .fab-group.expanded { right: 18px; }
+        .fab, .fab-mini { width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--outline); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.18); transition: transform 0.18s ease; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .fab {
+            /* ✅ 主「+」掣：50% 透明（連同「+字」一齊） */
+            background: rgba(128, 90, 213, 0.80); /* fallback */
+            background: color-mix(in srgb, var(--primary) 80%, transparent);
+            color: white;
+            opacity: 0.80;
+        }
         .fab:active, .fab-mini:active { transform: scale(0.96); }
-        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.75); color: var(--text-main); border: 1px solid var(--outline); display: none; }
-        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid var(--outline); color: var(--text-main); }
+        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.58); color: var(--text-main); border: 1px solid var(--outline); display: none; opacity: 0.80; }
+
+        /* ✅ 字體大小（A±）彈出 + / - */
+        .fab-group { position: fixed; }
+        .fab-mini-font { font-weight: 900; letter-spacing: 0.5px; }
+        .fab-mini-font .font-a { font-size: 18px; line-height: 1; transform: translateY(-1px); }
+        .fab-mini-font .font-pm { font-size: 14px; line-height: 1; margin-left: 1px; opacity: 0.9; transform: translateY(-1px); }
+        .fab-font-pop { position: absolute; right: 0; bottom: 58px; display: none; flex-direction: column; gap: 8px; z-index: 130; }
+        .fab-font-pop.show { display: flex; }
+        .fab-mini-font-step { display: flex !important; background: rgba(255,255,255,0.9); }
+        body.theme-dark .fab-mini-font-step { background: rgba(30,30,30,0.88); }
+        .fab-mini-font-step .font-step { font-size: 22px; font-weight: 900; line-height: 1; }
+        .fab-mini-font-step:active { transform: scale(0.96); }
+        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid var(--outline); color: var(--text-main); opacity: 0.80; }
 
         /* ✅ 備份捷徑：用更鮮艷顏色突出（避免同其他 mini 掣一樣色） */
         .fab-mini-backup {
@@ -319,12 +384,21 @@
         }
 
         .fab-group.expanded .fab-mini { display: flex; animation: fabPop 160ms ease-out; }
-        .fab-group.expanded .fab { opacity: 0.95; }
+        .fab-group.expanded .fab { opacity: 0.80; }
         .fab-rotate { transition: transform 0.22s ease; }
         .fab-group.expanded .fab-rotate { transform: rotate(45deg); }
-        @keyframes fabPop { from { transform: translateX(8px) scale(0.92); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 0.84; } }
+        @keyframes fabPop { from { transform: translateX(8px) scale(0.92); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 0.80; } }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; opacity: 0; transition: opacity 0.3s; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
+
+        /* ✅ 修正層級：避免「新開嘅 modal 被舊 modal 壓住」
+           - 編輯器/閱讀/移動複製/選擇器 類型永遠應該喺最上層
+           - 特別係從記事簿等畫面用 FAB 打開編輯器時 */
+        #editorModal.modal-overlay { z-index: 620; }
+        #readModal.modal-overlay { z-index: 625; }
+        #moveCopyModal.modal-overlay, #moveCopyBulkModal.modal-overlay { z-index: 630; }
+        #pickFolderModal.modal-overlay, #pickDateModal.modal-overlay, #shareDateModal.modal-overlay { z-index: 635; }
+        #statusPanelOverlay.modal-overlay { z-index: 640; }
         .modal-overlay.active { display: flex; opacity: 1; }
         .modal-content { background: var(--surface); width: 100%; max-width: 700px; max-height: 90dvh; height: 90dvh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.1, 0.8, 0.2, 1); box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
         .modal-overlay.active .modal-content { transform: translateY(0); }
@@ -334,7 +408,7 @@
         /* ✅ 右上角兩個功能鍵：打橫排、唔要直排慳位 */
         .modal-header > div:last-child { display:flex; flex-direction: row; gap: 8px; align-items: center; flex-wrap: nowrap; }
         .modal-header .icon-btn { display: inline-flex; }
-        .modal-title { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .modal-title { font-size: calc(18px * var(--ui-font-scale)); font-weight: bold; display: flex; align-items: center; gap: 8px; }
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
@@ -352,7 +426,7 @@
         .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
         .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold; display: flex; gap: 8px; align-items: center;}
         .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--outline); }
-        .entry-card-text { font-size: 16px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; line-height: 1.6;}
+        .entry-card-text { font-size: calc(16px * var(--ui-font-scale)); white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; line-height: 1.6;}
         .entry-card-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; margin-top: 12px; }
 
         /* 🔗 網址預覽卡片（GitHub Pages 版本：優先抓 og:image，冇就用截圖） */
@@ -391,12 +465,12 @@
             white-space: nowrap;
         }
         .swipe-hint.show { opacity: 1; }
-        .read-time { color: var(--text-light); font-size: 16px; margin-bottom: 16px; display: flex; justify-content: flex-start; align-items: center; gap: 12px;}
+        .read-time { color: var(--text-light); font-size: calc(16px * var(--ui-font-scale)); margin-bottom: 16px; display: flex; justify-content: flex-start; align-items: center; gap: 12px;}
         .read-weather-badge { font-weight: bold; color: var(--text-main); font-size: 16px; }
         .read-tag-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 15px; font-weight: bold; color: white; margin-bottom: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .read-text { font-size: 18px; line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; color: var(--text-main); }
-        .read-text.size-sm { font-size: 16px; }
-        .read-text.size-lg { font-size: 24px; }
+        .read-text { font-size: calc(18px * var(--ui-font-scale)); line-height: 1.8; white-space: pre-wrap; word-wrap: break-word; color: var(--text-main); }
+        .read-text.size-sm { font-size: calc(16px * var(--ui-font-scale)); }
+        .read-text.size-lg { font-size: calc(24px * var(--ui-font-scale)); }
         .read-gallery { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; padding-bottom: 40px; }
         .read-image { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid var(--outline); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
@@ -437,7 +511,7 @@
         .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
-        .tool-btn { flex: 0 0 auto; background: var(--bg); border: 1px solid var(--outline); padding: 9px 12px; border-radius: 999px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main); white-space: nowrap; }
+        .tool-btn { flex: 0 0 auto; background: var(--bg); border: 1px solid var(--outline); padding: 9px 12px; border-radius: 999px; font-size: calc(13px * var(--ui-font-scale)); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main); white-space: nowrap; }
         .tool-btn:hover { background: var(--border); }
         .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: var(--outline); }
         .tool-btn-alarm:hover { background: #fed7d7; }
@@ -462,7 +536,7 @@
         .folder-card { position: relative; border: 1px solid var(--outline); background: var(--surface); border-radius: 14px; padding: 12px; cursor: pointer; display:flex; align-items:center; gap:10px; min-height: 54px; }
         .folder-card:active { transform: scale(0.99); opacity: 0.92; }
         .folder-dot { width: 12px; height: 12px; border-radius: 4px; background: rgba(66,153,225,0.45); border: 1px solid rgba(0,0,0,0.08); flex-shrink:0; }
-        .folder-name { font-size: 15px; font-weight: 900; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .folder-name { font-size: calc(15px * var(--ui-font-scale)); font-weight: 900; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .folder-sub { font-size: 13px; color: var(--text-light); margin-top: 4px; line-height: 1.3; }
         /* 只突出數目字 */
         .folder-count { font-size: 20px; font-weight: 900; color: #ff2d8d; letter-spacing: 0.2px; }
@@ -508,14 +582,14 @@
         .backup-info { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 15px; line-height: 1.6; border-left: 4px solid var(--primary); }
         .backup-info strong { color: var(--text-main); display: block; margin-bottom: 8px; font-size: 18px; }
         .action-group { display: flex; flex-direction: column; gap: 12px; }
-        .action-btn { width: 100%; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); transition: all 0.2s; }
+        .action-btn { width: 100%; padding: 16px; border-radius: 10px; font-size: calc(16px * var(--ui-font-scale)); font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); transition: all 0.2s; }
         .action-btn:hover { background: var(--hover); }
         .action-btn.primary { background: var(--primary); color: white; border: 1px solid var(--outline); }
         .action-btn.primary:hover { background: var(--secondary); }
         
         .tutorial-box { background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--outline); }
-        .tutorial-title { color: var(--text-main); font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .tutorial-text { color: var(--text-light); font-size: 15px; line-height: 1.6; }
+        .tutorial-title { color: var(--text-main); font-size: calc(18px * var(--ui-font-scale)); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .tutorial-text { color: var(--text-light); font-size: calc(15px * var(--ui-font-scale)); line-height: 1.6; }
 
         #fileInput, #importInput { display: none; }
 
@@ -670,7 +744,17 @@
         </div>
     </div>
 
+    <!-- ✅ 右下角圓形「+」功能群 -->
     <div class="fab-group" id="fabGroup">
+        <!-- ✅ 文字放大（A±）：彈出 + / - -->
+        <div class="fab-font-pop" id="uiFontPop" aria-hidden="true">
+            <button class="fab-mini fab-mini-font-step" onclick="increaseUIFont()" title="文字放大"><span class="font-step">A+</span></button>
+            <button class="fab-mini fab-mini-font-step" onclick="decreaseUIFont()" title="文字縮小"><span class="font-step">A-</span></button>
+        </div>
+        <button class="fab-mini fab-mini-font" onclick="toggleUIFontMenu(event)" title="文字放大 / 縮小">
+            <span class="font-a">A</span><span class="font-pm">±</span>
+        </button>
+
         <button class="fab-mini" onclick="cycleThemeFromFab()" title="整體轉顏色"><i data-lucide="palette" id="themeIcon" style="width: 22px; height: 22px;"></i></button>
         <button class="fab-mini" onclick="openSearchFromFab()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
         <button class="fab-mini" onclick="openAddFromFab()" title="新增記事"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
@@ -706,7 +790,7 @@
             <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box" style="border: 2px solid #e53e3e; background: rgba(229, 62, 62, 0.06);"><div class="tutorial-title"><i data-lucide="alert-triangle" style="color: #e53e3e;"></i> <strong>最重要：請經常備份（清洗瀏覽器暫存前一定要備份）</strong></div><div class="tutorial-text">本 App 嘅資料主要儲存在你部裝置嘅瀏覽器本機儲存（例如 Local Storage / IndexedDB）。<br><strong>如果你清洗／清除瀏覽器暫存、網站資料，所有記事／圖片／附件有機會會一次過冇晒。</strong><br><br>所以請你：<br>— <strong>養成定期備份習慣</strong>（建議每隔一段時間做一次）。<br>— <strong>每次清洗暫存／清理網站資料之前，必須先做一次備份</strong>。<br><br>提示：你可以喺「設定」入面使用 <strong>Google 雲端同步</strong>，將資料備份到你私人雲端，換機／重裝都可以還原。</div></div>
 
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今日記事。<br>想看其他月份？只需喺畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想搵返好耐之前嘅紀錄，點擊最頂部嘅 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！</div></div>
+                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 1. 新增與翻頁跳轉</div><div class="tutorial-text">點擊右下角的 <strong>紫色「+」按鈕</strong> 即可新增今日記事。<br>想看其他月份？只需喺畫面上 <strong>向左或向右撥動手指</strong> 即可翻頁。<br>如果想搵返好耐之前嘅紀錄，點擊最頂部嘅 <strong>「年份月份」</strong>，就可以喚出手機滾輪，一秒跳轉！<br><small style="color:var(--text-light);">（註：右下角功能群入面嘅「字體大小 A±」已按要求暫時移除）</small></div></div>
 
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="pen-line" style="color: #805ad5;"></i> 2. 「新增記事」編輯器（你最常用嘅工具列）</div><div class="tutorial-text">入到編輯器後，上面一排按鈕就係快捷功能：<br><strong>「字體」</strong>：一鍵切換 <strong>細字／中字／大字</strong>，方便記事長短唔同都易睇。<br><strong>「加圖」</strong>：加入相片（可一次揀多張）。<br><strong>「加檔」</strong>：加入附件（例如 PDF／Word／錄音／任何檔案）。<br><strong>「提提我」</strong>：幫你生成日曆檔，加入手機行事曆後就會用手機原生鬧鐘提醒你。<br><strong>「移動/複製」</strong>：將呢篇記事搬去第二日，或者複製多份到其他日子。</div></div>
 
@@ -1224,7 +1308,7 @@
         </div>
     </div>
 
-    <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="" alt="Enlarged Image"></div></div>
+    <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="data:," alt="Enlarged Image"></div></div>
 
     <div id="toast" class="toast"></div>
 
@@ -1445,12 +1529,21 @@
                     } catch (_) {}
                 }
 
-                if (!needLift) {
+                // ✅ 修正：鍵盤高度會變（中/英、數字鍵盤切換），所以「已經上推緊」時都要跟住更新
+                let curShift = 0;
+                try {
+                    const raw = getComputedStyle(root).getPropertyValue('--kbd-shift').trim();
+                    curShift = Number(String(raw).replace('px','')) || 0;
+                } catch (_) {}
+
+                const kb2 = getKeyboardHeight();
+                const shouldKeepTracking = kb2 > 0 && curShift > 0;
+
+                if (!needLift && !shouldKeepTracking) {
                     // 小輸入欄（例如標籤名稱、搜尋）通常唔會遮，唔上推
                     setShift(0);
                 } else {
-                    const kb = getKeyboardHeight();
-                    const baseShift = kb > 0 ? (kb + 12) : 0;
+                    const baseShift = kb2 > 0 ? (kb2 + 12) : 0;
                     const maxShift = Math.round(window.innerHeight * 0.38); // 上推上限（避免整個 modal 飛走）
                     const shift = Math.min(baseShift, maxShift);
                     setShift(shift);
@@ -3107,8 +3200,17 @@
         function toggleFabMenu() {
             const g = document.getElementById('fabGroup');
             if (!g) return;
+
+            // ✅ 規則：按「圓形十字大制」時，一定要連 A+ / A- 一齊收埋
+            // （之前如果 A± 彈出開咗，__fabExpanded 仍然係 true，就有機會出現「收唔埋」嘅感覺）
+            try { if (typeof __uiFontMenuOpen !== 'undefined' && __uiFontMenuOpen) closeUIFontMenu(); } catch (_) {}
+
             __fabExpanded = !__fabExpanded;
             g.classList.toggle('expanded', __fabExpanded);
+
+            // 再保險：無論點都確保收起時彈出一定關
+            if (!__fabExpanded) { try { closeUIFontMenu(); } catch (_) {} }
+
             lucide.createIcons();
             bindNotebookLongPress();
         }
@@ -3117,10 +3219,66 @@
             if (!g) return;
             __fabExpanded = false;
             g.classList.remove('expanded');
+            try { closeUIFontMenu(); } catch (_) {}
         }
         function openAddFromFab() { closeFabMenu(); openEditorForToday(); }
         function openSearchFromFab() { closeFabMenu(); openSearchModal(); }
         function openBackupFromFab() { closeFabMenu(); try { openBackupModal(); } catch (e) { console.error(e); } }
+
+        // ✅ A±：按下彈出 + / -（調字體大小）
+        var __uiFontMenuOpen = false;
+        function toggleUIFontMenu(ev) {
+            try { if (ev) ev.stopPropagation(); } catch (_) {}
+            const pop = document.getElementById('uiFontPop');
+            if (!pop) return;
+            __uiFontMenuOpen = !__uiFontMenuOpen;
+            pop.classList.toggle('show', __uiFontMenuOpen);
+            pop.setAttribute('aria-hidden', __uiFontMenuOpen ? 'false' : 'true');
+        }
+        function closeUIFontMenu() {
+            const pop = document.getElementById('uiFontPop');
+            if (!pop) return;
+            __uiFontMenuOpen = false;
+            pop.classList.remove('show');
+            pop.setAttribute('aria-hidden', 'true');
+        }
+
+        // =========================
+        // ✅ 介面字體放大/縮小（主要影響：月曆格仔、頂部月份、星期列）
+        // =========================
+        const __UI_FONT_SCALE_KEY = 'ui_font_scale_v1';
+        const __UI_FONT_MIN = 0.85;
+        const __UI_FONT_MAX = 1.35;
+        const __UI_FONT_STEP = 0.10;
+
+        function applyUIFontScale(scale) {
+            const s = Math.max(__UI_FONT_MIN, Math.min(__UI_FONT_MAX, Number(scale) || 1));
+            document.documentElement.style.setProperty('--ui-font-scale', String(s));
+            try { localStorage.setItem(__UI_FONT_SCALE_KEY, String(s)); } catch (_) {}
+        }
+        function loadUIFontScale() {
+            let s = 1;
+            try {
+                const saved = localStorage.getItem(__UI_FONT_SCALE_KEY);
+                if (saved) s = Number(saved);
+            } catch (_) {}
+            applyUIFontScale(s);
+        }
+
+        // ✅ 初始化：確保一入 App 已套用上次的「文字放大」
+        try { loadUIFontScale(); } catch (_) {}
+        function increaseUIFont() {
+            let cur = 1;
+            try { cur = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-font-scale')) || 1; } catch (_) {}
+            applyUIFontScale(cur + __UI_FONT_STEP);
+            try { lucide.createIcons(); } catch (_) {}
+        }
+        function decreaseUIFont() {
+            let cur = 1;
+            try { cur = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-font-scale')) || 1; } catch (_) {}
+            applyUIFontScale(cur - __UI_FONT_STEP);
+            try { lucide.createIcons(); } catch (_) {}
+        }
 
         // 點畫面其他地方自動收起（唔影響modal）
         document.addEventListener('click', (e) => {
@@ -3130,7 +3288,12 @@
                 if (!g) return;
                 const anyModalOpen = !!document.querySelector('.modal-overlay.active');
                 if (anyModalOpen) return;
-                if (!g.contains(e.target)) closeFabMenu();
+                if (!g.contains(e.target)) { closeUIFontMenu(); closeFabMenu(); }
+                else {
+                    // 點咗 FAB 區塊但唔係彈出菜單內，保持 expanded，但可以收起字體彈出
+                    const pop = document.getElementById('uiFontPop');
+                    if (pop && __uiFontMenuOpen && !pop.contains(e.target)) closeUIFontMenu();
+                }
             } catch (_) {}
         }, true);
 
@@ -3536,11 +3699,16 @@
                 if (hkHolidayName) { holidayDisplay = `<div class="holiday-subtext">${hkHolidayName}</div>`; isHoliday = true; }
 
                 const dayEntries = entryMap[dateStr] || [];
+                const holidayEntry = (hkHolidayName)
+                    ? [{ id: `__hkHoliday:${dateStr}`, text: hkHolidayName, color: '__holiday__', __isHoliday: true }]
+                    : [];
+                const openEntries = [...holidayEntry, ...dayEntries];
+
                 let numClass = 'day-num' + (isHoliday ? ' holiday-num' : '');
 
-                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}">${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div></div><div class="dots-container">${buildDotsHtml(dayEntries)}</div>`;
+                cell.innerHTML = `<div class="day-header"><div class="day-num-wrapper"><div class="day-num-top"><div class="${numClass}">${dayNum}</div>${lunarDisplay}</div>${holidayDisplay}</div></div><div class="dots-container">${buildDotsHtml(openEntries)}</div>`;
 
-                cell.onclick = () => openDayView(dateStr, dayEntries);
+                cell.onclick = () => openDayView(dateStr, openEntries);
                 fragment.appendChild(cell);
             }
             grid.appendChild(fragment);
@@ -3561,7 +3729,9 @@
         // ✅ 日曆格仔：以細小正方形色塊顯示事件
         function buildDotsHtml(dayEntries) {
             return (dayEntries || []).map(e => {
-                const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
+                const colorHex = (e && e.__isHoliday)
+                    ? '#e53e3e'
+                    : (APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea');
                 return `<div class="dot" style="background:${colorHex}" title="${(e.text || '事件').replace(/"/g, '&quot;')}"></div>`;
             }).join('');
         }
@@ -3574,31 +3744,33 @@
             const containers = grid.querySelectorAll('.dots-container');
             if (containers.length === 0) return;
 
-            // 取得一次容器寬高即可（假設所有格仔大細一致，或者只攞第一個做參考）
+            // ✅ 尺寸統一：全月用同一個 dot-size
+            // ✅ 只有「真係放唔落（滿溢）」先縮細（由最大事件數決定）
             const firstContainer = containers[0];
             const W = Math.max(0, firstContainer.offsetWidth - 2);
             const H = Math.max(0, firstContainer.offsetHeight - 2);
 
-            for (const c of containers) {
-                const n = c.children.length;
-                if (n === 0) continue;
+            let maxN = 0;
+            for (const c of containers) maxN = Math.max(maxN, c.children.length || 0);
+            if (maxN <= 0) return;
 
-                const CANDIDATES = [6, 5, 4, 3, 2];
-                let chosen = 4;
-                let gap = 1;
+            const CANDIDATES = [8, 7, 6, 5, 4, 3];
+            let chosen = 6;
+            let gap = 2;
 
-                for (const s of CANDIDATES) {
-                    const g = Math.max(1, Math.round(s / 3));
-                    const cols = Math.max(1, Math.floor((W + g) / (s + g)));
-                    const rows = Math.max(1, Math.floor((H + g) / (s + g)));
-                    if (cols * rows >= n) {
-                        chosen = s;
-                        gap = g;
-                        break;
-                    }
+            for (const s of CANDIDATES) {
+                const g = Math.max(1, Math.round(s / 3));
+                const cols = Math.max(1, Math.floor((W + g) / (s + g)));
+                const rows = Math.max(1, Math.floor((H + g) / (s + g)));
+                if (cols * rows >= maxN) {
+                    chosen = s;
+                    gap = g;
+                    break;
                 }
+            }
 
-                // 只有喺唔同嘅時候先更新 style，減少 DOM 操作
+            // 一次過套用到全部格仔（統一尺寸）
+            for (const c of containers) {
                 if (c.style.getPropertyValue('--dot-size') !== chosen + 'px') {
                     c.style.setProperty('--dot-size', chosen + 'px');
                     c.style.setProperty('--dot-gap', gap + 'px');
@@ -4210,15 +4382,27 @@ lucide.createIcons();
             renderDayStatusUI();
             const listEl = document.getElementById('dayEntryList');
             // ✅ 批量模式：記低可見 id
-            try { __dayVisibleIds = (entries || []).map(e => e && e.id).filter(Boolean); } catch (_) { __dayVisibleIds = []; }
+            try { __dayVisibleIds = (entries || []).filter(e => e && !e.__isHoliday).map(e => e && e.id).filter(Boolean); } catch (_) { __dayVisibleIds = []; }
 
             if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
             } else { 
-                listEl.innerHTML = entries.map(e => { 
-                    const entryJson = encodeURIComponent(JSON.stringify(e)); 
-                    const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; 
-                    const tagName = tagNames[e.color] || '標籤'; 
-                    const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'});
+                listEl.innerHTML = entries.map(e => {
+                    // ✅ 公眾假期：當成「事件」顯示，但唔參與編輯/刪除/批量
+                    if (e && e.__isHoliday) {
+                        const t = escapeHtml(e.text || '公眾假期');
+                        return `<div class="entry-card" style="--card-color: #e53e3e; cursor: default;">
+                            <div class="entry-card-header">
+                                <span class="entry-card-tag">公眾假期</span>
+                                <span class="entry-card-time" style="color: var(--text-light);">（系統）</span>
+                            </div>
+                            <div class="entry-card-text">${t}</div>
+                        </div>`;
+                    }
+
+                    const entryJson = encodeURIComponent(JSON.stringify(e));
+                    const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
+                    const tagName = tagNames[e.color] || '標籤';
+                    const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
                     const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
                     const idStr = String(e.id);
                     return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
@@ -6510,6 +6694,7 @@ async function exportData() {
         // （留空，實際 key 由 SW 產生，見 tryConsumeSharedPayload）
 
         window.onload = async () => {
+            try { loadUIFontScale(); } catch (e) { console.error(e); }
             try { await registerServiceWorker(); } catch (e) { console.error(e); }
             try { await initApp(); } catch (e) { console.error(e); }
             try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
