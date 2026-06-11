@@ -205,6 +205,15 @@
         }
         .icon-btn:hover { background: var(--hover); }
 
+        /* ✅ 返回中：短暫鎖住點擊，避免連撳多次 back */
+        body.nav-busy .icon-btn,
+        body.nav-busy .action-btn,
+        body.nav-busy .btn,
+        body.nav-busy .wm-float-close,
+        body.nav-busy .lightbox-close {
+            pointer-events: none !important;
+        }
+
         .section-header { padding: 16px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
         .section-content { display: none; flex-direction: column; gap: 8px; padding-bottom: 16px; }
         .section-content.active { display: flex; }
@@ -345,16 +354,37 @@
         }
         /* 展開時全露出，方便撳入面掣 */
         .fab-group.expanded { right: 18px; }
-        .fab, .fab-mini { width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--outline); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.18); transition: transform 0.18s ease; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        /* ✅ 參考你提供嘅做法：按鈕本體實色，但保留「浮起」嘅半透明陰影 */
+        .fab, .fab-mini {
+            width: 46px;
+            height: 46px;
+            border-radius: 999px;
+            border: 1px solid var(--outline);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 圓形按鈕下方浮動陰影（有透明度） */
+            box-shadow: 0 12px 18px rgba(0,0,0,0.22);
+            transition: transform 0.18s ease;
+        }
         .fab {
-            /* ✅ 主「+」掣：50% 透明（連同「+字」一齊） */
-            background: rgba(128, 90, 213, 0.80); /* fallback */
-            background: color-mix(in srgb, var(--primary) 80%, transparent);
+            /* 主「+」掣：實色 */
+            background: var(--primary);
             color: white;
-            opacity: 0.80;
+            opacity: 1;
         }
         .fab:active, .fab-mini:active { transform: scale(0.96); }
-        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.58); color: var(--text-main); border: 1px solid var(--outline); display: none; opacity: 0.80; }
+        /* 迷你功能掣：實色 */
+        .fab-mini {
+            width: 46px;
+            height: 46px;
+            background: var(--surface);
+            color: var(--text-main);
+            border: 1px solid var(--outline);
+            display: none;
+            opacity: 1;
+        }
 
         /* ✅ 字體大小（A±）彈出 + / - */
         .fab-group { position: fixed; }
@@ -367,20 +397,21 @@
         body.theme-dark .fab-mini-font-step { background: rgba(30,30,30,0.88); }
         .fab-mini-font-step .font-step { font-size: 22px; font-weight: 900; line-height: 1; }
         .fab-mini-font-step:active { transform: scale(0.96); }
-        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid var(--outline); color: var(--text-main); opacity: 0.80; }
+        body.theme-dark .fab-mini { background: var(--surface); border: 1px solid var(--outline); color: var(--text-main); opacity: 1; }
 
         /* ✅ 備份捷徑：用更鮮艷顏色突出（避免同其他 mini 掣一樣色） */
         .fab-mini-backup {
-            background: rgba(245, 158, 11, 0.92);
+            /* ✅ 橙色「下載」掣：本體實色（唔要透明） */
+            background: #f59e0b;
             color: #ffffff;
-            border: 1px solid rgba(180, 83, 9, 0.35);
-            box-shadow: 0 10px 26px rgba(245, 158, 11, 0.28);
-            opacity: 0.96;
+            border: 1px solid rgba(180, 83, 9, 0.45);
+            opacity: 1;
         }
         body.theme-dark .fab-mini-backup {
-            background: rgba(245, 158, 11, 0.88);
+            background: #fbbf24;
             color: #0b1220;
-            border: 1px solid rgba(251, 191, 36, 0.35);
+            border: 1px solid rgba(251, 191, 36, 0.55);
+            opacity: 1;
         }
 
         .fab-group.expanded .fab-mini { display: flex; animation: fabPop 160ms ease-out; }
@@ -816,11 +847,11 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="helpModal" onclick="closeModal('helpModal', event)">
+    <div class="modal-overlay" id="helpModal" onclick="backOrClose('helpModal', event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header">
                 <div class="modal-title" style="color: var(--primary); font-size: 20px;"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> 詳細使用教學</div>
-                <button class="icon-btn" onclick="closeModal('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box" style="border: 2px solid #e53e3e; background: rgba(229, 62, 62, 0.06);"><div class="tutorial-title"><i data-lucide="alert-triangle" style="color: #e53e3e;"></i> <strong>最重要：請經常備份（清洗瀏覽器暫存前一定要備份）</strong></div><div class="tutorial-text">本 App 嘅資料主要儲存在你部裝置嘅瀏覽器本機儲存（例如 Local Storage / IndexedDB）。<br><strong>如果你清洗／清除瀏覽器暫存、網站資料，所有記事／圖片／附件有機會會一次過冇晒。</strong><br><br>所以請你：<br>— <strong>養成定期備份習慣</strong>（建議每隔一段時間做一次）。<br>— <strong>每次清洗暫存／清理網站資料之前，必須先做一次備份</strong>。<br><br>提示：你可以喺「設定」入面使用 <strong>Google 雲端同步</strong>，將資料備份到你私人雲端，換機／重裝都可以還原。</div></div>
@@ -880,27 +911,27 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
+    <div class="modal-overlay" id="briefingModal" onclick="backOrClose('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
                 <div class="modal-title" style="color: var(--primary);"><i data-lucide="sunrise"></i> 今日晨報</div>
-                <button class="icon-btn" onclick="closeModal('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom:16px; color:var(--text-light); font-size:16px; font-weight: bold;">早晨！你今日有以下事項需要留意：</p>
                 <div class="entry-list" id="briefingList"></div>
-                <button class="action-btn primary" onclick="closeModal('briefingModal')" style="margin-top:24px;">開始今日日程</button>
+                <button class="action-btn primary" onclick="backOrClose('briefingModal')" style="margin-top:24px;">開始今日日程</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="dayModal" onclick="closeModal('dayModal', event)">
+    <div class="modal-overlay" id="dayModal" onclick="backOrClose('dayModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="dayModalTitle">日期</div>
                 <div>
                     <button class="icon-btn" id="dayBulkToggleBtn" onclick="toggleDayBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="backOrClose('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -929,7 +960,7 @@
         </div>
     </div>
     
-    <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)">
+    <div class="modal-overlay" id="readModal" onclick="backOrClose('readModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
@@ -964,11 +995,11 @@
     
 
     <!-- ✅ 選擇資料夾：用於「移去記事簿」一次完成（分類 + 可選跳轉） -->
-    <div class="modal-overlay" id="pickFolderModal" onclick="closeModal('pickFolderModal', event)">
+    <div class="modal-overlay" id="pickFolderModal" onclick="backOrClose('pickFolderModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">移去記事簿</div>
-                <button class="icon-btn" onclick="closeModal('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請揀資料夾（或未分類）</div>
@@ -986,7 +1017,7 @@
                 </div>
 
                 <div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap;">
-                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="closeModal('pickFolderModal')">取消</button>
+                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="backOrClose('pickFolderModal')">取消</button>
                     <button class="action-btn" style="flex:1; min-width:140px;" onclick="confirmPickFolder(false)">確定</button>
                     <button class="action-btn primary" style="flex:1; min-width:160px;" onclick="confirmPickFolder(true)">確定並跳去</button>
                 </div>
@@ -997,17 +1028,17 @@
             </div>
         </div>
     </div>
-<div class="modal-overlay" id="pickDateModal" onclick="closeModal('pickDateModal', event)">
+<div class="modal-overlay" id="pickDateModal" onclick="backOrClose('pickDateModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">選擇日期</div>
-                <button class="icon-btn" onclick="closeModal('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請直接揀日子（YYYY-MM-DD）</div>
                 <input id="pickDateInput" type="date" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px;" />
                 <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button class="action-btn" style="flex:1;" onclick="closeModal('pickDateModal')">取消</button>
+                    <button class="action-btn" style="flex:1;" onclick="backOrClose('pickDateModal')">取消</button>
                     <button class="action-btn primary" style="flex:1;" onclick="confirmPickDate()">確定</button>
                 </div>
             </div>
@@ -1103,11 +1134,11 @@
         
         
     
-    <div class="modal-overlay" id="moveCopyModal" onclick="closeModal('moveCopyModal', event)">
+    <div class="modal-overlay" id="moveCopyModal" onclick="backOrClose('moveCopyModal', event)">
         <div class="modal-content" style="height:auto; max-height: 70dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="shuffle" style="width: 22px;"></i> 移動 / 複製</div>
-                <button class="icon-btn" onclick="closeModal('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
 
@@ -1190,7 +1221,7 @@
                     </div>
                 </div>
                 <div class="move-actions">
-                    <button class="btn btn-cancel" onclick="closeModal('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
+                    <button class="btn btn-cancel" onclick="backOrClose('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
                     <button class="btn" style="background:#2563eb; color:white;" onclick="applyMoveOrCopy('move')"><i data-lucide="move"></i> 移動</button>
                     <button class="btn" style="background: var(--primary); color:white;" onclick="applyMoveOrCopy('copy')"><i data-lucide="copy"></i> 複製</button>
                     <button class="btn" style="background:#111827; color:white; display:none;" id="mcUndoBtn" onclick="undoLastBulkCopy()"><i data-lucide="rotate-ccw"></i> 撤銷</button>
@@ -1199,11 +1230,11 @@
         </div>
     </div>
 
-<div class="modal-overlay" id="toolboxModal" onclick="closeModal('toolboxModal', event)">
+<div class="modal-overlay" id="toolboxModal" onclick="backOrClose('toolboxModal', event)">
         <div class="modal-content" style="height: auto; max-height: 85dvh;">
             <div class="modal-header" style="padding:16px 20px;">
                 <div class="modal-title"><i data-lucide="briefcase"></i> 實用工具箱</div>
-                <button class="icon-btn" onclick="closeModal('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div class="section-header" onclick="toggleSection('emergency')">🚨 緊急聯絡 <i data-lucide="chevron-down"></i></div>
@@ -1241,13 +1272,13 @@
         </div>
     </div>
 
-<div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
+<div class="modal-overlay" id="backupModal" onclick="backOrClose('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> 設定與備份</div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="closeModal('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="backOrClose('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1256,7 +1287,7 @@
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                 </button>
 
-                <button class="action-btn" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;" onclick="closeModal('backupModal'); setTimeout(() => openModal('toolboxModal'), 150);">
+                <button class="action-btn" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;" onclick="backOrClose('backupModal'); setTimeout(() => openModal('toolboxModal'), 150);">
                     <i data-lucide="briefcase"></i> 打開工具箱
                 </button>
 
@@ -1348,11 +1379,11 @@
     <div id="toast" class="toast"></div>
 
     <!-- 🚨 疑似資料被清除：補救指引 -->
-    <div class="modal-overlay" id="recoveryModal" onclick="closeModal('recoveryModal', event)">
+    <div class="modal-overlay" id="recoveryModal" onclick="backOrClose('recoveryModal', event)">
         <div class="modal-content" style="height:auto; max-height: 90dvh;">
             <div class="modal-header">
                 <div class="modal-title" style="color:#e53e3e;"><i data-lucide="alert-triangle" style="width: 26px; height: 26px;"></i> 似乎你嘅資料唔見咗</div>
-                <button class="icon-btn" onclick="closeModal('recoveryModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('recoveryModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height:1.6;">
                 <div style="background: rgba(229, 62, 62, 0.06); border: 1px solid rgba(229, 62, 62, 0.35); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
@@ -1372,7 +1403,7 @@
                         2）返嚟呢度撳下面「立即上傳備份檔」→ 揀返嗰個檔案 → 就會開始還原。
                     </div>
                     <div style="display:flex; flex-direction:column; gap:10px; margin-top: 10px;">
-                        <button class="action-btn" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);" onclick="closeModal('recoveryModal'); setTimeout(() => { try { openModal('backupModal'); } catch(_) {} }, 50);">
+                        <button class="action-btn" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);" onclick="backOrClose('recoveryModal'); setTimeout(() => { try { openModal('backupModal'); } catch(_) {} }, 50);">
                             <i data-lucide="settings"></i> 打開「設定與備份」
                         </button>
                         <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="try { document.getElementById('importInput').click(); } catch(e) { console.error(e); }">
@@ -1406,13 +1437,13 @@
     </div>
 
     <!-- ✅ 記事薄（參考你提供的 ColorNote 列表） -->
-    <div class="modal-overlay" id="notebookModal" onclick="closeModal('notebookModal', event)">
+    <div class="modal-overlay" id="notebookModal" onclick="backOrClose('notebookModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="notebook-text" style="width: 22px;"></i> 記事薄</div>
                 <div>
                     <button class="icon-btn" id="notebookBulkToggleBtn" onclick="toggleNotebookBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="closeModal('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="backOrClose('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1426,7 +1457,7 @@
                         <option value="color">依標籤排序</option>
                     </select>
                     <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-								<button class="icon-btn" onclick="closeModal('notebookModal'); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
+								<button class="icon-btn" onclick="event.stopPropagation(); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
                 </div>
 
                 <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 10px;">
@@ -1444,7 +1475,7 @@
     </div>
 
     <!-- ✅ 資料夾模式：一頁顯示多個資料夾，按入去睇內容 -->
-    <div class="modal-overlay" id="folderModeModal" onclick="closeModal('folderModeModal', event)">
+    <div class="modal-overlay" id="folderModeModal" onclick="backOrClose('folderModeModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="folders" style="width: 22px;"></i> 資料夾</div>
@@ -1452,7 +1483,7 @@
                     <button class="icon-btn" onclick="toggleFolderModeManage()" title="刪除模式"><i data-lucide="trash-2" style="width: 22px; height: 22px;"></i></button>
                     <button class="icon-btn" onclick="addFolderFromFolderMode()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
                     <button class="icon-btn" onclick="manageNotebookFolders()" title="進階管理（批次改名/整理）"><i data-lucide="settings" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="closeModal('folderModeModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="backOrClose('folderModeModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1462,12 +1493,12 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="searchModal" onclick="closeModal('searchModal', event)">
+    <div class="modal-overlay" id="searchModal" onclick="backOrClose('searchModal', event)">
         <!-- 🔎 搜尋視窗：縮細啲，避免得幾行都霸晒成版 -->
         <div class="modal-content" style="height: auto; max-height: 60dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="search" style="width: 22px;"></i> 搜尋記事</div>
-                <button class="icon-btn" onclick="closeModal('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn" onclick="backOrClose('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
@@ -2079,40 +2110,172 @@
 
         // 🟩 Android 返回鍵處理：用 History API 令「返回」先關編輯器並儲存
         let __editorHistoryPushed = false;
+
+        // ✅ 通用「頁面/視窗」返回：用 history.state 保存「modal stack」（似手機 App）
+        // 目標：開咗 1/2/3 頁，就撳 back 由 3→2→1→home（每次只退一層）
+        // 做法：
+        // - openModal() 會 pushState({__diaryStack:[...]} , '', '#m=...')
+        // - popstate 會按 event.state.__diaryStack 重建畫面（關/開 modal）
+        let __modalHistoryStack = [];
+        let __routingApplying = false;
+
+        // ✅ 用 hash 做「最穩定」來源（#m=a/b/c）
+        // - openModal 只需要更新 location.hash，就自然有 history entry
+        // - 撳 back 會觸發 hashchange（跨平台比 popstate 穩定）
+        function __stackToHash(stack) {
+            try {
+                const safe = (stack || []).map(x => encodeURIComponent(String(x)));
+                return safe.length ? ('#m=' + safe.join('/')) : '';
+            } catch (_) { return ''; }
+        }
+
+        function __hashToStack(hash) {
+            try {
+                const h = String(hash || window.location.hash || '');
+                if (!h.startsWith('#m=')) return [];
+                const raw = h.slice(3);
+                if (!raw) return [];
+                return raw.split('/').map(x => decodeURIComponent(x)).filter(Boolean);
+            } catch (_) { return []; }
+        }
+
+        function __applyStack(stack) {
+            __routingApplying = true;
+            try {
+                const desired = (stack || []).map(x => String(x));
+                __modalHistoryStack = desired.slice();
+
+                // 先關晒（除咗 editor/shareDate 由佢哋自己處理）
+                const actives = Array.from(document.querySelectorAll('.modal-overlay.active'));
+                for (const el of actives) {
+                    const id = el && el.id ? String(el.id) : '';
+                    if (!id) continue;
+                    if (id === 'editorModal' || id === 'shareDateModal') continue;
+                    try { closeModal(id); } catch (_) { try { el.classList.remove('active'); } catch (_) {} }
+                }
+
+                // 再按次序打開
+                for (const id of desired) {
+                    if (id === 'editorModal' || id === 'shareDateModal') continue;
+                    const m = document.getElementById(id);
+                    if (m) m.classList.add('active');
+                }
+            } catch (e) { console.error(e); }
+            __routingApplying = false;
+        }
+
+        function __setStackToHash(stack) {
+            // ✅ 重要：唔再用 location.hash（避免同 anygen 平台路由/登入頁衝突）
+            // 改用 History state 保存 stack，Back 就只會喺 App 內逐層退。
+            try {
+                const safe = (stack || []).map(x => String(x));
+                history.pushState({ __diaryBase: true, __diaryStack: safe }, document.title);
+            } catch (e) { console.error(e); }
+        }
+
+        function __pushModalHistory(modalId) {
+            try {
+                const cur = __modalHistoryStack.slice();
+                const next = cur.concat([String(modalId)]);
+                __modalHistoryStack = next.slice();
+                __setStackToHash(next);
+            } catch (e) { console.error(e); }
+        }
+
+        function __removeModalFromHistoryStack(modalId) {
+            try {
+                const id = String(modalId);
+                const cur = __modalHistoryStack.slice();
+                for (let i = cur.length - 1; i >= 0; i--) {
+                    if (cur[i] === id) { cur.splice(i, 1); break; }
+                }
+                __modalHistoryStack = cur;
+            } catch (_) {}
+        }
+
+        // ✅ 防止「連撳多次」：返回/關閉進行中就鎖住，避免一口氣 back 幾層
+        let __uiNavBusy = false;
+        let __uiNavBusyTimer = null;
+        function __setNavBusy(on) {
+            try {
+                __uiNavBusy = !!on;
+                document.body.classList.toggle('nav-busy', __uiNavBusy);
+                if (__uiNavBusyTimer) { clearTimeout(__uiNavBusyTimer); __uiNavBusyTimer = null; }
+                // 防呆：就算某啲環境冇觸發 hashchange/popstate，都會自動解鎖
+                if (__uiNavBusy) {
+                    __uiNavBusyTimer = setTimeout(() => { try { __uiNavBusy = false; document.body.classList.remove('nav-busy'); } catch (_) {} }, 900);
+                }
+            } catch (_) {}
+        }
+
+        // ✅ hashchange = 真正 back/forward 入口
+        // ✅ 不再用 hashchange 做返回（避免同平台衝突）
+        window.addEventListener('hashchange', () => {
+            // 保留空 handler：避免舊版本殘留 hash 時誤動作
+            return;
+        });
         let __suppressNextPop = false;
         // ✅ 記住編輯器由邊度開：儲存後要返回上一層（避免一下跳返月曆）
         let __editorReturnTo = null; // null | 'notebookModal' | 'dayModal' | 'readModal'
         function ensureBaseHistoryState() {
             try {
                 if (!history.state || !history.state.__diaryBase) {
-                    history.replaceState({ __diaryBase: true }, document.title);
+                    // ✅ base state：用 __diaryStack=[] 作為「月曆首頁」
+                    history.replaceState({ __diaryBase: true, __diaryStack: [] }, document.title);
+                }
+
+                // ✅ 永久「留喺 App」保護層（防止 Back 退到平台/Login）：
+                // 在 base 之上加一層 trap。當用戶喺月曆首頁再撳 Back，會落到 base，
+                // 我哋即刻再 push trap，令瀏覽器唔會再退到外層頁。
+                if (!window.__diaryTrapInited) {
+                    window.__diaryTrapInited = true;
+                    try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
                 }
             } catch (e) { console.error(e); }
 
             // 📌 狀態欄：連線狀態 + 點擊展開詳情
+            // ⚠️ 由於 openModal() 而家會經常 call ensureBaseHistoryState()，呢段副作用只可以做一次
             try {
-                // 初始刷新一次（會顯示上次儲存/雲端/今日提醒）
-                refreshStatusBar(null);
+                if (!window.__diaryBaseSideEffectsInited) {
+                    window.__diaryBaseSideEffectsInited = true;
 
-                const sb = document.getElementById('statusBar');
-                if (sb) sb.addEventListener('click', () => openStatusPanel());
+                    // 初始刷新一次（會顯示上次儲存/雲端/今日提醒）
+                    refreshStatusBar(null);
 
-                window.addEventListener('offline', () => refreshStatusBar('offline'));
-                window.addEventListener('online', () => refreshStatusBar('ok'));
+                    const sb = document.getElementById('statusBar');
+                    if (sb) sb.addEventListener('click', () => openStatusPanel());
 
-                // 每分鐘刷新一次（跨日就會自動出現「今日提醒」）
-                setInterval(() => { try { refreshStatusBar(null); } catch (_) {} }, 60 * 1000);
+                    window.addEventListener('offline', () => refreshStatusBar('offline'));
+                    window.addEventListener('online', () => refreshStatusBar('ok'));
+
+                    // 每分鐘刷新一次（跨日就會自動出現「今日提醒」）
+                    setInterval(() => { try { refreshStatusBar(null); } catch (_) {} }, 60 * 1000);
+                }
             } catch (e) { console.error(e); }
         }
-        window.addEventListener('popstate', async () => {
-            // 如果係我哋自己 closeEditor() 觸發嘅 history.back()，就唔再處理
+        window.addEventListener('popstate', async (event) => {
+            // 如果係我哋自己 closeEditor()/closeShareDateModal() 觸發嘅 history.back()，就唔再處理
             if (__suppressNextPop) { __suppressNextPop = false; return; }
             try {
+                // ✅ 先攔截「退到 base / state 為空」：留喺 App，唔畀跳出到平台(Login)
+                // - event.state 可能係 null（某些 WebView / 平台容器）
+                // - 或者係 base 狀態
+                const st = (event && event.state) ? event.state : null;
+                const isBaseLike = (!st) || (!!st.__diaryBase && (!Array.isArray(st.__diaryStack) || st.__diaryStack.length === 0));
+                if (isBaseLike) {
+                    try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
+                    // 同步 UI：確保退清 modal
+                    try { __applyStack([]); } catch (_) {}
+                    __setNavBusy(false);
+                    return;
+                }
+
                 // 1) 先處理「分享後選日期」彈窗返回
                 const shareDateEl = document.getElementById('shareDateModal');
                 const shareDateActive = !!(shareDateEl && shareDateEl.classList.contains('active'));
                 if (shareDateActive) {
                     closeShareDateModal(true, true); // (clearPending=true, noHistory=true)
+                    __setNavBusy(false);
                     return;
                 }
 
@@ -2122,8 +2285,17 @@
                 if (editorActive) {
                     __editorHistoryPushed = false;
                     await closeEditorNoHistory();
+                    __setNavBusy(false);
+                    return;
                 }
-            } catch (e) { console.error(e); }
+
+                // 3) 最後：通用 modal 返回（用 history.state.__diaryStack）
+                const s = (event && event.state && Array.isArray(event.state.__diaryStack)) ? event.state.__diaryStack : null;
+                const stack = s ? s.slice() : __modalHistoryStack.slice();
+                __applyStack(stack);
+                __setNavBusy(false);
+                return;
+            } catch (e) { console.error(e); __setNavBusy(false); }
         });
 
         const CLIENT_ID = '821513038783-uhr5flbnurvsgoh9vbekovl29e049m3s.apps.googleusercontent.com';
@@ -3225,7 +3397,7 @@
             } catch (e) { console.error(e); }
         }
 
-        function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
+        function openHelpModal() { closeModal('backupModal'); openModal('helpModal'); }
         function closeWelcomeModal(event, isButton = false) { if (event && event.target.id !== 'welcomeModal' && !isButton) return; document.getElementById('welcomeModal').classList.remove('active'); localStorage.setItem('diary_welcomed_v5', 'true'); checkTodayBriefing(); }
 
         // =========================
@@ -3661,7 +3833,7 @@
             const lastBriefing = localStorage.getItem('diary_last_briefing'); if (lastBriefing === todayStr) return;
             const allEntries = await db.getAll(); allEntries.forEach(normalizeEntrySpace); const todayEntries = allEntries.filter(e => e.date === todayStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
             if (todayEntries.length > 0) {
-                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="closeModal('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
+                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="backOrClose('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
                 document.getElementById('briefingModal').classList.add('active'); localStorage.setItem('diary_last_briefing', todayStr);
             }
         }
@@ -3837,6 +4009,9 @@
         function closeModal(id, event) {
             if (event && event.target.id !== id) return;
             document.getElementById(id).classList.remove('active');
+            // ✅ 同步返通用 history stack（避免殘留）
+            // ⚠️ routing 重建期間（__routingApplying=true）唔好改 stack，否則會失同步
+            try { if (!__routingApplying) __removeModalFromHistoryStack(id); } catch (_) {}
 
             // ✅ 記事簿全屏：關閉時還原 body
             if (id === 'notebookModal') {
@@ -3870,8 +4045,73 @@
             }
         }
 
+        // ✅ 統一「右上角 X / 關閉」= 返回一層（優先用 history.back）
+        // - 如果呢個 modal 係 stack 頂層：直接 back（由 hashchange/popstate 去重建畫面）
+        // - 如果唔係頂層/冇 stack：先用舊 closeModal 硬關作後備
+        function backOrClose(id, event) {
+            try {
+                if (event && event.target && event.target.id !== id) return;
+
+                // ✅ 避免「連撳」：進行中直接忽略
+                if (typeof __uiNavBusy !== 'undefined' && __uiNavBusy) return;
+                try { __setNavBusy(true); } catch (_) {}
+
+                // editor/shareDate 有自己嘅 back 流程，避免誤用
+                if (id === 'editorModal') {
+                    try { closeEditor(); } catch (_) {}
+                    try { __setNavBusy(false); } catch (_) {}
+                    return;
+                }
+                if (id === 'shareDateModal') {
+                    try { closeShareDateModal(true, false); } catch (_) {}
+                    try { __setNavBusy(false); } catch (_) {}
+                    return;
+                }
+
+                // ✅ 已移除「返回中…」提示（避免干擾）
+
+                const stack = __hashToStack(window.location.hash);
+                const top = stack.length ? stack[stack.length - 1] : null;
+
+                if (top === String(id)) {
+                    history.back();
+                    return;
+                }
+
+                // fallback：硬關（並嘗試同步返 hash，避免 stack 殘留）
+                closeModal(id, event);
+                try {
+                    const next = __modalHistoryStack.slice();
+                    // 用 replaceState 更新目前 entry 的 stack（唔改 URL）
+                    history.replaceState({ __diaryBase: true, __diaryStack: next.slice() }, document.title);
+                } catch (_) {}
+
+                try { __setNavBusy(false); } catch (_) {}
+            } catch (e) {
+                console.error(e);
+                try { closeModal(id, event); } catch (_) {}
+                try { __setNavBusy(false); } catch (_) {}
+            }
+        }
+
         // 🔧 修補：通用打開視窗 + 摺疊區塊 + 私人備註
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            // routing 重建期間：只改 UI，唔改 hash
+            if (__routingApplying) {
+                el.classList.add('active');
+                return;
+            }
+
+            el.classList.add('active');
+
+            // ✅ 通用 back 掣支援：除咗 editor/shareDate（佢哋有自己嘅流程），其他 modal 一律 pushState
+            if (id !== 'editorModal' && id !== 'shareDateModal') {
+                __pushModalHistory(id);
+            }
+        }
 
         // =========================
         // 🚨 疑似資料被清除（清洗暫存）偵測 + 補救指引
@@ -3915,7 +4155,7 @@
         function openSearchModal() {
             const m = document.getElementById('searchModal');
             if (!m) return;
-            m.classList.add('active');
+            openModal('searchModal');
             const input = document.getElementById('searchInput');
             const list = document.getElementById('searchResultList');
             const hint = document.getElementById('searchHint');
@@ -4290,7 +4530,7 @@
                 const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
                 const entryJson = encodeURIComponent(JSON.stringify(e));
 
-	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="closeModal('searchModal'); openReadView('${entryJson}')">
+	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="backOrClose('searchModal'); openReadView('${entryJson}')">
 	                    <div class="entry-card-header">
 	                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
 	                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
@@ -4320,7 +4560,7 @@
             // ✅ 全屏置頂：避免背後日曆可以捲/被點
             try { document.body.style.overflow = 'hidden'; } catch (_) {}
 
-            m.classList.add('active');
+            openModal('notebookModal');
             renderNotebookList();
             setTimeout(() => { try { bindNotebookLongPress(); } catch(_){} }, 80);
             lucide.createIcons();
@@ -4465,7 +4705,8 @@ lucide.createIcons();
                     return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
             }
-            document.getElementById('dayModal').classList.add('active');
+            // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
+            openModal('dayModal');
             updateBulkUI();
             // ✅ 手機長按快速進入批量模式
             setTimeout(() => { try { bindDayLongPress(); } catch(_){} }, 60);
@@ -4776,7 +5017,8 @@ lucide.createIcons();
 
             renderReadAttachments();
             lucide.createIcons();
-            document.getElementById('readModal').classList.add('active');
+            // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
+            openModal('readModal');
 
             // ✅ 每次切換文章都回到頂部，避免用家覺得「冇換到」
             try {
@@ -6491,7 +6733,7 @@ function handleImageUpload(event) {
             await closeEditor();
         }
         
-        function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
+        function openBackupModal() { openModal('backupModal'); }
 
         // ✅ 由右下角「+」展開嘅調色：先收起 FAB，再轉顏色
         function cycleThemeFromFab() {
