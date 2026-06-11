@@ -451,6 +451,33 @@
         .entry-card.selected { outline: 3px solid rgba(66, 153, 225, 0.65); outline-offset: -3px; }
         .entry-card .bulk-check i { width: 16px; height: 16px; }
         .entry-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--card-color, var(--primary)); }
+
+        /* ⭐ 星星鎖定：加星後不可刪除（要先取消星星） */
+        .entry-star-btn {
+            /* 只要星：無圓圈、無底色、無邊框 */
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            min-height: 26px;
+            padding: 0;
+            border-radius: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.06s ease, color 0.12s ease;
+        }
+        .entry-star-btn:active { transform: scale(0.94); }
+        .entry-star-btn.on { color: #f59e0b; }
+        .entry-star-btn.on svg { fill: currentColor; color: currentColor; }
+        .entry-star-btn svg { width: 18px; height: 18px; }
+
+        /* 閱讀頁：已加星時，刪除掣變為不可按 */
+        #readDeleteBtn[aria-disabled="true"] { opacity: 0.38; pointer-events: none; }
+
         .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
         .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold; display: flex; gap: 8px; align-items: center;}
         .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--outline); }
@@ -985,8 +1012,9 @@
                 <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
                 <div>
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" id="readDeleteBtn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
@@ -1723,6 +1751,164 @@
         let __dayVisibleIds = [];
         let __nbVisibleIds = [];
 
+        // =========================
+        // ⭐ 星星鎖定（防誤刪）
+        // - 每條記事可加/取消星星
+        // - 已加星：任何「刪除／覆蓋式還原」都會被攔截
+        // =========================
+        function isEntryStarred(e) {
+            try { return !!(e && (e.starred === true || e.starred === 1 || e.starred === '1')); } catch (_) { return false; }
+        }
+
+        function renderStarButton(e) {
+            try {
+                if (!e || e.id === undefined || e.id === null) return '';
+                const on = isEntryStarred(e);
+                const t = on ? '已加星：再按取消（取消後先可刪除）' : '加星鎖定（防誤刪）';
+                return `<button class="entry-star-btn ${on ? 'on' : ''}" onclick="toggleEntryStar(event, '${String(e.id)}')" title="${t}"><i data-lucide="star"></i></button>`;
+            } catch (_) { return ''; }
+        }
+
+        async function getEntryByIdCompat(entryId) {
+            const raw = (entryId === null || entryId === undefined) ? '' : String(entryId);
+            const numKey = (/^\d+$/.test(raw)) ? Number(raw) : null;
+
+            let e = null;
+            try { e = (numKey !== null) ? await db.get(numKey) : null; } catch (_) { e = null; }
+            if (!e) { try { e = await db.get(raw); } catch (_) { e = null; } }
+            if (!e) {
+                try {
+                    const all = await db.getAll();
+                    all.forEach(normalizeEntrySpace);
+                    e = all.find(x => x && String(x.id) === raw) || null;
+                } catch (_) { e = null; }
+            }
+            return e;
+        }
+
+        async function setEntryStar(entryId, starred) {
+            const e = await getEntryByIdCompat(entryId);
+            if (!e) return false;
+            e.starred = !!starred;
+            await db.save(e);
+            return true;
+        }
+
+        function updateReadStarUI() {
+            try {
+                const btn = document.getElementById('readStarBtn');
+                const del = document.getElementById('readDeleteBtn');
+                const on = isEntryStarred(currentEntryData);
+
+                if (btn) {
+                    if (on) {
+                        btn.style.color = '#f59e0b';
+                        // 令 icon 有 fill
+                        const svg = btn.querySelector('svg');
+                        if (svg) svg.style.fill = '#f59e0b';
+                        btn.title = '已加星：再按取消（取消後先可刪除）';
+                    } else {
+                        btn.style.color = '';
+                        const svg = btn.querySelector('svg');
+                        if (svg) svg.style.fill = '';
+                        btn.title = '星星鎖定（防誤刪）';
+                    }
+                }
+
+                if (del) {
+                    if (on) {
+                        del.setAttribute('aria-disabled', 'true');
+                        del.title = '已加星鎖定：請先取消星星先可以刪除';
+                    } else {
+                        del.removeAttribute('aria-disabled');
+                        del.title = '刪除（無法復原）';
+                    }
+                }
+            } catch (_) {}
+        }
+
+        async function toggleEntryStar(ev, entryId) {
+            // 目標：點落去要即刻有反應（先樂觀更新 UI，再背景儲存）
+            let btnEl = null;
+            try { if (ev) { ev.stopPropagation(); btnEl = (ev.currentTarget || ev.target); } } catch (_) {}
+
+            // 1) 先即時切換按鈕樣式
+            let optimisticNext = null;
+            try {
+                if (btnEl && btnEl.classList) {
+                    const wasOn = btnEl.classList.contains('on');
+                    optimisticNext = !wasOn;
+                    btnEl.classList.toggle('on', optimisticNext);
+                    // 令 lucide svg 即刻變填色
+                    const svg = btnEl.querySelector ? btnEl.querySelector('svg') : null;
+                    if (svg) svg.style.fill = optimisticNext ? 'currentColor' : '';
+                }
+            } catch (_) {}
+
+            try {
+                const e = await getEntryByIdCompat(entryId);
+                if (!e) {
+                    // revert
+                    try { if (btnEl && optimisticNext !== null) btnEl.classList.toggle('on', !optimisticNext); } catch (_) {}
+                    showToast('搵唔到該記事', 'error');
+                    return;
+                }
+
+                const next = (optimisticNext !== null) ? optimisticNext : (!isEntryStarred(e));
+                await setEntryStar(entryId, next);
+
+                // 同步目前閱讀中的資料
+                try {
+                    if (currentEntryData && String(currentEntryData.id) === String(entryId)) {
+                        currentEntryData.starred = next;
+                        updateReadStarUI();
+                    }
+                } catch (_) {}
+
+                // 更新畫面（保持資料一致）
+                try { await renderCalendar(); } catch (_) {}
+
+                // ⭐ 重要修正：之前用 __cachedDayEntriesForBulk 會拎到舊快照，造成星星顯示不同步
+                try {
+                    if (document.getElementById('dayModal')?.classList.contains('active')) {
+                        const all2 = await db.getAll();
+                        all2.forEach(normalizeEntrySpace);
+                        const dayEntries = all2.filter(x => x.date === editingDateStr && (x.space || SPACE_CALENDAR) === SPACE_CALENDAR);
+                        openDayView(editingDateStr, dayEntries);
+                    }
+                } catch (_) {}
+
+                // 記事簿：直接重渲染（內部會讀 DB）
+                try { if (document.getElementById('notebookModal')?.classList.contains('active')) renderNotebookList(); } catch (_) {}
+
+                showToast(next ? '⭐ 已加星鎖定（防誤刪）' : '已取消星星', 'success');
+                try { lucide.createIcons(); } catch (_) {}
+            } catch (err) {
+                console.error(err);
+                // revert
+                try { if (btnEl && optimisticNext !== null) btnEl.classList.toggle('on', !optimisticNext); } catch (_) {}
+                showToast('星星操作失敗', 'error');
+            }
+        }
+
+        async function toggleStarFromReadView() {
+            try {
+                if (!currentEntryData || currentEntryData.id === undefined || currentEntryData.id === null) return;
+                await toggleEntryStar(null, currentEntryData.id);
+            } catch (_) {}
+        }
+
+        async function assertNoStarredBeforeDestructive(actionName) {
+            const all = await db.getAll();
+            all.forEach(normalizeEntrySpace);
+            const locked = (all || []).filter(isEntryStarred).length;
+            if (locked > 0) {
+                alert(`⚠️ 你目前有 ${locked} 條記事已加星鎖定。\n\n為免「${actionName}」意外刪走佢哋，系統已暫停。\n\n請先逐條取消星星，先再進行。`);
+                return false;
+            }
+            return true;
+        }
+
         function updateBulkUI() {
             const dayBar = document.getElementById('dayBulkToolbar');
             const nbBar = document.getElementById('notebookBulkToolbar');
@@ -1777,6 +1963,24 @@
             const ids = Array.from(__dayBulkSelected);
             const all = await db.getAll();
             all.forEach(normalizeEntrySpace);
+
+            // ⭐ 星星鎖定：批量刪除前先檢查
+            try {
+                const locked = (ids || []).map(id => all.find(x => String(x.id) === String(id))).filter(e => e && isEntryStarred(e));
+                if (locked.length > 0) {
+                    showToast(`⚠️ 有 ${locked.length} 條已加星鎖定，請先取消星星先可以刪除`, 'error');
+                    return;
+                }
+            } catch (_) {}
+
+            // ⭐ 星星鎖定：批量刪除前先檢查
+            try {
+                const locked = (ids || []).map(id => all.find(x => String(x.id) === String(id))).filter(e => e && isEntryStarred(e));
+                if (locked.length > 0) {
+                    showToast(`⚠️ 有 ${locked.length} 條已加星鎖定，請先取消星星先可以刪除`, 'error');
+                    return;
+                }
+            } catch (_) {}
 
             for (const id of ids) {
                 const e = all.find(x => String(x.id) === String(id));
@@ -2515,6 +2719,8 @@
             const isOverwrite = String(mode).trim() === '2';
             if (isOverwrite) {
                 if(!confirm('⚠️ 警告：覆蓋模式會清除本機目前資料，然後用雲端完全覆蓋。\n\n確定要繼續嗎？')) return;
+                // ⭐ 星星鎖定：覆蓋式還原屬破壞性操作，若有加星就禁止
+                if (!(await assertNoStarredBeforeDestructive('雲端覆蓋還原'))) return;
             }
 
             const btn = document.getElementById('cloudRestoreBtn');
@@ -4556,7 +4762,7 @@
 	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="backOrClose('searchModal'); openReadView('${entryJson}')">
 	                    <div class="entry-card-header">
 	                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
-	                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+	                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
 	                    </div>
 	                    <div class="entry-card-text" style="-webkit-line-clamp: 4;">${highlightHtml(preview, qRaw)}</div>
 	                </div>`;
@@ -4668,7 +4874,7 @@
                             <span class="entry-card-tag">${escapeHtml(tagName)}</span>
                             ${folderBadge}
                         </span>
-                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
                     </div>
                     <div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${escapeHtml(title)}</div>
                     ${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${escapeHtml(preview)}</div>` : ''}
@@ -4725,7 +4931,7 @@ lucide.createIcons();
                     const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
                     const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
                     const idStr = String(e.id);
-                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
             }
             // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
@@ -5040,6 +5246,8 @@ lucide.createIcons();
 
             renderReadAttachments();
             lucide.createIcons();
+            // ⭐ 更新星星/刪除鎖定 UI
+            try { updateReadStarUI(); } catch (_) {}
             // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
             openModal('readModal');
 
@@ -5111,6 +5319,13 @@ lucide.createIcons();
         }
 
         async function deleteFromReadView() {
+            try {
+                if (isEntryStarred(currentEntryData)) {
+                    showToast('⚠️ 已加星鎖定：請先取消星星先可以刪除', 'error');
+                    try { updateReadStarUI(); } catch (_) {}
+                    return;
+                }
+            } catch (_) {}
             if (!confirm('確定要刪除這份紀錄嗎？無法復原哦。')) return;
             try {
                 const atts = (currentEntryData && currentEntryData.attachments) ? currentEntryData.attachments : [];
@@ -6825,8 +7040,10 @@ async function exportData() {
             }
         }
 
-        function importData(event) { 
+        async function importData(event) { 
             const file = event.target.files[0]; if (!file) return; 
+            // ⭐ 星星鎖定：手動還原（覆蓋）屬破壞性操作，若有加星就禁止
+            if (!(await assertNoStarredBeforeDestructive('手動還原（覆蓋）'))) { event.target.value = ''; return; }
             if (!confirm('⚠️ 警告：還原資料將會「覆蓋」並清除您目前的所有紀錄。確定要繼續嗎？')) { event.target.value = ''; return; } 
             const reader = new FileReader(); 
             reader.onload = async function(e) { 

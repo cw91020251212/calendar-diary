@@ -1,15 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#667eea"/>
       <stop offset="1" stop-color="#764ba2"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="512" height="512" rx="110" fill="url(#g)"/>
-  <rect x="120" y="110" width="272" height="312" rx="28" fill="rgba(255,255,255,0.92)"/>
-  <rect x="150" y="155" width="212" height="20" rx="10" fill="#667eea"/>
-  <rect x="150" y="200" width="212" height="20" rx="10" fill="#667eea" opacity="0.85"/>
-  <rect x="150" y="245" width="150" height="20" rx="10" fill="#667eea" opacity="0.7"/>
-  <circle cx="192" cy="330" r="44" fill="#764ba2" opacity="0.95"/>
-  <text x="192" y="346" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial" font-size="44" font-weight="800" fill="#fff">月</text>
+  <rect width="256" height="256" rx="56" fill="url(#g)"/>
+  <path d="M128 52l18.8 38.1 42.1 6.1-30.4 29.6 7.2 41.9L128 148.7l-37.7 19.8 7.2-41.9-30.4-29.6 42.1-6.1L128 52z" fill="#fff" opacity="0.92"/>
 </svg>
