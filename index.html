@@ -335,7 +335,7 @@
             position: fixed;
             /* ✅ 改用 right 位移（唔受展開寬度影響）
                46px 的 30% ≈ 14px，所以未展開時藏右邊緣 14px（露出約 70%） */
-            right: -7px;
+            right: -5px;
             bottom: calc(18px + env(safe-area-inset-bottom) + var(--statusbar-h));
             z-index: 9998;
             display: flex;
@@ -495,8 +495,43 @@
         .color-picker-container { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; flex-shrink: 0; }
         .color-picker-scroll { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
         .color-picker { display: flex; gap: 12px; width: max-content; }
-        .color-btn { width: 38px; height: 38px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .color-btn.selected { transform: scale(1.15); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main); }
+        /* 🎨 顏色圓圈：加上中文字 + 細啲（避免太大） */
+        .color-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            overflow: hidden;
+        }
+        .color-btn .color-label {
+            font-size: 14px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: 0.5px;
+            text-align: center;
+            user-select: none;
+            pointer-events: none;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+        }
+        .color-btn.selected {
+            transform: scale(1.12);
+            box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main);
+        }
+
+        /* 細屏再細少少，避免遮位 */
+        @media (max-width: 380px) {
+            .color-btn { width: 40px; height: 40px; }
+            .color-btn .color-label { font-size: 13px; }
+            .color-picker { gap: 10px; }
+        }
         .tag-name-editor { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
         .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--outline); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
         .tag-name-input:focus { border-color: var(--outline); }
@@ -1543,8 +1578,9 @@
                     // 小輸入欄（例如標籤名稱、搜尋）通常唔會遮，唔上推
                     setShift(0);
                 } else {
-                    const baseShift = kb2 > 0 ? (kb2 + 12) : 0;
-                    const maxShift = Math.round(window.innerHeight * 0.38); // 上推上限（避免整個 modal 飛走）
+                    // ✅ 位移要「連埋底部確定掣高度」：鍵盤高度 + safeBottom + buffer
+                    const baseShift = kb2 > 0 ? (kb2 + safeBottom + 12) : 0;
+                    const maxShift = Math.round(window.innerHeight * 0.55); // 上推上限（避免整個 modal 飛走）
                     const shift = Math.min(baseShift, maxShift);
                     setShift(shift);
 
@@ -3632,7 +3668,28 @@
 
         function cycleTheme() { currentThemeIdx = (currentThemeIdx + 1) % THEMES.length; applyTheme(THEMES[currentThemeIdx]); localStorage.setItem('diary_theme_github', THEMES[currentThemeIdx].id); }
         function applyTheme(themeObj) { document.body.className = ''; if (themeObj.id !== 'light') document.body.classList.add(`theme-${themeObj.id}`); document.getElementById('themeIcon').setAttribute('data-lucide', themeObj.icon); lucide.createIcons(); }
-        function initColorPickerUI() { document.getElementById('colorPickerUI').innerHTML = APP_COLORS.map(c => `<div class="color-btn" style="background-color: ${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"></div>`).join(''); }
+        function getReadableTextColor(hex) {
+            // hex: #rrggbb
+            if (!hex || typeof hex !== 'string' || !hex.startsWith('#') || hex.length !== 7) return '#1a202c';
+            const r = parseInt(hex.slice(1,3), 16) / 255;
+            const g = parseInt(hex.slice(3,5), 16) / 255;
+            const b = parseInt(hex.slice(5,7), 16) / 255;
+            // relative luminance (sRGB)
+            const srgb = [r, g, b].map(v => (v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4)));
+            const L = 0.2126*srgb[0] + 0.7152*srgb[1] + 0.0722*srgb[2];
+            return L < 0.5 ? '#ffffff' : '#1a202c';
+        }
+
+        function initColorPickerUI() {
+            const ui = document.getElementById('colorPickerUI');
+            if (!ui) return;
+            ui.innerHTML = APP_COLORS.map(c => {
+                const label = (tagNames && tagNames[c.id]) ? tagNames[c.id] : (c.def || '標籤');
+                const textColor = getReadableTextColor(c.hex);
+                const selectedCls = (selectedColor === c.id) ? 'selected' : '';
+                return `<div class="color-btn ${selectedCls}" style="background-color:${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"><span class="color-label" style="color:${textColor}">${escapeHtml(label)}</span></div>`;
+            }).join('');
+        }
 
         async function renderCalendarFor(dateObj, gridEl, updateHeader = true) {
             const year = dateObj.getFullYear(), month = dateObj.getMonth();
@@ -4893,7 +4950,7 @@ lucide.createIcons();
         function selectColor(colorId) {
             selectedColor = colorId;
             try { localStorage.setItem(LAST_COLOR_KEY, String(colorId || 'blue')); } catch (_) {}
-            document.querySelectorAll('.color-btn').forEach(btn => {
+            document.querySelectorAll('#colorPickerUI .color-btn').forEach(btn => {
                 btn.classList.remove('selected');
                 if (btn.dataset.color === colorId) {
                     btn.classList.add('selected');
@@ -5612,7 +5669,12 @@ async function moveNotebookEntryToCalendarAskDate(entryId) {
             // 再按一次就退出第一級
             toggleWritingMode(false);
         }
-        function saveTagName() { tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤'; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); }
+        function saveTagName() {
+            tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤';
+            localStorage.setItem('diary_tag_names', JSON.stringify(tagNames));
+            // ✅ 即時更新上方顏色圓圈內文字
+            initColorPickerUI();
+        }
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
         function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
 
