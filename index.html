@@ -172,9 +172,6 @@
         .modal-overlay.active .modal-content { transform: translateY(0) !important; }
         .modal-body { flex: 1 1 auto; overflow: auto; -webkit-overflow-scrolling: touch; }
 
-        /* 部分 modal 之前用 inline style 設咗 height:auto / max-height:xxdvh，呢度一律覆蓋 */
-        .modal-content[style] { height: 100% !important; max-height: 100% !important; }
-
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
         .header-title { display: flex; align-items: center; gap: 8px; font-size: calc(22px * var(--ui-font-scale)); font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
@@ -745,8 +742,28 @@
 
         /* 底部固定元素一齊上移，避免遮住重要操作 */
         body.kbd-open .statusbar { transform: translateY(calc(-1 * var(--kbd-shift))); }
-        body.kbd-open .fab-group { transform: translateY(calc(-1 * var(--kbd-shift))); }
-        body.kbd-open .wm-float-close { transform: translateY(calc(-1 * var(--kbd-shift))); }
+
+        /* ✅ 你提議嘅邏輯：
+           - 有時瀏覽器偵測唔到鍵盤高度（--kbd-shift 可能仍然係 0），
+             但用家確實已經 focus 咗輸入欄。
+           - 所以：只要「有輸入焦點」(kbd-focus) 或「偵測到鍵盤位移」(kbd-open)，都一律收起浮動鍵。
+        */
+        body.kbd-open .fab-group,
+        body.kbd-focus .fab-group {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(calc(-1 * var(--kbd-shift))) scale(0.98);
+        }
+        body.kbd-open .wm-float-close,
+        body.kbd-focus .wm-float-close {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(calc(-1 * var(--kbd-shift))) scale(0.98);
+        }
+        body.kbd-open .fab-group.expanded,
+        body.kbd-focus .fab-group.expanded { right: 18px; }
+
+
 
     </style>
 </head>
@@ -827,6 +844,8 @@
         <button class="fab-mini fab-mini-backup" onclick="openBackupFromFab()" title="備份"><i data-lucide="download" style="width: 22px; height: 22px;"></i></button>
         <button class="fab" onclick="toggleFabMenu()" title="功能"><i data-lucide="plus" class="fab-rotate" style="width: 26px; height: 26px;"></i></button>
     </div>
+
+
 
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
@@ -1651,6 +1670,8 @@
             document.addEventListener('focusin', (e) => {
                 if (!isTextInput(e.target)) return;
                 focusCount++;
+                // ✅ 有輸入焦點就標記，唔靠鍵盤高度偵測
+                document.body.classList.add('kbd-focus');
                 requestUpdate();
             }, true);
 
@@ -1659,8 +1680,13 @@
                 // 等下一個 focusin（例如由一個 input 跳去另一個）
                 setTimeout(() => {
                     const ae = document.activeElement;
-                    if (!isTextInput(ae)) focusCount = 0;
-                    else focusCount = 1;
+                    if (!isTextInput(ae)) {
+                        focusCount = 0;
+                        document.body.classList.remove('kbd-focus');
+                    } else {
+                        focusCount = 1;
+                        document.body.classList.add('kbd-focus');
+                    }
                     requestUpdate();
                 }, 80);
             }, true);
@@ -2119,16 +2145,9 @@
         let __modalHistoryStack = [];
         let __routingApplying = false;
 
-        // ✅ 用 hash 做「最穩定」來源（#m=a/b/c）
-        // - openModal 只需要更新 location.hash，就自然有 history entry
-        // - 撳 back 會觸發 hashchange（跨平台比 popstate 穩定）
-        function __stackToHash(stack) {
-            try {
-                const safe = (stack || []).map(x => encodeURIComponent(String(x)));
-                return safe.length ? ('#m=' + safe.join('/')) : '';
-            } catch (_) { return ''; }
-        }
-
+        // ✅ 歷史堆疊管理（Modal Stack）
+        // 目標：開咗 1/2/3 頁，就撳 back 由 3→2→1→home（每次只退一層）
+        // 做法：改用 History state 保存 stack，Back 就只會喺 App 內逐層退，避免同外部 URL 衝突。
         function __hashToStack(hash) {
             try {
                 const h = String(hash || window.location.hash || '');
@@ -2165,8 +2184,7 @@
         }
 
         function __setStackToHash(stack) {
-            // ✅ 重要：唔再用 location.hash（避免同 anygen 平台路由/登入頁衝突）
-            // 改用 History state 保存 stack，Back 就只會喺 App 內逐層退。
+            // ✅ 重要：改用 History state 保存 stack，Back 就只會喺 App 內逐層退，避免同外部 URL 衝突。
             try {
                 const safe = (stack || []).map(x => String(x));
                 history.pushState({ __diaryBase: true, __diaryStack: safe }, document.title);
@@ -2208,12 +2226,7 @@
             } catch (_) {}
         }
 
-        // ✅ hashchange = 真正 back/forward 入口
-        // ✅ 不再用 hashchange 做返回（避免同平台衝突）
-        window.addEventListener('hashchange', () => {
-            // 保留空 handler：避免舊版本殘留 hash 時誤動作
-            return;
-        });
+
         let __suppressNextPop = false;
         // ✅ 記住編輯器由邊度開：儲存後要返回上一層（避免一下跳返月曆）
         let __editorReturnTo = null; // null | 'notebookModal' | 'dayModal' | 'readModal'
@@ -2263,9 +2276,17 @@
                 const st = (event && event.state) ? event.state : null;
                 const isBaseLike = (!st) || (!!st.__diaryBase && (!Array.isArray(st.__diaryStack) || st.__diaryStack.length === 0));
                 if (isBaseLike) {
+                    // ✅ 如果已經係 base 狀態（首頁），再撳 Back 就 push 一個 trap 留喺 App
+                    // ✅ 但如果目前仲有 modal 開住（例如 notebookModal），應該係先關 modal
+                    const actives = Array.from(document.querySelectorAll('.modal-overlay.active'));
+                    if (actives.length > 0) {
+                        try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
+                        try { __applyStack([]); } catch (_) {}
+                        __setNavBusy(false);
+                        return;
+                    }
+
                     try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
-                    // 同步 UI：確保退清 modal
-                    try { __applyStack([]); } catch (_) {}
                     __setNavBusy(false);
                     return;
                 }
@@ -3442,6 +3463,7 @@
             __uiFontMenuOpen = !__uiFontMenuOpen;
             pop.classList.toggle('show', __uiFontMenuOpen);
             pop.setAttribute('aria-hidden', __uiFontMenuOpen ? 'false' : 'true');
+            document.body.classList.toggle('font-pop-open', __uiFontMenuOpen);
         }
         function closeUIFontMenu() {
             const pop = document.getElementById('uiFontPop');
@@ -3449,6 +3471,7 @@
             __uiFontMenuOpen = false;
             pop.classList.remove('show');
             pop.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('font-pop-open');
         }
 
         // =========================
@@ -4639,7 +4662,7 @@
                 const folderName = getNotebookFolderName(e.folderId);
                 const folderBadge = folderName ? `<span class="entry-card-tag" style="opacity:.85; border-style:dashed;">📁 ${escapeHtml(folderName)}</span>` : '';
 
-                return `<div class="entry-card ${__nbBulkMode ? 'bulk-mode' : ''} ${__nbBulkSelected.has(String(e.id)) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleNotebookCardClick(event, ${e.id}, '${entryJson}')" oncontextmenu="if(!__nbBulkMode){ showNotebookEntryMenu(event, ${e.id}); } return false;">${__nbBulkMode ? `<div class=\"bulk-check\">${__nbBulkSelected.has(String(e.id)) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}
+                return `<div class="entry-card ${__nbBulkMode ? 'bulk-mode' : ''} ${__nbBulkSelected.has(String(e.id)) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleNotebookCardClick(event, ${e.id}, '${entryJson}')" oncontextmenu="return false;">${__nbBulkMode ? `<div class=\"bulk-check\">${__nbBulkSelected.has(String(e.id)) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}
                     <div class="entry-card-header">
                         <span style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <span class="entry-card-tag">${escapeHtml(tagName)}</span>
@@ -5674,44 +5697,10 @@ lucide.createIcons();
             });
         }
 
-async function moveNotebookEntryToCalendarAskDate(entryId) {
-            // (兼容舊按鈕/舊選單)
-            return moveNotebookEntryToCalendarPickDate(entryId);
-        }
 
 
-        function showNotebookEntryMenu(ev, entryId) {
-	            try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (_) {}
 
-	            const folders = loadNotebookFolders();
-	            const folderOptions = ['(0) 取消', '(1) 未分類']
-	                .concat(folders.map((f, idx) => `(${idx + 2}) ${f.name}`));
 
-	            const hint = [
-	                '你想做咩？',
-	                'A) 移動到資料夾（輸入數字）',
-	                'B) 移去日曆（指定日期，輸入：d）'
-	            ].join('\n');
-
-	            const ans = prompt(hint + '\n\n' + folderOptions.join('\n'), '1');
-	            if (ans === null) return;
-	            const v = String(ans).trim().toLowerCase();
-	            if (v === 'd') {
-	                moveNotebookEntryToCalendarPickDate(entryId);
-	                return;
-	            }
-
-	            const n = parseInt(v, 10);
-	            if (!Number.isFinite(n) || n === 0) return;
-
-	            if (n === 1) {
-	                moveEntryToFolder(entryId, '');
-	                return;
-	            }
-	            const pick = folders[n - 2];
-	            if (!pick) return;
-	            moveEntryToFolder(entryId, pick.id);
-	        }
 
 	        // ✅ 長按（手機）打開記事選單
         function bindNotebookLongPress() {
@@ -6678,7 +6667,14 @@ function handleImageUpload(event) {
 
             if (backTo === 'notebookModal') {
                 // 回記事簿列表
-                try { openNotebookModal(); } catch (_) {}
+                // ✅ 修正：openNotebookModal 內部會 call openModal -> __pushModalHistory
+                // 但呢度係由 closeEditor (已經處理咗 history) 觸發嘅恢復 UI，
+                // 唔應該再增加 history entry，否則 Back 掣會亂。
+                try { 
+                    __routingApplying = true;
+                    openNotebookModal(); 
+                    __routingApplying = false;
+                } catch (_) { __routingApplying = false; }
                 try { renderNotebookList(); } catch (_) {}
                 return;
             }
@@ -6686,18 +6682,22 @@ function handleImageUpload(event) {
             if (backTo === 'dayModal') {
                 // 回當日列表
                 try {
+                    __routingApplying = true;
                     const all = await db.getAll();
                     all.forEach(normalizeEntrySpace);
                     openDayView(editingDateStr, all.filter(e => e.date === editingDateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR));
-                } catch (_) {}
+                    __routingApplying = false;
+                } catch (_) { __routingApplying = false; }
                 return;
             }
 
             if (backTo === 'readModal') {
                 // 回閱讀頁（如仍然有 currentEntryData）
                 try {
+                    __routingApplying = true;
                     if (currentEntryData) openReadView(encodeURIComponent(JSON.stringify(currentEntryData)));
-                } catch (_) {}
+                    __routingApplying = false;
+                } catch (_) { __routingApplying = false; }
                 return;
             }
         }
@@ -6996,6 +6996,7 @@ async function exportData() {
 
         // ✅ 修正：上面 cache key 用咗 3 個底線，呢度統一返（兼容舊 key）
         // （留空，實際 key 由 SW 產生，見 tryConsumeSharedPayload）
+
 
         window.onload = async () => {
             try { loadUIFontScale(); } catch (e) { console.error(e); }
