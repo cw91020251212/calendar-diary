@@ -443,8 +443,7 @@
         .entry-card { background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
 
         /* ✅ 批量刪除：工具列 + 勾選 */
-        .bulk-toolbar { position: sticky; top: -1px; z-index: 110; display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-bottom: 12px; }
-        body.theme-dark .bulk-toolbar { background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .bulk-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); }
         .entry-card.bulk-mode { padding-left: 52px; }
         .bulk-check { position:absolute; left: 14px; top: 16px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--outline); background: rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; }
         body.theme-dark .bulk-check { background: rgba(30,30,30,0.7); }
@@ -982,7 +981,7 @@
                 </div>
             </div>
             <div class="modal-body">
-                <div id="dayBulkToolbar" class="bulk-toolbar" style="display:none;">
+                <div id="dayBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 12px;">
                     <button class="tool-btn" onclick="dayBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
                     <button class="tool-btn" onclick="dayBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
                     <button class="tool-btn tool-btn-alarm" onclick="dayBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="dayBulkCount">0</span>)</button>
@@ -1508,7 +1507,7 @@
 								<button class="icon-btn" onclick="event.stopPropagation(); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
                 </div>
 
-                <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none;">
+                <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 10px;">
                     <button class="tool-btn" onclick="notebookBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
                     <button class="tool-btn" onclick="notebookBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
                     <button class="tool-btn tool-btn-alarm" onclick="notebookBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="notebookBulkCount">0</span>)</button>
@@ -5930,34 +5929,34 @@ lucide.createIcons();
             const start = (e) => {
                 const card = e.target && e.target.closest ? e.target.closest('.entry-card') : null;
                 if (!card) return;
+                // 從 oncontextmenu 已傳 entryId；手機就靠 dataset
                 targetId = card.getAttribute('data-entry-id');
                 if (!targetId) return;
 
                 timer = setTimeout(() => {
                     timer = null;
+                    // 長按：優先進入批量模式（方便大量刪除）
                     if (!__nbBulkMode) {
                         __nbBulkMode = true;
                         __nbBulkSelected = new Set([String(targetId)]);
                         try { renderNotebookList(); } catch (_) {}
                         updateBulkUI();
-                        showToast('已進入批量模式', 'success');
+                        showToast('已進入批量模式，可多選後刪除', 'success');
                         return;
                     }
+                    // 已在批量模式：長按等同切換選取
                     const idStr = String(targetId);
                     if (__nbBulkSelected.has(idStr)) __nbBulkSelected.delete(idStr);
                     else __nbBulkSelected.add(idStr);
                     try { renderNotebookList(); } catch (_) {}
                     updateBulkUI();
-                }, 600);
+                }, 520);
             };
             const end = () => { if (timer) { clearTimeout(timer); timer = null; } targetId = null; };
 
             list.addEventListener('touchstart', start, { passive: true });
             list.addEventListener('touchend', end);
             list.addEventListener('touchmove', end);
-            list.addEventListener('mousedown', start);
-            list.addEventListener('mouseup', end);
-            list.addEventListener('mouseleave', end);
         }
 
         // ✅ 長按（手機）快速進入「批量刪除」模式（Day）
@@ -5972,8 +5971,11 @@ lucide.createIcons();
             const start = (e) => {
                 const card = e.target && e.target.closest ? e.target.closest('.entry-card') : null;
                 if (!card) return;
+                // Day list 內 onclick 係 handleDayCardClick(event, id, ...)
+                // 我哋從 onclick 抽 id 可能唔穩定，所以用 dataset 做備援：
                 targetId = card.getAttribute('data-entry-id');
                 if (!targetId) {
+                    // fallback：從 onclick 字串抽數字
                     const oc = card.getAttribute('onclick') || '';
                     const m = oc.match(/handleDayCardClick\(event,\s*([0-9]+)\s*,/);
                     if (m) targetId = m[1];
@@ -5987,15 +5989,16 @@ lucide.createIcons();
                         __dayBulkSelected = new Set([String(targetId)]);
                         try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
                         updateBulkUI();
-                        showToast('已進入批量模式', 'success');
+                        showToast('已進入批量模式，可多選後刪除', 'success');
                     } else {
+                        // 已在批量模式：長按等同切換選取
                         const idStr = String(targetId);
                         if (__dayBulkSelected.has(idStr)) __dayBulkSelected.delete(idStr);
                         else __dayBulkSelected.add(idStr);
                         try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
                         updateBulkUI();
                     }
-                }, 600);
+                }, 520);
             };
 
             const end = () => { if (timer) { clearTimeout(timer); timer = null; } targetId = null; };
@@ -6003,9 +6006,6 @@ lucide.createIcons();
             list.addEventListener('touchstart', start, { passive: true });
             list.addEventListener('touchend', end);
             list.addEventListener('touchmove', end);
-            list.addEventListener('mousedown', start);
-            list.addEventListener('mouseup', end);
-            list.addEventListener('mouseleave', end);
         }
 
         // =========================
