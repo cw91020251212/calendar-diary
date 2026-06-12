@@ -12,8 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="日曆記事本">
-    <link rel="icon" href="icon.png" type="image/png">
-    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.svg">
     <script>
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
@@ -31,6 +30,9 @@
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
+    <!-- ✅ Markdown 預覽（記事薄用） -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -202,6 +204,29 @@
             background: rgba(30,30,30,0.25);
         }
         .icon-btn:hover { background: var(--hover); }
+
+        /* ✅ Markdown 預覽：閱讀頁正文排版（只影響 readText.markdown-rendered） */
+        #readText.markdown-rendered { white-space: normal; }
+        #readText.markdown-rendered h1, #readText.markdown-rendered h2, #readText.markdown-rendered h3 { margin: 14px 0 8px; line-height: 1.2; }
+        #readText.markdown-rendered h1 { font-size: 1.35em; }
+        #readText.markdown-rendered h2 { font-size: 1.20em; }
+        #readText.markdown-rendered h3 { font-size: 1.08em; }
+        #readText.markdown-rendered p { margin: 10px 0; }
+        #readText.markdown-rendered ul, #readText.markdown-rendered ol { margin: 10px 0 10px 22px; }
+        #readText.markdown-rendered li { margin: 6px 0; }
+        #readText.markdown-rendered blockquote { margin: 10px 0; padding: 10px 12px; border-left: 4px solid var(--primary); background: rgba(102,126,234,0.08); border-radius: 10px; }
+        #readText.markdown-rendered code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.95em; padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,0.08); }
+        body.theme-dark #readText.markdown-rendered code { background: rgba(255,255,255,0.12); }
+        #readText.markdown-rendered pre { margin: 10px 0; padding: 12px; border-radius: 12px; overflow: auto; background: rgba(0,0,0,0.08); }
+        body.theme-dark #readText.markdown-rendered pre { background: rgba(255,255,255,0.10); }
+        #readText.markdown-rendered pre code { background: transparent; padding: 0; }
+        #readText.markdown-rendered a { color: var(--primary); text-decoration: underline; }
+        #readText.markdown-rendered hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+        /* 小小 MD 切換掣（readModal header） */
+        .md-toggle-btn { font-weight: 900; font-size: 13px; padding: 6px 10px; border: 1px solid var(--outline); border-radius: 10px; background: rgba(255,255,255,0.25); }
+        body.theme-dark .md-toggle-btn { background: rgba(30,30,30,0.25); }
+        .md-toggle-btn.active { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102,126,234,0.18); }
 
         /* ✅ 返回中：短暫鎖住點擊，避免連撳多次 back */
         body.nav-busy .icon-btn,
@@ -1014,6 +1039,7 @@
                 <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
                 <div>
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="記事薄 Markdown 預覽" style="display:none;">MD</button>
                     <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="readDeleteBtn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
@@ -5236,7 +5262,9 @@ lucide.createIcons();
             document.getElementById('readWeatherBadge').textContent = currentEntryData.weather ? `[ ${currentEntryData.weather} ]` : '';
 
             const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
-            document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
+            // ✅ 正文：記事薄可用 Markdown 預覽（不影響儲存內容）
+            document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
+            renderReadTextWithMarkdownIfNeeded();
             if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
 
             // 🔗 網址預覽
@@ -5272,6 +5300,76 @@ lucide.createIcons();
             // ✅ 綁一次 swipe + 一次性提示
             try { bindReadSwipeOnce(); } catch (_) {}
             try { showSwipeHintOnceIfNeeded(); } catch (_) {}
+        }
+
+        // =========================
+        // 📝 記事薄 Markdown 預覽（只影響閱讀顯示，不改動儲存內容）
+        // =========================
+        const NOTEBOOK_MD_PREVIEW_KEY = 'diary_notebook_md_preview'; // '1' | '0'
+
+        function isNotebookMarkdownPreviewEnabled() {
+            try {
+                const v = localStorage.getItem(NOTEBOOK_MD_PREVIEW_KEY);
+                return (v === null) ? true : (v !== '0'); // 預設：開
+            } catch (_) { return true; }
+        }
+
+        function setNotebookMarkdownPreviewEnabled(enabled) {
+            try { localStorage.setItem(NOTEBOOK_MD_PREVIEW_KEY, enabled ? '1' : '0'); } catch (_) {}
+        }
+
+        function toggleNotebookMarkdownPreview() {
+            try {
+                const isOn = isNotebookMarkdownPreviewEnabled();
+                setNotebookMarkdownPreviewEnabled(!isOn);
+                renderReadTextWithMarkdownIfNeeded();
+                try { showToast(`📝 Markdown 預覽：${!isOn ? '開' : '關'}`, 'success'); } catch (_) {}
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderReadTextWithMarkdownIfNeeded() {
+            const el = document.getElementById('readText');
+            if (!el) return;
+
+            const txt = (currentEntryData && currentEntryData.text) ? String(currentEntryData.text) : '';
+            const space = (currentEntryData && currentEntryData.space) ? String(currentEntryData.space) : SPACE_CALENDAR;
+            const isNotebook = (space === SPACE_NOTEBOOK);
+
+            // 只喺「記事薄」文章先顯示 MD 掣
+            const btn = document.getElementById('readMdToggleBtn');
+            if (btn) {
+                btn.style.display = isNotebook ? 'inline-flex' : 'none';
+                btn.classList.toggle('active', isNotebook && isNotebookMarkdownPreviewEnabled());
+            }
+
+            // 非記事薄：保持原本純文字顯示
+            if (!isNotebook) {
+                el.classList.remove('markdown-rendered');
+                el.textContent = txt;
+                return;
+            }
+
+            // 記事薄：如開咗預覽 + 套件存在，先轉 Markdown
+            const enabled = isNotebookMarkdownPreviewEnabled();
+            const canMd = (typeof window.marked !== 'undefined') && (typeof window.DOMPurify !== 'undefined');
+
+            if (enabled && canMd) {
+                try {
+                    // marked: 轉 HTML；DOMPurify: 清理（避免貼入奇怪 HTML）
+                    const html = window.marked.parse(txt, { gfm: true, breaks: true });
+                    el.innerHTML = window.DOMPurify.sanitize(html);
+                    el.classList.add('markdown-rendered');
+                } catch (e) {
+                    console.error('Markdown render failed', e);
+                    el.classList.remove('markdown-rendered');
+                    el.textContent = txt;
+                }
+            } else {
+                el.classList.remove('markdown-rendered');
+                el.textContent = txt;
+            }
         }
 
         function backToDayView() {
