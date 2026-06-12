@@ -4120,7 +4120,12 @@
             }).join('');
         }
 
+        // ✅ 防止日曆重疊：renderCalendarFor 係 async，若短時間內被連續呼叫，舊一次 render 可能喺新一次之後先完成，導致同一個 grid append 兩次。
+        // 方案：用遞增 token，確保只會套用「最新一次」render。
+        let __calendarRenderToken = 0;
+
         async function renderCalendarFor(dateObj, gridEl, updateHeader = true) {
+            const myToken = ++__calendarRenderToken;
             const year = dateObj.getFullYear(), month = dateObj.getMonth();
             if (updateHeader) {
                 const headerEl = document.getElementById('currentMonthStr');
@@ -4130,6 +4135,9 @@
             let grid = gridEl || document.getElementById('calendarGrid');
             if (!grid) return;
 
+            // ✅ 標記呢次 render 係最新（舊 render 完成後會自動放棄 append）
+            try { grid.dataset.renderToken = String(myToken); } catch (_) {}
+
             // 優化：只在必要時清空內容，而不是替換整個 DOM 節點
             grid.innerHTML = '';
 
@@ -4138,6 +4146,10 @@
             const prevMonthDays = new Date(year, month, 0).getDate();
 
             const allEntries = await db.getAll();
+
+            // ✅ 如果呢次 render 已經唔係最新，就直接放棄（避免重疊）
+            try { if (String(grid.dataset.renderToken || '') !== String(myToken)) return; } catch (_) {}
+
 	            allEntries.forEach(normalizeEntrySpace);
 	            const entryMap = {};
 	            allEntries.filter(e => (e && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR)).forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
@@ -4197,6 +4209,9 @@
                 cell.onclick = () => openDayView(dateStr, openEntries);
                 fragment.appendChild(cell);
             }
+            // ✅ 最後再確認一次：仍然係最新 render 先可以落地
+            try { if (String(grid.dataset.renderToken || '') !== String(myToken)) return; } catch (_) {}
+
             grid.appendChild(fragment);
 
             // ✅ 逐格計算：色點太多就自動縮細，唔夠位先縮
