@@ -205,6 +205,10 @@
         }
         .icon-btn:hover { background: var(--hover); }
 
+        /* 🖍️ 熒光筆標記（配合 ==文字==） */
+        mark.hl-mark { background: #fff59d; color: inherit; padding: 0 2px; border-radius: 4px; }
+        body.theme-dark mark.hl-mark { background: rgba(255, 245, 157, 0.55); }
+
         /* ✅ Markdown 預覽：閱讀頁正文排版（只影響 readText.markdown-rendered） */
         #readText.markdown-rendered { white-space: normal; }
         #readText.markdown-rendered h1, #readText.markdown-rendered h2, #readText.markdown-rendered h3 { margin: 14px 0 8px; line-height: 1.2; }
@@ -1143,6 +1147,7 @@
                 
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
+                    <button class="tool-btn" onclick="highlightSelection()" title="用熒光筆標記你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
@@ -2360,7 +2365,7 @@
         const LAST_COLOR_KEY = 'diary_last_selected_color';
         let selectedColor = (() => { try { return localStorage.getItem(LAST_COLOR_KEY) || 'blue'; } catch (_) { return 'blue'; } })();
         let currentImages = [];
-        let selectedWeatherBadge = '';
+        let selectedWeatherBadges = [];
         let isAnimating = false; 
 
         // 🟢 全新變數：自動儲存計時器
@@ -4972,7 +4977,9 @@ lucide.createIcons();
                     const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                     const tagName = tagNames[e.color] || '標籤';
                     const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
-                    const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
+                    const w = e.weather;
+                    const wArr = Array.isArray(w) ? w : (w ? [w] : []);
+                    const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
                     const idStr = String(e.id);
                     return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
@@ -5274,7 +5281,11 @@ lucide.createIcons();
 			try { if (!currentEntryData.space) currentEntryData.space = SPACE_CALENDAR; } catch (_) {} document.getElementById('dayModal').classList.remove('active');
             const dateObj = new Date(currentEntryData.timestamp); 
             document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
-            document.getElementById('readWeatherBadge').textContent = currentEntryData.weather ? `[ ${currentEntryData.weather} ]` : '';
+            {
+                const w = currentEntryData.weather;
+                const arr = Array.isArray(w) ? w : (w ? [w] : []);
+                document.getElementById('readWeatherBadge').textContent = arr.length ? `[ ${arr.join(' + ')} ]` : '';
+            }
 
             const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
             // ✅ 正文：記事薄可用 Markdown 預覽（不影響儲存內容）
@@ -5373,7 +5384,9 @@ lucide.createIcons();
             if (enabled && canMd) {
                 try {
                     // marked: 轉 HTML；DOMPurify: 清理（避免貼入奇怪 HTML）
-                    const html = window.marked.parse(txt, { gfm: true, breaks: true });
+                    // 🖍️ 熒光筆：把 ==重點== 轉做 <mark>（多個亦得）
+                    const mdTxt = String(txt || '').replace(/==([^=\n][^\n]*?)==/g, '<mark class="hl-mark">$1</mark>');
+                    const html = window.marked.parse(mdTxt, { gfm: true, breaks: true });
                     el.innerHTML = window.DOMPurify.sanitize(html);
                     el.classList.add('markdown-rendered');
                 } catch (e) {
@@ -5505,7 +5518,8 @@ lucide.createIcons();
                 setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
                 currentImages = entryData.images ? [...entryData.images] : [];
                 currentAttachments = entryData.attachments ? [...entryData.attachments] : [];
-                selectedWeatherBadge = entryData.weather || '';
+                selectedWeatherBadges = Array.isArray(entryData.weather) ? [...entryData.weather] : (entryData.weather ? [entryData.weather] : []);
+                refreshWeatherUI();
                 // 保留原本資料夾
                 currentEntryData.folderId = entryData.folderId || '';
             } else { 
@@ -5516,7 +5530,8 @@ lucide.createIcons();
                 setTextSize(1); 
                 currentImages = [];
                 currentAttachments = [];
-                selectedWeatherBadge = '';
+                selectedWeatherBadges = [];
+                refreshWeatherUI();
                 // ✅ 新增記事（記事簿）：預設資料夾（可於畫面即時改）
                 if (currentSpaceContext === SPACE_NOTEBOOK) {
                     try { if (!currentEntryData) currentEntryData = {}; currentEntryData.folderId = getNotebookLastWriteFolderId() || ''; } catch (_) {}
@@ -6236,17 +6251,47 @@ lucide.createIcons();
             initColorPickerUI();
         }
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
-        function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
+        // 🖍️ 熒光筆：把選取文字包住 == ==（可多段、多次）
+        function highlightSelection() {
+            const ta = document.getElementById('editorText');
+            if (!ta) return;
+            const start = ta.selectionStart || 0;
+            const end = ta.selectionEnd || 0;
+            if (end <= start) { showToast('🖍️ 請先選擇一段文字再標記', 'error'); return; }
+            const v = ta.value || '';
+            const sel = v.slice(start, end);
+            const wrapped = '==' + sel + '==';
+            ta.value = v.slice(0, start) + wrapped + v.slice(end);
+            try {
+                ta.focus();
+                ta.setSelectionRange(start, start + wrapped.length);
+            } catch (_) {}
+            try { silentAutoSave(); } catch (_) {}
+        }
 
+        function refreshWeatherUI() {
+            if (!Array.isArray(selectedWeatherBadges)) selectedWeatherBadges = [];
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                const w = btn.getAttribute('data-weather');
+                if (selectedWeatherBadges.includes(w)) btn.classList.add('selected-weather');
+                else btn.classList.remove('selected-weather');
+            });
+        }
+
+        function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
         function toggleWeather(weatherStr) {
-            if (selectedWeatherBadge === weatherStr) { selectedWeatherBadge = ''; } 
-            else { selectedWeatherBadge = weatherStr; }
-            updateWeatherUI();
+            // ✅ 支援多重標記：可同時選擇（例如 黃雨 + 雷暴）
+            if (!Array.isArray(selectedWeatherBadges)) selectedWeatherBadges = [];
+            const idx = selectedWeatherBadges.indexOf(weatherStr);
+            if (idx >= 0) selectedWeatherBadges.splice(idx, 1);
+            else selectedWeatherBadges.push(weatherStr);
+
+            refreshWeatherUI();
         }
 
         function updateWeatherUI() {
             document.querySelectorAll('.weather-btn').forEach(btn => {
-                if (btn.getAttribute('data-weather') === selectedWeatherBadge) {
+                if (selectedWeatherBadges.includes(btn.getAttribute('data-weather'))) {
                     btn.classList.add('selected-weather');
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 } else { btn.classList.remove('selected-weather'); }
@@ -6892,7 +6937,7 @@ function handleImageUpload(event) {
         async function silentAutoSave() {
             const text = document.getElementById('editorText').value.trim(); 
             // 避免新建一份完全空白的無效記錄
-            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && !selectedWeatherBadge && !currentEntryData) return; 
+            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0) && !currentEntryData) return; 
 
             // ✅ 防呆：就算 currentEntryData 被其他地方意外變成空 object，都保證有 id/timestamp
             const entryId = (currentEntryData && currentEntryData.id) ? currentEntryData.id : Date.now();
@@ -6922,7 +6967,7 @@ function handleImageUpload(event) {
                 textSize: currentTextSizeIdx, 
                 images: currentImages,
                 attachments: currentAttachments,
-                weather: selectedWeatherBadge,
+                weather: (Array.isArray(selectedWeatherBadges) ? selectedWeatherBadges : []),
 			space: currentSpaceContext,
                 folderId: (currentSpaceContext === SPACE_NOTEBOOK && folderId && folderId !== 'all') ? folderId : ''
             }; 
@@ -7055,7 +7100,7 @@ function handleImageUpload(event) {
         // 手動儲存按鈕
         async function saveEntry() { 
             const text = document.getElementById('editorText').value.trim(); 
-            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
+            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0)) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
             await silentAutoSave();
             stopAutoSave();
             // ✅ 用統一關閉流程（會處理 history + 返回上一層畫面）
