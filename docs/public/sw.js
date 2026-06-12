@@ -18,8 +18,8 @@ self.addEventListener('activate', (event) => {
 function isShareTargetRequest(request) {
   try {
     const url = new URL(request.url);
-    // support both /share-target and ./share-target
-    return url.pathname.endsWith('/share-target');
+    // support both /share-target and /share-target.html (GitHub Pages static-friendly)
+    return url.pathname.endsWith('/share-target') || url.pathname.endsWith('/share-target.html');
   } catch (_) {
     return false;
   }
