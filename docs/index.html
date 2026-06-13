@@ -148,8 +148,11 @@
             .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
 
-        /* ✅ 平板橫向：用盡闊度（唔用手機外框限制） */
-        @media (orientation: landscape) and (max-width: 1024px) {
+        /* ✅ 平板/手機（觸控裝置）：用盡闊度（唔用手機外框限制）
+           原因：.device-frame 預設 width:min(430px,100%) 會令平板留好多空位。
+           觸控裝置（pointer:coarse）一律全屏；桌面滑鼠先保留手機外框。
+        */
+        @media (pointer: coarse) and (min-width: 600px) {
             .desktop-stage { padding: 0; }
             .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
