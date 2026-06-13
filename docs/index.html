@@ -5316,30 +5316,37 @@ lucide.createIcons();
                 await animateReadSwitch(dir === 1 ? 1 : -1, nav.ids[nextIdx]);
             };
 
-            // Touch
-            body.addEventListener('touchstart', (e) => {
-                try {
-                    if (!modal.classList.contains('active')) return;
-                    const t = e.touches && e.touches[0];
-                    if (!t) return;
-                    onStart(t.clientX, t.clientY);
-                } catch (_) {}
-            }, { passive: true });
+            // ✅ 重要：避免「同一個手勢」同時觸發 touch + pointer，造成半撥卡住
+            // 方案：有 PointerEvent 就只用 pointer；冇先退回 touch。
+            const usePointer = !!window.PointerEvent;
 
-            body.addEventListener('touchmove', (e) => {
-                try {
-                    const t = e.touches && e.touches[0];
-                    if (!t) return;
-                    onMove(e, t.clientX, t.clientY);
-                } catch (_) {}
-            }, { passive: false });
+            if (!usePointer) {
+                // Touch（fallback）
+                body.addEventListener('touchstart', (e) => {
+                    try {
+                        if (!modal.classList.contains('active')) return;
+                        const t = e.touches && e.touches[0];
+                        if (!t) return;
+                        onStart(t.clientX, t.clientY);
+                    } catch (_) {}
+                }, { passive: true });
 
-            body.addEventListener('touchend', () => { onEnd().catch(console.error); }, { passive: true });
+                body.addEventListener('touchmove', (e) => {
+                    try {
+                        const t = e.touches && e.touches[0];
+                        if (!t) return;
+                        onMove(e, t.clientX, t.clientY);
+                    } catch (_) {}
+                }, { passive: false });
 
-            // Pointer（有啲 Android / Samsung 更穩）
+                body.addEventListener('touchend', () => { onEnd().catch(console.error); }, { passive: true });
+            }
+
+            // Pointer（多數 Android / iOS 都穩定）
             body.addEventListener('pointerdown', (e) => {
                 try {
                     if (!modal.classList.contains('active')) return;
+                    if (!usePointer) return;
                     if (e.pointerType === 'mouse') return;
                     onStart(e.clientX, e.clientY);
                     try { body.setPointerCapture(e.pointerId); } catch (_) {}
