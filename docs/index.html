@@ -148,6 +148,12 @@
             .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
 
+        /* ✅ 平板橫向：用盡闊度（唔用手機外框限制） */
+        @media (orientation: landscape) and (max-width: 1024px) {
+            .desktop-stage { padding: 0; }
+            .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
+        }
+
         /* App 本體高度跟住外框走（唔再用 100dvh 硬鎖） */
         .app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: calc(var(--statusbar-h) + env(safe-area-inset-bottom)); }
 
