@@ -30,9 +30,6 @@
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
-    <!-- ✅ Markdown 預覽（記事薄用） -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -175,11 +172,15 @@
         .modal-overlay.active .modal-content { transform: translateY(0) !important; }
         .modal-body { flex: 1 1 auto; overflow: auto; -webkit-overflow-scrolling: touch; }
 
+        /* 部分 modal 之前用 inline style 設咗 height:auto / max-height:xxdvh，呢度一律覆蓋 */
+        .modal-content[style] { height: 100% !important; max-height: 100% !important; }
+
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
         .header-title { display: flex; align-items: center; gap: 8px; font-size: calc(22px * var(--ui-font-scale)); font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
+.icon-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
 
         /* ✅ Modal 內按鈕：四個掣統一大細（慳位但一致） */
         .modal-header .icon-btn {
@@ -193,65 +194,16 @@
         /* Lucide SVG 會有 inline width/height，呢度強制統一 */
         .modal-header .icon-btn svg { width: 20px !important; height: 20px !important; }
 
-        /* ✅ 只針對兩個頁面右上角按鈕加「捆邊」更清晰 */
-        #dayModal .modal-header .icon-btn,
-        #notebookModal .modal-header .icon-btn {
+        /* ✅ 只保留「X（關閉）」外框，其餘功能鍵唔要外框 */
+        .modal-header .close-btn {
             border: 1px solid var(--outline);
             background: rgba(255,255,255,0.25);
         }
-        body.theme-dark #dayModal .modal-header .icon-btn,
-        body.theme-dark #notebookModal .modal-header .icon-btn {
+        body.theme-dark .modal-header .close-btn {
+            border: 1px solid rgba(255,255,255,0.22);
             background: rgba(30,30,30,0.25);
         }
         .icon-btn:hover { background: var(--hover); }
-
-        /* 🖍️ 熒光筆（真正上色） */
-        /* 🖍️ 熒光筆：更「出」+ 支援多行換行 */
-        mark.hl-mark {
-            background: rgba(255, 242, 0, 0.85);
-            color: inherit;
-            padding: 0 3px;
-            border-radius: 5px;
-            box-shadow: 0 0 0 2px rgba(255, 242, 0, 0.25);
-            -webkit-box-decoration-break: clone;
-            box-decoration-break: clone;
-        }
-        body.theme-dark mark.hl-mark {
-            background: rgba(255, 242, 0, 0.62);
-            box-shadow: 0 0 0 2px rgba(255, 242, 0, 0.18);
-        }
-
-        /* ✅ Markdown 預覽：閱讀頁正文排版（只影響 readText.markdown-rendered） */
-        #readText.markdown-rendered { white-space: normal; }
-        #readText.markdown-rendered h1, #readText.markdown-rendered h2, #readText.markdown-rendered h3 { margin: 14px 0 8px; line-height: 1.2; }
-        #readText.markdown-rendered h1 { font-size: 1.35em; }
-        #readText.markdown-rendered h2 { font-size: 1.20em; }
-        #readText.markdown-rendered h3 { font-size: 1.08em; }
-        #readText.markdown-rendered p { margin: 10px 0; }
-        #readText.markdown-rendered ul, #readText.markdown-rendered ol { margin: 10px 0 10px 22px; }
-        #readText.markdown-rendered li { margin: 6px 0; }
-        #readText.markdown-rendered blockquote { margin: 10px 0; padding: 10px 12px; border-left: 4px solid var(--primary); background: rgba(102,126,234,0.08); border-radius: 10px; }
-        #readText.markdown-rendered code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.95em; padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,0.08); }
-        body.theme-dark #readText.markdown-rendered code { background: rgba(255,255,255,0.12); }
-        #readText.markdown-rendered pre { margin: 10px 0; padding: 12px; border-radius: 12px; overflow: auto; background: rgba(0,0,0,0.08); }
-        body.theme-dark #readText.markdown-rendered pre { background: rgba(255,255,255,0.10); }
-        #readText.markdown-rendered pre code { background: transparent; padding: 0; }
-        #readText.markdown-rendered a { color: var(--primary); text-decoration: underline; }
-        #readText.markdown-rendered hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-
-        /* 小小 MD 切換掣（readModal header） */
-        .md-toggle-btn { font-weight: 900; font-size: 13px; padding: 6px 10px; border: 1px solid var(--outline); border-radius: 10px; background: rgba(255,255,255,0.25); }
-        body.theme-dark .md-toggle-btn { background: rgba(30,30,30,0.25); }
-        .md-toggle-btn.active { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102,126,234,0.18); }
-
-        /* ✅ 返回中：短暫鎖住點擊，避免連撳多次 back */
-        body.nav-busy .icon-btn,
-        body.nav-busy .action-btn,
-        body.nav-busy .btn,
-        body.nav-busy .wm-float-close,
-        body.nav-busy .lightbox-close {
-            pointer-events: none !important;
-        }
 
         .section-header { padding: 16px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
         .section-content { display: none; flex-direction: column; gap: 8px; padding-bottom: 16px; }
@@ -393,37 +345,16 @@
         }
         /* 展開時全露出，方便撳入面掣 */
         .fab-group.expanded { right: 18px; }
-        /* ✅ 參考你提供嘅做法：按鈕本體實色，但保留「浮起」嘅半透明陰影 */
-        .fab, .fab-mini {
-            width: 46px;
-            height: 46px;
-            border-radius: 999px;
-            border: 1px solid var(--outline);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* 圓形按鈕下方浮動陰影（有透明度） */
-            box-shadow: 0 12px 18px rgba(0,0,0,0.22);
-            transition: transform 0.18s ease;
-        }
+        .fab, .fab-mini { width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--outline); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.18); transition: transform 0.18s ease; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
         .fab {
-            /* 主「+」掣：實色 */
-            background: var(--primary);
+            /* ✅ 主「+」掣：50% 透明（連同「+字」一齊） */
+            background: rgba(128, 90, 213, 0.80); /* fallback */
+            background: color-mix(in srgb, var(--primary) 80%, transparent);
             color: white;
-            opacity: 1;
+            opacity: 0.80;
         }
         .fab:active, .fab-mini:active { transform: scale(0.96); }
-        /* 迷你功能掣：實色 */
-        .fab-mini {
-            width: 46px;
-            height: 46px;
-            background: var(--surface);
-            color: var(--text-main);
-            border: 1px solid var(--outline);
-            display: none;
-            opacity: 1;
-        }
+        .fab-mini { width: 46px; height: 46px; background: rgba(255,255,255,0.58); color: var(--text-main); border: 1px solid var(--outline); display: none; opacity: 0.80; }
 
         /* ✅ 字體大小（A±）彈出 + / - */
         .fab-group { position: fixed; }
@@ -436,21 +367,20 @@
         body.theme-dark .fab-mini-font-step { background: rgba(30,30,30,0.88); }
         .fab-mini-font-step .font-step { font-size: 22px; font-weight: 900; line-height: 1; }
         .fab-mini-font-step:active { transform: scale(0.96); }
-        body.theme-dark .fab-mini { background: var(--surface); border: 1px solid var(--outline); color: var(--text-main); opacity: 1; }
+        body.theme-dark .fab-mini { background: rgba(30,30,30,0.72); border: 1px solid var(--outline); color: var(--text-main); opacity: 0.80; }
 
         /* ✅ 備份捷徑：用更鮮艷顏色突出（避免同其他 mini 掣一樣色） */
         .fab-mini-backup {
-            /* ✅ 橙色「下載」掣：本體實色（唔要透明） */
-            background: #f59e0b;
+            background: rgba(245, 158, 11, 0.92);
             color: #ffffff;
-            border: 1px solid rgba(180, 83, 9, 0.45);
-            opacity: 1;
+            border: 1px solid rgba(180, 83, 9, 0.35);
+            box-shadow: 0 10px 26px rgba(245, 158, 11, 0.28);
+            opacity: 0.96;
         }
         body.theme-dark .fab-mini-backup {
-            background: #fbbf24;
+            background: rgba(245, 158, 11, 0.88);
             color: #0b1220;
-            border: 1px solid rgba(251, 191, 36, 0.55);
-            opacity: 1;
+            border: 1px solid rgba(251, 191, 36, 0.35);
         }
 
         .fab-group.expanded .fab-mini { display: flex; animation: fabPop 160ms ease-out; }
@@ -482,11 +412,9 @@
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
+        /* ✅ 記事卡底色跟標籤色（淡色混合），方便一眼分辨「工作/個人/…」 */
         .entry-card {
-            /* fallback（舊瀏覽器唔支援 color-mix 時用） */
-            background: var(--bg);
-            /* ✅ 全局：用所選標籤色做「淡底」背景（令日曆/記事簿/搜尋都一致） */
-            background-color: color-mix(in srgb, var(--card-color, var(--primary)) 14%, var(--surface));
+            background: color-mix(in srgb, var(--card-color, var(--primary)) 10%, var(--bg));
             border: 1px solid var(--outline);
             border-radius: 12px;
             padding: 16px;
@@ -495,12 +423,11 @@
             overflow: hidden;
         }
         body.theme-dark .entry-card {
-            background-color: color-mix(in srgb, var(--card-color, var(--primary)) 22%, #000);
+            background: color-mix(in srgb, var(--card-color, var(--primary)) 16%, var(--bg));
         }
 
         /* ✅ 批量刪除：工具列 + 勾選 */
-        .bulk-toolbar { position: sticky; top: -1px; z-index: 110; display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-bottom: 12px; }
-        body.theme-dark .bulk-toolbar { background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .bulk-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); }
         .entry-card.bulk-mode { padding-left: 52px; }
         .bulk-check { position:absolute; left: 14px; top: 16px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--outline); background: rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; }
         body.theme-dark .bulk-check { background: rgba(30,30,30,0.7); }
@@ -508,33 +435,6 @@
         .entry-card.selected { outline: 3px solid rgba(66, 153, 225, 0.65); outline-offset: -3px; }
         .entry-card .bulk-check i { width: 16px; height: 16px; }
         .entry-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--card-color, var(--primary)); }
-
-        /* ⭐ 星星鎖定：加星後不可刪除（要先取消星星） */
-        .entry-star-btn {
-            /* 只要星：無圓圈、無底色、無邊框 */
-            border: none;
-            background: transparent;
-            color: var(--text-light);
-            width: 26px;
-            height: 26px;
-            min-width: 26px;
-            min-height: 26px;
-            padding: 0;
-            border-radius: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.06s ease, color 0.12s ease;
-        }
-        .entry-star-btn:active { transform: scale(0.94); }
-        .entry-star-btn.on { color: #f59e0b; }
-        .entry-star-btn.on svg { fill: currentColor; color: currentColor; }
-        .entry-star-btn svg { width: 18px; height: 18px; }
-
-        /* 閱讀頁：已加星時，刪除掣變為不可按 */
-        #readDeleteBtn[aria-disabled="true"] { opacity: 0.38; pointer-events: none; }
-
         .entry-card-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
         .entry-card-time { font-size: 14px; color: var(--text-light); font-weight: bold; display: flex; gap: 8px; align-items: center;}
         .entry-card-tag { font-size: 13px; font-weight: bold; color: var(--card-color); background: var(--surface); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--outline); }
@@ -557,6 +457,11 @@
 
         #readModal .modal-content { height: 100dvh; border-radius: 0; position: relative; } 
         #readModal .modal-header { border-radius: 0; }
+        /* ✅ 閱讀頁每篇文章底色（跟隨文章顏色淡化） */
+        #readModal .modal-body { background: var(--read-bg, var(--surface)); }
+        /* ✅ 閱讀頁：標題保持左邊；返回（X）係最右上角操作列最後一粒 */
+        #readModal .modal-header .modal-title { justify-content: flex-start; }
+        body.theme-dark #readModal .modal-body { background: var(--read-bg-dark, var(--surface)); }
 
         /* ✅ 一次性提示：教用家左右撥切換上一篇/下一篇 */
         .swipe-hint {
@@ -607,43 +512,8 @@
         .color-picker-container { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; flex-shrink: 0; }
         .color-picker-scroll { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
         .color-picker { display: flex; gap: 12px; width: max-content; }
-        /* 🎨 顏色圓圈：加上中文字 + 細啲（避免太大） */
-        .color-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: transform 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            overflow: hidden;
-        }
-        .color-btn .color-label {
-            font-size: 14px;
-            font-weight: 900;
-            line-height: 1;
-            letter-spacing: 0.5px;
-            text-align: center;
-            user-select: none;
-            pointer-events: none;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.15);
-        }
-        .color-btn.selected {
-            transform: scale(1.12);
-            box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main);
-        }
-
-        /* 細屏再細少少，避免遮位 */
-        @media (max-width: 380px) {
-            .color-btn { width: 40px; height: 40px; }
-            .color-btn .color-label { font-size: 13px; }
-            .color-picker { gap: 10px; }
-        }
+        .color-btn { width: 38px; height: 38px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .color-btn.selected { transform: scale(1.15); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main); }
         .tag-name-editor { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
         .tag-name-input { flex: 1; padding: 10px 14px; border: 1px solid var(--outline); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 16px; outline: none; font-weight: bold; }
         .tag-name-input:focus { border-color: var(--outline); }
@@ -658,50 +528,12 @@
         .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
-        /* 🌤️ 編輯模式：天氣工具列同樣縮細（同上面工具列一致） */
-        #editorModal .weather-toolbar { gap: 6px; margin-bottom: 8px; padding-bottom: 4px; }
-        #editorModal .weather-toolbar .weather-btn {
-            padding: 6px 10px;
-            font-size: calc(12px * var(--ui-font-scale));
-            line-height: 1;
-            min-height: 34px;
-            border-radius: 999px;
-        }
-        @media (max-width: 380px) {
-            #editorModal .weather-toolbar .weather-btn { padding: 5px 9px; min-height: 32px; }
-        }
-
         .tool-btn { flex: 0 0 auto; background: var(--bg); border: 1px solid var(--outline); padding: 9px 12px; border-radius: 999px; font-size: calc(13px * var(--ui-font-scale)); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main); white-space: nowrap; }
         .tool-btn:hover { background: var(--border); }
-
-        /* ✍️ 編輯模式：工具列縮細（高度/字/圖示）＝同一屏可見多過 3 個 */
-        #editorModal .editor-toolbar { gap: 6px; margin-bottom: 6px; padding-bottom: 4px; }
-        #editorModal .editor-toolbar .tool-btn {
-            padding: 6px 10px;
-            font-size: calc(12px * var(--ui-font-scale));
-            line-height: 1;
-            min-height: 34px;
-            border-radius: 999px;
-        }
-        #editorModal .editor-toolbar .tool-btn svg {
-            width: 18px !important;
-            height: 18px !important;
-        }
-        @media (max-width: 380px) {
-            #editorModal .editor-toolbar .tool-btn { padding: 5px 9px; min-height: 32px; }
-            #editorModal .editor-toolbar .tool-btn svg { width: 17px !important; height: 17px !important; }
-        }
         .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: var(--outline); }
         .tool-btn-alarm:hover { background: #fed7d7; }
 
         textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
-        .editor-rich { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; outline: none; transition: font-size 0.2s; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
-        .editor-rich:focus { border-color: var(--outline); background: var(--surface); box-shadow: inset 0 0 0 1px rgba(74,85,104,0.35); }
-        .editor-rich.size-sm { font-size: 16px; line-height: 1.5; }
-        .editor-rich.size-md { font-size: 20px; line-height: 1.6; }
-        .editor-rich.size-lg { font-size: 24px; line-height: 1.7; }
-        .editor-rich:empty:before { content: attr(data-placeholder); color: #b8b8b8; }
-
         textarea::placeholder { color: #b8b8b8; opacity: 1; }
         textarea::-webkit-input-placeholder { color: #b8b8b8; opacity: 1; }
         textarea::-moz-placeholder { color: #b8b8b8; opacity: 1; }
@@ -710,7 +542,6 @@
 
         .editor-text-wrap { position: relative; }
         .editor-text-wrap #editorText { padding-right: 52px; }
-
         .ta-expand-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--outline); background: rgba(255,255,255,0.0); display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.55; }
         .ta-expand-btn:hover { opacity: 0.9; background: var(--hover); }
 
@@ -865,28 +696,8 @@
 
         /* 底部固定元素一齊上移，避免遮住重要操作 */
         body.kbd-open .statusbar { transform: translateY(calc(-1 * var(--kbd-shift))); }
-
-        /* ✅ 你提議嘅邏輯：
-           - 有時瀏覽器偵測唔到鍵盤高度（--kbd-shift 可能仍然係 0），
-             但用家確實已經 focus 咗輸入欄。
-           - 所以：只要「有輸入焦點」(kbd-focus) 或「偵測到鍵盤位移」(kbd-open)，都一律收起浮動鍵。
-        */
-        body.kbd-open .fab-group,
-        body.kbd-focus .fab-group {
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(calc(-1 * var(--kbd-shift))) scale(0.98);
-        }
-        body.kbd-open .wm-float-close,
-        body.kbd-focus .wm-float-close {
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(calc(-1 * var(--kbd-shift))) scale(0.98);
-        }
-        body.kbd-open .fab-group.expanded,
-        body.kbd-focus .fab-group.expanded { right: 18px; }
-
-
+        body.kbd-open .fab-group { transform: translateY(calc(-1 * var(--kbd-shift))); }
+        body.kbd-open .wm-float-close { transform: translateY(calc(-1 * var(--kbd-shift))); }
 
     </style>
 </head>
@@ -939,7 +750,7 @@
             <div class="statuspanel" onclick="event.stopPropagation()">
                 <div class="statuspanel-header">
                     <div>狀態詳情</div>
-                    <button class="icon-btn" onclick="closeStatusPanel()"><i data-lucide="x" style="width: 22px; height: 22px;"></i></button>
+                    <button class="icon-btn close-btn" onclick="closeStatusPanel()"><i data-lucide="x" style="width: 22px; height: 22px;"></i></button>
                 </div>
                 <div class="statuspanel-body" id="statusPanelBody"></div>
                 <div class="statuspanel-actions" style="display:flex; flex-direction:column; gap:10px;">
@@ -968,8 +779,6 @@
         <button class="fab" onclick="toggleFabMenu()" title="功能"><i data-lucide="plus" class="fab-rotate" style="width: 26px; height: 26px;"></i></button>
     </div>
 
-
-
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
@@ -989,11 +798,11 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="helpModal" onclick="backOrClose('helpModal', event)">
+    <div class="modal-overlay" id="helpModal" onclick="closeModal('helpModal', event)">
         <div class="modal-content" style="max-height: 85dvh; height: auto;">
             <div class="modal-header">
                 <div class="modal-title" style="color: var(--primary); font-size: 20px;"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> 詳細使用教學</div>
-                <button class="icon-btn" onclick="backOrClose('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <div class="tutorial-box" style="border: 2px solid #e53e3e; background: rgba(229, 62, 62, 0.06);"><div class="tutorial-title"><i data-lucide="alert-triangle" style="color: #e53e3e;"></i> <strong>最重要：請經常備份（清洗瀏覽器暫存前一定要備份）</strong></div><div class="tutorial-text">本 App 嘅資料主要儲存在你部裝置嘅瀏覽器本機儲存（例如 Local Storage / IndexedDB）。<br><strong>如果你清洗／清除瀏覽器暫存、網站資料，所有記事／圖片／附件有機會會一次過冇晒。</strong><br><br>所以請你：<br>— <strong>養成定期備份習慣</strong>（建議每隔一段時間做一次）。<br>— <strong>每次清洗暫存／清理網站資料之前，必須先做一次備份</strong>。<br><br>提示：你可以喺「設定」入面使用 <strong>Google 雲端同步</strong>，將資料備份到你私人雲端，換機／重裝都可以還原。</div></div>
@@ -1025,7 +834,7 @@
         <div class="modal-content" style="max-height: 60dvh; height: auto;">
             <div class="modal-header">
                 <div class="modal-title" style="color: var(--primary);"><i data-lucide="share-2"></i> 分享內容保存到</div>
-                <button class="icon-btn" onclick="closeShareDateModal(true, false)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeShareDateModal(true, false)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height: 1.6;">
                 <div style="display:flex; gap:10px; margin-bottom: 12px;">
@@ -1053,31 +862,31 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="briefingModal" onclick="backOrClose('briefingModal', event)">
+    <div class="modal-overlay" id="briefingModal" onclick="closeModal('briefingModal', event)">
         <div class="modal-content" style="max-height: 80dvh; height: auto;">
             <div class="modal-header">
                 <div class="modal-title" style="color: var(--primary);"><i data-lucide="sunrise"></i> 今日晨報</div>
-                <button class="icon-btn" onclick="backOrClose('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom:16px; color:var(--text-light); font-size:16px; font-weight: bold;">早晨！你今日有以下事項需要留意：</p>
                 <div class="entry-list" id="briefingList"></div>
-                <button class="action-btn primary" onclick="backOrClose('briefingModal')" style="margin-top:24px;">開始今日日程</button>
+                <button class="action-btn primary" onclick="closeModal('briefingModal')" style="margin-top:24px;">開始今日日程</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="dayModal" onclick="backOrClose('dayModal', event)">
+    <div class="modal-overlay" id="dayModal" onclick="closeModal('dayModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="dayModalTitle">日期</div>
                 <div>
                     <button class="icon-btn" id="dayBulkToggleBtn" onclick="toggleDayBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn close-btn" onclick="closeModal('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
-                <div id="dayBulkToolbar" class="bulk-toolbar" style="display:none;">
+                <div id="dayBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 12px;">
                     <button class="tool-btn" onclick="dayBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
                     <button class="tool-btn" onclick="dayBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
                     <button class="tool-btn tool-btn-alarm" onclick="dayBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="dayBulkCount">0</span>)</button>
@@ -1102,17 +911,16 @@
         </div>
     </div>
     
-    <div class="modal-overlay" id="readModal" onclick="backOrClose('readModal', event)">
+    <div class="modal-overlay" id="readModal" onclick="closeModal('readModal', event)">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
+                <div class="modal-title"><span>閱讀記事</span></div>
                 <div>
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="Markdown 預覽">MD</button>
-                    <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="readDeleteBtn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn close-btn" onclick="backToDayView()" title="返回" style="display:inline-flex;"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1139,11 +947,11 @@
     
 
     <!-- ✅ 選擇資料夾：用於「移去記事簿」一次完成（分類 + 可選跳轉） -->
-    <div class="modal-overlay" id="pickFolderModal" onclick="backOrClose('pickFolderModal', event)">
+    <div class="modal-overlay" id="pickFolderModal" onclick="closeModal('pickFolderModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">移去記事簿</div>
-                <button class="icon-btn" onclick="backOrClose('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請揀資料夾（或未分類）</div>
@@ -1161,7 +969,7 @@
                 </div>
 
                 <div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap;">
-                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="backOrClose('pickFolderModal')">取消</button>
+                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="closeModal('pickFolderModal')">取消</button>
                     <button class="action-btn" style="flex:1; min-width:140px;" onclick="confirmPickFolder(false)">確定</button>
                     <button class="action-btn primary" style="flex:1; min-width:160px;" onclick="confirmPickFolder(true)">確定並跳去</button>
                 </div>
@@ -1172,17 +980,17 @@
             </div>
         </div>
     </div>
-<div class="modal-overlay" id="pickDateModal" onclick="backOrClose('pickDateModal', event)">
+<div class="modal-overlay" id="pickDateModal" onclick="closeModal('pickDateModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">選擇日期</div>
-                <button class="icon-btn" onclick="backOrClose('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請直接揀日子（YYYY-MM-DD）</div>
                 <input id="pickDateInput" type="date" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px;" />
                 <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button class="action-btn" style="flex:1;" onclick="backOrClose('pickDateModal')">取消</button>
+                    <button class="action-btn" style="flex:1;" onclick="closeModal('pickDateModal')">取消</button>
                     <button class="action-btn primary" style="flex:1;" onclick="confirmPickDate()">確定</button>
                 </div>
             </div>
@@ -1197,7 +1005,7 @@
                 
                 <button class="icon-btn" onclick="toggleWritingMode()" title="全畫面輸入"><i id="writingModeIcon" data-lucide="maximize-2" style="width: 26px; height: 26px;"></i></button>
 
-                <button class="icon-btn" onclick="closeEditor()"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeEditor()"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div class="color-picker-container">
@@ -1212,9 +1020,6 @@
                 
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
-                    <button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
-                    <button class="tool-btn" onclick="editorUndo()" title="向後撤銷"><i data-lucide="rotate-ccw"></i> 撤銷</button>
-                    <button class="tool-btn" onclick="editorRedo()" title="向前重做"><i data-lucide="rotate-cw"></i> 重做</button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
@@ -1258,8 +1063,8 @@
                 <div class="editor-text-wrap">
                     <button class="ta-expand-btn" onclick="enterTextFullscreen()" title="全頁輸入">
                         <i data-lucide="maximize-2" style="width: 18px; height: 18px;"></i>
-                    </button>                    <div id="editorRich" class="editor-rich size-md" contenteditable="true" spellcheck="false" data-placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></div>
-                    <textarea id="editorText" style="display:none" tabindex="-1" aria-hidden="true"></textarea>
+                    </button>
+                    <textarea id="editorText" class="size-md" placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></textarea>
                 </div>
                 <div class="photo-gallery" id="editorGallery"></div>
                 <div class="attachments-box" id="attachmentsBox" style="display:none;">
@@ -1281,11 +1086,11 @@
         
         
     
-    <div class="modal-overlay" id="moveCopyModal" onclick="backOrClose('moveCopyModal', event)">
+    <div class="modal-overlay" id="moveCopyModal" onclick="closeModal('moveCopyModal', event)">
         <div class="modal-content" style="height:auto; max-height: 70dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="shuffle" style="width: 22px;"></i> 移動 / 複製</div>
-                <button class="icon-btn" onclick="backOrClose('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
 
@@ -1368,7 +1173,7 @@
                     </div>
                 </div>
                 <div class="move-actions">
-                    <button class="btn btn-cancel" onclick="backOrClose('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
+                    <button class="btn btn-cancel" onclick="closeModal('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
                     <button class="btn" style="background:#2563eb; color:white;" onclick="applyMoveOrCopy('move')"><i data-lucide="move"></i> 移動</button>
                     <button class="btn" style="background: var(--primary); color:white;" onclick="applyMoveOrCopy('copy')"><i data-lucide="copy"></i> 複製</button>
                     <button class="btn" style="background:#111827; color:white; display:none;" id="mcUndoBtn" onclick="undoLastBulkCopy()"><i data-lucide="rotate-ccw"></i> 撤銷</button>
@@ -1377,11 +1182,11 @@
         </div>
     </div>
 
-<div class="modal-overlay" id="toolboxModal" onclick="backOrClose('toolboxModal', event)">
+<div class="modal-overlay" id="toolboxModal" onclick="closeModal('toolboxModal', event)">
         <div class="modal-content" style="height: auto; max-height: 85dvh;">
             <div class="modal-header" style="padding:16px 20px;">
                 <div class="modal-title"><i data-lucide="briefcase"></i> 實用工具箱</div>
-                <button class="icon-btn" onclick="backOrClose('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div class="section-header" onclick="toggleSection('emergency')">🚨 緊急聯絡 <i data-lucide="chevron-down"></i></div>
@@ -1419,13 +1224,13 @@
         </div>
     </div>
 
-<div class="modal-overlay" id="backupModal" onclick="backOrClose('backupModal', event)">
+<div class="modal-overlay" id="backupModal" onclick="closeModal('backupModal', event)">
         <div class="modal-content" style="height: auto; max-height: 90dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> 設定與備份</div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn close-btn" onclick="closeModal('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1434,7 +1239,7 @@
                     <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                 </button>
 
-                <button class="action-btn" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;" onclick="backOrClose('backupModal'); setTimeout(() => openModal('toolboxModal'), 150);">
+                <button class="action-btn" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;" onclick="closeModal('backupModal'); setTimeout(() => openModal('toolboxModal'), 150);">
                     <i data-lucide="briefcase"></i> 打開工具箱
                 </button>
 
@@ -1526,11 +1331,11 @@
     <div id="toast" class="toast"></div>
 
     <!-- 🚨 疑似資料被清除：補救指引 -->
-    <div class="modal-overlay" id="recoveryModal" onclick="backOrClose('recoveryModal', event)">
+    <div class="modal-overlay" id="recoveryModal" onclick="closeModal('recoveryModal', event)">
         <div class="modal-content" style="height:auto; max-height: 90dvh;">
             <div class="modal-header">
                 <div class="modal-title" style="color:#e53e3e;"><i data-lucide="alert-triangle" style="width: 26px; height: 26px;"></i> 似乎你嘅資料唔見咗</div>
-                <button class="icon-btn" onclick="backOrClose('recoveryModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('recoveryModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body" style="line-height:1.6;">
                 <div style="background: rgba(229, 62, 62, 0.06); border: 1px solid rgba(229, 62, 62, 0.35); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
@@ -1550,7 +1355,7 @@
                         2）返嚟呢度撳下面「立即上傳備份檔」→ 揀返嗰個檔案 → 就會開始還原。
                     </div>
                     <div style="display:flex; flex-direction:column; gap:10px; margin-top: 10px;">
-                        <button class="action-btn" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);" onclick="backOrClose('recoveryModal'); setTimeout(() => { try { openModal('backupModal'); } catch(_) {} }, 50);">
+                        <button class="action-btn" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);" onclick="closeModal('recoveryModal'); setTimeout(() => { try { openModal('backupModal'); } catch(_) {} }, 50);">
                             <i data-lucide="settings"></i> 打開「設定與備份」
                         </button>
                         <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="try { document.getElementById('importInput').click(); } catch(e) { console.error(e); }">
@@ -1584,13 +1389,13 @@
     </div>
 
     <!-- ✅ 記事薄（參考你提供的 ColorNote 列表） -->
-    <div class="modal-overlay" id="notebookModal" onclick="backOrClose('notebookModal', event)">
+    <div class="modal-overlay" id="notebookModal" onclick="closeModal('notebookModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="notebook-text" style="width: 22px;"></i> 記事薄</div>
                 <div>
                     <button class="icon-btn" id="notebookBulkToggleBtn" onclick="toggleNotebookBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn close-btn" onclick="closeModal('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1604,10 +1409,10 @@
                         <option value="color">依標籤排序</option>
                     </select>
                     <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-								<button class="icon-btn" onclick="event.stopPropagation(); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
+								<button class="icon-btn" onclick="closeModal('notebookModal'); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
                 </div>
 
-                <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none;">
+                <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none; margin-bottom: 10px;">
                     <button class="tool-btn" onclick="notebookBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
                     <button class="tool-btn" onclick="notebookBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
                     <button class="tool-btn tool-btn-alarm" onclick="notebookBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="notebookBulkCount">0</span>)</button>
@@ -1622,7 +1427,7 @@
     </div>
 
     <!-- ✅ 資料夾模式：一頁顯示多個資料夾，按入去睇內容 -->
-    <div class="modal-overlay" id="folderModeModal" onclick="backOrClose('folderModeModal', event)">
+    <div class="modal-overlay" id="folderModeModal" onclick="closeModal('folderModeModal', event)">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="folders" style="width: 22px;"></i> 資料夾</div>
@@ -1630,7 +1435,7 @@
                     <button class="icon-btn" onclick="toggleFolderModeManage()" title="刪除模式"><i data-lucide="trash-2" style="width: 22px; height: 22px;"></i></button>
                     <button class="icon-btn" onclick="addFolderFromFolderMode()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
                     <button class="icon-btn" onclick="manageNotebookFolders()" title="進階管理（批次改名/整理）"><i data-lucide="settings" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('folderModeModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn close-btn" onclick="closeModal('folderModeModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
             <div class="modal-body">
@@ -1640,12 +1445,12 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="searchModal" onclick="backOrClose('searchModal', event)">
+    <div class="modal-overlay" id="searchModal" onclick="closeModal('searchModal', event)">
         <!-- 🔎 搜尋視窗：縮細啲，避免得幾行都霸晒成版 -->
         <div class="modal-content" style="height: auto; max-height: 60dvh;">
             <div class="modal-header">
                 <div class="modal-title"><i data-lucide="search" style="width: 22px;"></i> 搜尋記事</div>
-                <button class="icon-btn" onclick="backOrClose('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <button class="icon-btn close-btn" onclick="closeModal('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
@@ -1798,8 +1603,6 @@
             document.addEventListener('focusin', (e) => {
                 if (!isTextInput(e.target)) return;
                 focusCount++;
-                // ✅ 有輸入焦點就標記，唔靠鍵盤高度偵測
-                document.body.classList.add('kbd-focus');
                 requestUpdate();
             }, true);
 
@@ -1808,13 +1611,8 @@
                 // 等下一個 focusin（例如由一個 input 跳去另一個）
                 setTimeout(() => {
                     const ae = document.activeElement;
-                    if (!isTextInput(ae)) {
-                        focusCount = 0;
-                        document.body.classList.remove('kbd-focus');
-                    } else {
-                        focusCount = 1;
-                        document.body.classList.add('kbd-focus');
-                    }
+                    if (!isTextInput(ae)) focusCount = 0;
+                    else focusCount = 1;
                     requestUpdate();
                 }, 80);
             }, true);
@@ -1850,164 +1648,6 @@
         let __nbBulkSelected = new Set();
         let __dayVisibleIds = [];
         let __nbVisibleIds = [];
-
-        // =========================
-        // ⭐ 星星鎖定（防誤刪）
-        // - 每條記事可加/取消星星
-        // - 已加星：任何「刪除／覆蓋式還原」都會被攔截
-        // =========================
-        function isEntryStarred(e) {
-            try { return !!(e && (e.starred === true || e.starred === 1 || e.starred === '1')); } catch (_) { return false; }
-        }
-
-        function renderStarButton(e) {
-            try {
-                if (!e || e.id === undefined || e.id === null) return '';
-                const on = isEntryStarred(e);
-                const t = on ? '已加星：再按取消（取消後先可刪除）' : '加星鎖定（防誤刪）';
-                return `<button class="entry-star-btn ${on ? 'on' : ''}" onclick="toggleEntryStar(event, '${String(e.id)}')" title="${t}"><i data-lucide="star"></i></button>`;
-            } catch (_) { return ''; }
-        }
-
-        async function getEntryByIdCompat(entryId) {
-            const raw = (entryId === null || entryId === undefined) ? '' : String(entryId);
-            const numKey = (/^\d+$/.test(raw)) ? Number(raw) : null;
-
-            let e = null;
-            try { e = (numKey !== null) ? await db.get(numKey) : null; } catch (_) { e = null; }
-            if (!e) { try { e = await db.get(raw); } catch (_) { e = null; } }
-            if (!e) {
-                try {
-                    const all = await db.getAll();
-                    all.forEach(normalizeEntrySpace);
-                    e = all.find(x => x && String(x.id) === raw) || null;
-                } catch (_) { e = null; }
-            }
-            return e;
-        }
-
-        async function setEntryStar(entryId, starred) {
-            const e = await getEntryByIdCompat(entryId);
-            if (!e) return false;
-            e.starred = !!starred;
-            await db.save(e);
-            return true;
-        }
-
-        function updateReadStarUI() {
-            try {
-                const btn = document.getElementById('readStarBtn');
-                const del = document.getElementById('readDeleteBtn');
-                const on = isEntryStarred(currentEntryData);
-
-                if (btn) {
-                    if (on) {
-                        btn.style.color = '#f59e0b';
-                        // 令 icon 有 fill
-                        const svg = btn.querySelector('svg');
-                        if (svg) svg.style.fill = '#f59e0b';
-                        btn.title = '已加星：再按取消（取消後先可刪除）';
-                    } else {
-                        btn.style.color = '';
-                        const svg = btn.querySelector('svg');
-                        if (svg) svg.style.fill = '';
-                        btn.title = '星星鎖定（防誤刪）';
-                    }
-                }
-
-                if (del) {
-                    if (on) {
-                        del.setAttribute('aria-disabled', 'true');
-                        del.title = '已加星鎖定：請先取消星星先可以刪除';
-                    } else {
-                        del.removeAttribute('aria-disabled');
-                        del.title = '刪除（無法復原）';
-                    }
-                }
-            } catch (_) {}
-        }
-
-        async function toggleEntryStar(ev, entryId) {
-            // 目標：點落去要即刻有反應（先樂觀更新 UI，再背景儲存）
-            let btnEl = null;
-            try { if (ev) { ev.stopPropagation(); btnEl = (ev.currentTarget || ev.target); } } catch (_) {}
-
-            // 1) 先即時切換按鈕樣式
-            let optimisticNext = null;
-            try {
-                if (btnEl && btnEl.classList) {
-                    const wasOn = btnEl.classList.contains('on');
-                    optimisticNext = !wasOn;
-                    btnEl.classList.toggle('on', optimisticNext);
-                    // 令 lucide svg 即刻變填色
-                    const svg = btnEl.querySelector ? btnEl.querySelector('svg') : null;
-                    if (svg) svg.style.fill = optimisticNext ? 'currentColor' : '';
-                }
-            } catch (_) {}
-
-            try {
-                const e = await getEntryByIdCompat(entryId);
-                if (!e) {
-                    // revert
-                    try { if (btnEl && optimisticNext !== null) btnEl.classList.toggle('on', !optimisticNext); } catch (_) {}
-                    showToast('搵唔到該記事', 'error');
-                    return;
-                }
-
-                const next = (optimisticNext !== null) ? optimisticNext : (!isEntryStarred(e));
-                await setEntryStar(entryId, next);
-
-                // 同步目前閱讀中的資料
-                try {
-                    if (currentEntryData && String(currentEntryData.id) === String(entryId)) {
-                        currentEntryData.starred = next;
-                        updateReadStarUI();
-                    }
-                } catch (_) {}
-
-                // 更新畫面（保持資料一致）
-                try { await renderCalendar(); } catch (_) {}
-
-                // ⭐ 重要修正：之前用 __cachedDayEntriesForBulk 會拎到舊快照，造成星星顯示不同步
-                try {
-                    if (document.getElementById('dayModal')?.classList.contains('active')) {
-                        const all2 = await db.getAll();
-                        all2.forEach(normalizeEntrySpace);
-                        const dayEntries = all2.filter(x => x.date === editingDateStr && (x.space || SPACE_CALENDAR) === SPACE_CALENDAR);
-                        openDayView(editingDateStr, dayEntries);
-                    }
-                } catch (_) {}
-
-                // 記事簿：直接重渲染（內部會讀 DB）
-                try { if (document.getElementById('notebookModal')?.classList.contains('active')) renderNotebookList(); } catch (_) {}
-
-                showToast(next ? '⭐ 已加星鎖定（防誤刪）' : '已取消星星', 'success');
-                try { lucide.createIcons(); } catch (_) {}
-            } catch (err) {
-                console.error(err);
-                // revert
-                try { if (btnEl && optimisticNext !== null) btnEl.classList.toggle('on', !optimisticNext); } catch (_) {}
-                showToast('星星操作失敗', 'error');
-            }
-        }
-
-        async function toggleStarFromReadView() {
-            try {
-                if (!currentEntryData || currentEntryData.id === undefined || currentEntryData.id === null) return;
-                await toggleEntryStar(null, currentEntryData.id);
-            } catch (_) {}
-        }
-
-        async function assertNoStarredBeforeDestructive(actionName) {
-            const all = await db.getAll();
-            all.forEach(normalizeEntrySpace);
-            const locked = (all || []).filter(isEntryStarred).length;
-            if (locked > 0) {
-                alert(`⚠️ 你目前有 ${locked} 條記事已加星鎖定。\n\n為免「${actionName}」意外刪走佢哋，系統已暫停。\n\n請先逐條取消星星，先再進行。`);
-                return false;
-            }
-            return true;
-        }
 
         function updateBulkUI() {
             const dayBar = document.getElementById('dayBulkToolbar');
@@ -2063,24 +1703,6 @@
             const ids = Array.from(__dayBulkSelected);
             const all = await db.getAll();
             all.forEach(normalizeEntrySpace);
-
-            // ⭐ 星星鎖定：批量刪除前先檢查
-            try {
-                const locked = (ids || []).map(id => all.find(x => String(x.id) === String(id))).filter(e => e && isEntryStarred(e));
-                if (locked.length > 0) {
-                    showToast(`⚠️ 有 ${locked.length} 條已加星鎖定，請先取消星星先可以刪除`, 'error');
-                    return;
-                }
-            } catch (_) {}
-
-            // ⭐ 星星鎖定：批量刪除前先檢查
-            try {
-                const locked = (ids || []).map(id => all.find(x => String(x.id) === String(id))).filter(e => e && isEntryStarred(e));
-                if (locked.length > 0) {
-                    showToast(`⚠️ 有 ${locked.length} 條已加星鎖定，請先取消星星先可以刪除`, 'error');
-                    return;
-                }
-            } catch (_) {}
 
             for (const id of ids) {
                 const e = all.find(x => String(x.id) === String(id));
@@ -2211,6 +1833,35 @@
         let tagNames = JSON.parse(localStorage.getItem('diary_tag_names')) || {};
         let currentAttachments = [];
         APP_COLORS.forEach(c => { if(!tagNames[c.id]) tagNames[c.id] = c.def; });
+
+        // ✅ 兼容舊資料：有啲舊記事可能用「顏色 index（number / '0','1',...）」而唔係 'orange' 呢類 id。
+        function normalizeColorId(color) {
+            try {
+                if (color === null || color === undefined) return '';
+                if (typeof color === 'number' && Number.isFinite(color)) return (APP_COLORS[color]?.id || '');
+                const s = String(color);
+                if (/^\d+$/.test(s)) {
+                    const idx = parseInt(s, 10);
+                    return (APP_COLORS[idx]?.id || s);
+                }
+                return s;
+            } catch (_) { return String(color || ''); }
+        }
+
+        function getColorHex(color) {
+            try {
+                if (typeof color === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)) return color;
+                const id = normalizeColorId(color);
+                return APP_COLORS.find(c => c.id === id)?.hex || '#667eea';
+            } catch (_) { return '#667eea'; }
+        }
+
+        function getTagName(color) {
+            try {
+                const id = normalizeColorId(color);
+                return tagNames[id] || tagNames[color] || '標籤';
+            } catch (_) { return '標籤'; }
+        }
 
         // =========================
         // 📁 記事簿資料夾（分類）
@@ -2430,19 +2081,9 @@
         let currentEntryData = null;
         let currentTextSizeIdx = 1;
         const LAST_COLOR_KEY = 'diary_last_selected_color';
-        let selectedColor = (() => {
-            // ✅ 預設標籤：第一次開（未選過/未儲存）就用「黃色：私人」
-            // 同時避免 localStorage 入面有奇怪值（例如舊版/手動改過）
-            try {
-                const v = String(localStorage.getItem(LAST_COLOR_KEY) || '').trim();
-                const ok = APP_COLORS && Array.isArray(APP_COLORS) && APP_COLORS.some(c => c && c.id === v);
-                return ok ? v : 'yellow';
-            } catch (_) {
-                return 'yellow';
-            }
-        })();
+        let selectedColor = (() => { try { return localStorage.getItem(LAST_COLOR_KEY) || 'blue'; } catch (_) { return 'blue'; } })();
         let currentImages = [];
-        let selectedWeatherBadges = [];
+        let selectedWeatherBadge = '';
         let isAnimating = false; 
 
         // 🟢 全新變數：自動儲存計時器
@@ -2450,167 +2091,40 @@
 
         // 🟩 Android 返回鍵處理：用 History API 令「返回」先關編輯器並儲存
         let __editorHistoryPushed = false;
-
-        // ✅ 通用「頁面/視窗」返回：用 history.state 保存「modal stack」（似手機 App）
-        // 目標：開咗 1/2/3 頁，就撳 back 由 3→2→1→home（每次只退一層）
-        // 做法：
-        // - openModal() 會 pushState({__diaryStack:[...]} , '', '#m=...')
-        // - popstate 會按 event.state.__diaryStack 重建畫面（關/開 modal）
-        let __modalHistoryStack = [];
-        let __routingApplying = false;
-
-        // ✅ 歷史堆疊管理（Modal Stack）
-        // 目標：開咗 1/2/3 頁，就撳 back 由 3→2→1→home（每次只退一層）
-        // 做法：改用 History state 保存 stack，Back 就只會喺 App 內逐層退，避免同外部 URL 衝突。
-        function __hashToStack(hash) {
-            try {
-                const h = String(hash || window.location.hash || '');
-                if (!h.startsWith('#m=')) return [];
-                const raw = h.slice(3);
-                if (!raw) return [];
-                return raw.split('/').map(x => decodeURIComponent(x)).filter(Boolean);
-            } catch (_) { return []; }
-        }
-
-        function __applyStack(stack) {
-            __routingApplying = true;
-            try {
-                const desired = (stack || []).map(x => String(x));
-                __modalHistoryStack = desired.slice();
-
-                // 先關晒（除咗 editor/shareDate 由佢哋自己處理）
-                const actives = Array.from(document.querySelectorAll('.modal-overlay.active'));
-                for (const el of actives) {
-                    const id = el && el.id ? String(el.id) : '';
-                    if (!id) continue;
-                    if (id === 'editorModal' || id === 'shareDateModal') continue;
-                    try { closeModal(id); } catch (_) { try { el.classList.remove('active'); } catch (_) {} }
-                }
-
-                // 再按次序打開
-                for (const id of desired) {
-                    if (id === 'editorModal' || id === 'shareDateModal') continue;
-                    const m = document.getElementById(id);
-                    if (m) m.classList.add('active');
-                }
-            } catch (e) { console.error(e); }
-            __routingApplying = false;
-        }
-
-        function __setStackToHash(stack) {
-            // ✅ 重要：改用 History state 保存 stack，Back 就只會喺 App 內逐層退，避免同外部 URL 衝突。
-            try {
-                const safe = (stack || []).map(x => String(x));
-                history.pushState({ __diaryBase: true, __diaryStack: safe }, document.title);
-            } catch (e) { console.error(e); }
-        }
-
-        function __pushModalHistory(modalId) {
-            try {
-                const cur = __modalHistoryStack.slice();
-                const next = cur.concat([String(modalId)]);
-                __modalHistoryStack = next.slice();
-                __setStackToHash(next);
-            } catch (e) { console.error(e); }
-        }
-
-        function __removeModalFromHistoryStack(modalId) {
-            try {
-                const id = String(modalId);
-                const cur = __modalHistoryStack.slice();
-                for (let i = cur.length - 1; i >= 0; i--) {
-                    if (cur[i] === id) { cur.splice(i, 1); break; }
-                }
-                __modalHistoryStack = cur;
-            } catch (_) {}
-        }
-
-        // ✅ 防止「連撳多次」：返回/關閉進行中就鎖住，避免一口氣 back 幾層
-        let __uiNavBusy = false;
-        let __uiNavBusyTimer = null;
-        function __setNavBusy(on) {
-            try {
-                __uiNavBusy = !!on;
-                document.body.classList.toggle('nav-busy', __uiNavBusy);
-                if (__uiNavBusyTimer) { clearTimeout(__uiNavBusyTimer); __uiNavBusyTimer = null; }
-                // 防呆：就算某啲環境冇觸發 hashchange/popstate，都會自動解鎖
-                if (__uiNavBusy) {
-                    __uiNavBusyTimer = setTimeout(() => { try { __uiNavBusy = false; document.body.classList.remove('nav-busy'); } catch (_) {} }, 900);
-                }
-            } catch (_) {}
-        }
-
-
         let __suppressNextPop = false;
         // ✅ 記住編輯器由邊度開：儲存後要返回上一層（避免一下跳返月曆）
         let __editorReturnTo = null; // null | 'notebookModal' | 'dayModal' | 'readModal'
         function ensureBaseHistoryState() {
             try {
                 if (!history.state || !history.state.__diaryBase) {
-                    // ✅ base state：用 __diaryStack=[] 作為「月曆首頁」
-                    history.replaceState({ __diaryBase: true, __diaryStack: [] }, document.title);
-                }
-
-                // ✅ 永久「留喺 App」保護層（防止 Back 退到平台/Login）：
-                // 在 base 之上加一層 trap。當用戶喺月曆首頁再撳 Back，會落到 base，
-                // 我哋即刻再 push trap，令瀏覽器唔會再退到外層頁。
-                if (!window.__diaryTrapInited) {
-                    window.__diaryTrapInited = true;
-                    try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
+                    history.replaceState({ __diaryBase: true }, document.title);
                 }
             } catch (e) { console.error(e); }
 
             // 📌 狀態欄：連線狀態 + 點擊展開詳情
-            // ⚠️ 由於 openModal() 而家會經常 call ensureBaseHistoryState()，呢段副作用只可以做一次
             try {
-                if (!window.__diaryBaseSideEffectsInited) {
-                    window.__diaryBaseSideEffectsInited = true;
+                // 初始刷新一次（會顯示上次儲存/雲端/今日提醒）
+                refreshStatusBar(null);
 
-                    // 初始刷新一次（會顯示上次儲存/雲端/今日提醒）
-                    refreshStatusBar(null);
+                const sb = document.getElementById('statusBar');
+                if (sb) sb.addEventListener('click', () => openStatusPanel());
 
-                    const sb = document.getElementById('statusBar');
-                    if (sb) sb.addEventListener('click', () => openStatusPanel());
+                window.addEventListener('offline', () => refreshStatusBar('offline'));
+                window.addEventListener('online', () => refreshStatusBar('ok'));
 
-                    window.addEventListener('offline', () => refreshStatusBar('offline'));
-                    window.addEventListener('online', () => refreshStatusBar('ok'));
-
-                    // 每分鐘刷新一次（跨日就會自動出現「今日提醒」）
-                    setInterval(() => { try { refreshStatusBar(null); } catch (_) {} }, 60 * 1000);
-                }
+                // 每分鐘刷新一次（跨日就會自動出現「今日提醒」）
+                setInterval(() => { try { refreshStatusBar(null); } catch (_) {} }, 60 * 1000);
             } catch (e) { console.error(e); }
         }
-        window.addEventListener('popstate', async (event) => {
-            // 如果係我哋自己 closeEditor()/closeShareDateModal() 觸發嘅 history.back()，就唔再處理
+        window.addEventListener('popstate', async () => {
+            // 如果係我哋自己 closeEditor() 觸發嘅 history.back()，就唔再處理
             if (__suppressNextPop) { __suppressNextPop = false; return; }
             try {
-                // ✅ 先攔截「退到 base / state 為空」：留喺 App，唔畀跳出到平台(Login)
-                // - event.state 可能係 null（某些 WebView / 平台容器）
-                // - 或者係 base 狀態
-                const st = (event && event.state) ? event.state : null;
-                const isBaseLike = (!st) || (!!st.__diaryBase && (!Array.isArray(st.__diaryStack) || st.__diaryStack.length === 0));
-                if (isBaseLike) {
-                    // ✅ 如果已經係 base 狀態（首頁），再撳 Back 就 push 一個 trap 留喺 App
-                    // ✅ 但如果目前仲有 modal 開住（例如 notebookModal），應該係先關 modal
-                    const actives = Array.from(document.querySelectorAll('.modal-overlay.active'));
-                    if (actives.length > 0) {
-                        try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
-                        try { __applyStack([]); } catch (_) {}
-                        __setNavBusy(false);
-                        return;
-                    }
-
-                    try { history.pushState({ __diaryTrap: true, __diaryBase: true, __diaryStack: [] }, document.title); } catch (_) {}
-                    __setNavBusy(false);
-                    return;
-                }
-
                 // 1) 先處理「分享後選日期」彈窗返回
                 const shareDateEl = document.getElementById('shareDateModal');
                 const shareDateActive = !!(shareDateEl && shareDateEl.classList.contains('active'));
                 if (shareDateActive) {
                     closeShareDateModal(true, true); // (clearPending=true, noHistory=true)
-                    __setNavBusy(false);
                     return;
                 }
 
@@ -2620,17 +2134,8 @@
                 if (editorActive) {
                     __editorHistoryPushed = false;
                     await closeEditorNoHistory();
-                    __setNavBusy(false);
-                    return;
                 }
-
-                // 3) 最後：通用 modal 返回（用 history.state.__diaryStack）
-                const s = (event && event.state && Array.isArray(event.state.__diaryStack)) ? event.state.__diaryStack : null;
-                const stack = s ? s.slice() : __modalHistoryStack.slice();
-                __applyStack(stack);
-                __setNavBusy(false);
-                return;
-            } catch (e) { console.error(e); __setNavBusy(false); }
+            } catch (e) { console.error(e); }
         });
 
         const CLIENT_ID = '821513038783-uhr5flbnurvsgoh9vbekovl29e049m3s.apps.googleusercontent.com';
@@ -2829,8 +2334,6 @@
             const isOverwrite = String(mode).trim() === '2';
             if (isOverwrite) {
                 if(!confirm('⚠️ 警告：覆蓋模式會清除本機目前資料，然後用雲端完全覆蓋。\n\n確定要繼續嗎？')) return;
-                // ⭐ 星星鎖定：覆蓋式還原屬破壞性操作，若有加星就禁止
-                if (!(await assertNoStarredBeforeDestructive('雲端覆蓋還原'))) return;
             }
 
             const btn = document.getElementById('cloudRestoreBtn');
@@ -3734,7 +3237,7 @@
             } catch (e) { console.error(e); }
         }
 
-        function openHelpModal() { closeModal('backupModal'); openModal('helpModal'); }
+        function openHelpModal() { closeModal('backupModal'); document.getElementById('helpModal').classList.add('active'); }
         function closeWelcomeModal(event, isButton = false) { if (event && event.target.id !== 'welcomeModal' && !isButton) return; document.getElementById('welcomeModal').classList.remove('active'); localStorage.setItem('diary_welcomed_v5', 'true'); checkTodayBriefing(); }
 
         // =========================
@@ -3779,7 +3282,6 @@
             __uiFontMenuOpen = !__uiFontMenuOpen;
             pop.classList.toggle('show', __uiFontMenuOpen);
             pop.setAttribute('aria-hidden', __uiFontMenuOpen ? 'false' : 'true');
-            document.body.classList.toggle('font-pop-open', __uiFontMenuOpen);
         }
         function closeUIFontMenu() {
             const pop = document.getElementById('uiFontPop');
@@ -3787,7 +3289,6 @@
             __uiFontMenuOpen = false;
             pop.classList.remove('show');
             pop.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('font-pop-open');
         }
 
         // =========================
@@ -4093,7 +3594,7 @@
                 openEditorForNotebook();
 
                 // 帶入分享內容
-                const textarea = document.getElementById('editorText'); const rich = document.getElementById('editorRich');
+                const textarea = document.getElementById('editorText');
                 if (textarea && __pendingShared.text) textarea.value = __pendingShared.text;
                 if (__pendingShared.images && __pendingShared.images.length > 0) {
                     currentImages = __pendingShared.images;
@@ -4131,7 +3632,7 @@
             await renderCalendar();
 
             openEditor(null);
-            const textarea = document.getElementById('editorText'); const rich = document.getElementById('editorRich');
+            const textarea = document.getElementById('editorText');
             if (textarea && __pendingShared.text) textarea.value = __pendingShared.text;
 
             if (__pendingShared.images && __pendingShared.images.length > 0) {
@@ -4172,42 +3673,16 @@
             const lastBriefing = localStorage.getItem('diary_last_briefing'); if (lastBriefing === todayStr) return;
             const allEntries = await db.getAll(); allEntries.forEach(normalizeEntrySpace); const todayEntries = allEntries.filter(e => e.date === todayStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
             if (todayEntries.length > 0) {
-                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="backOrClose('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
+                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = getColorHex(e.color); const tagName = getTagName(e.color); const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="closeModal('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
                 document.getElementById('briefingModal').classList.add('active'); localStorage.setItem('diary_last_briefing', todayStr);
             }
         }
 
         function cycleTheme() { currentThemeIdx = (currentThemeIdx + 1) % THEMES.length; applyTheme(THEMES[currentThemeIdx]); localStorage.setItem('diary_theme_github', THEMES[currentThemeIdx].id); }
         function applyTheme(themeObj) { document.body.className = ''; if (themeObj.id !== 'light') document.body.classList.add(`theme-${themeObj.id}`); document.getElementById('themeIcon').setAttribute('data-lucide', themeObj.icon); lucide.createIcons(); }
-        function getReadableTextColor(hex) {
-            // hex: #rrggbb
-            if (!hex || typeof hex !== 'string' || !hex.startsWith('#') || hex.length !== 7) return '#1a202c';
-            const r = parseInt(hex.slice(1,3), 16) / 255;
-            const g = parseInt(hex.slice(3,5), 16) / 255;
-            const b = parseInt(hex.slice(5,7), 16) / 255;
-            // relative luminance (sRGB)
-            const srgb = [r, g, b].map(v => (v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4)));
-            const L = 0.2126*srgb[0] + 0.7152*srgb[1] + 0.0722*srgb[2];
-            return L < 0.5 ? '#ffffff' : '#1a202c';
-        }
-
-        function initColorPickerUI() {
-            const ui = document.getElementById('colorPickerUI');
-            if (!ui) return;
-            ui.innerHTML = APP_COLORS.map(c => {
-                const label = (tagNames && tagNames[c.id]) ? tagNames[c.id] : (c.def || '標籤');
-                const textColor = getReadableTextColor(c.hex);
-                const selectedCls = (selectedColor === c.id) ? 'selected' : '';
-                return `<div class="color-btn ${selectedCls}" style="background-color:${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"><span class="color-label" style="color:${textColor}">${escapeHtml(label)}</span></div>`;
-            }).join('');
-        }
-
-        // ✅ 防止日曆重疊：renderCalendarFor 係 async，若短時間內被連續呼叫，舊一次 render 可能喺新一次之後先完成，導致同一個 grid append 兩次。
-        // 方案：用遞增 token，確保只會套用「最新一次」render。
-        let __calendarRenderToken = 0;
+        function initColorPickerUI() { document.getElementById('colorPickerUI').innerHTML = APP_COLORS.map(c => `<div class="color-btn" style="background-color: ${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"></div>`).join(''); }
 
         async function renderCalendarFor(dateObj, gridEl, updateHeader = true) {
-            const myToken = ++__calendarRenderToken;
             const year = dateObj.getFullYear(), month = dateObj.getMonth();
             if (updateHeader) {
                 const headerEl = document.getElementById('currentMonthStr');
@@ -4217,9 +3692,6 @@
             let grid = gridEl || document.getElementById('calendarGrid');
             if (!grid) return;
 
-            // ✅ 標記呢次 render 係最新（舊 render 完成後會自動放棄 append）
-            try { grid.dataset.renderToken = String(myToken); } catch (_) {}
-
             // 優化：只在必要時清空內容，而不是替換整個 DOM 節點
             grid.innerHTML = '';
 
@@ -4228,10 +3700,6 @@
             const prevMonthDays = new Date(year, month, 0).getDate();
 
             const allEntries = await db.getAll();
-
-            // ✅ 如果呢次 render 已經唔係最新，就直接放棄（避免重疊）
-            try { if (String(grid.dataset.renderToken || '') !== String(myToken)) return; } catch (_) {}
-
 	            allEntries.forEach(normalizeEntrySpace);
 	            const entryMap = {};
 	            allEntries.filter(e => (e && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR)).forEach(e => { if(!entryMap[e.date]) entryMap[e.date] = []; entryMap[e.date].push(e); });
@@ -4291,9 +3759,6 @@
                 cell.onclick = () => openDayView(dateStr, openEntries);
                 fragment.appendChild(cell);
             }
-            // ✅ 最後再確認一次：仍然係最新 render 先可以落地
-            try { if (String(grid.dataset.renderToken || '') !== String(myToken)) return; } catch (_) {}
-
             grid.appendChild(fragment);
 
             // ✅ 逐格計算：色點太多就自動縮細，唔夠位先縮
@@ -4314,7 +3779,7 @@
             return (dayEntries || []).map(e => {
                 const colorHex = (e && e.__isHoliday)
                     ? '#e53e3e'
-                    : (APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea');
+                    : (getColorHex(e.color));
                 return `<div class="dot" style="background:${colorHex}" title="${(e.text || '事件').replace(/"/g, '&quot;')}"></div>`;
             }).join('');
         }
@@ -4363,9 +3828,6 @@
         function closeModal(id, event) {
             if (event && event.target.id !== id) return;
             document.getElementById(id).classList.remove('active');
-            // ✅ 同步返通用 history stack（避免殘留）
-            // ⚠️ routing 重建期間（__routingApplying=true）唔好改 stack，否則會失同步
-            try { if (!__routingApplying) __removeModalFromHistoryStack(id); } catch (_) {}
 
             // ✅ 記事簿全屏：關閉時還原 body
             if (id === 'notebookModal') {
@@ -4399,73 +3861,8 @@
             }
         }
 
-        // ✅ 統一「右上角 X / 關閉」= 返回一層（優先用 history.back）
-        // - 如果呢個 modal 係 stack 頂層：直接 back（由 hashchange/popstate 去重建畫面）
-        // - 如果唔係頂層/冇 stack：先用舊 closeModal 硬關作後備
-        function backOrClose(id, event) {
-            try {
-                if (event && event.target && event.target.id !== id) return;
-
-                // ✅ 避免「連撳」：進行中直接忽略
-                if (typeof __uiNavBusy !== 'undefined' && __uiNavBusy) return;
-                try { __setNavBusy(true); } catch (_) {}
-
-                // editor/shareDate 有自己嘅 back 流程，避免誤用
-                if (id === 'editorModal') {
-                    try { closeEditor(); } catch (_) {}
-                    try { __setNavBusy(false); } catch (_) {}
-                    return;
-                }
-                if (id === 'shareDateModal') {
-                    try { closeShareDateModal(true, false); } catch (_) {}
-                    try { __setNavBusy(false); } catch (_) {}
-                    return;
-                }
-
-                // ✅ 已移除「返回中…」提示（避免干擾）
-
-                const stack = __hashToStack(window.location.hash);
-                const top = stack.length ? stack[stack.length - 1] : null;
-
-                if (top === String(id)) {
-                    history.back();
-                    return;
-                }
-
-                // fallback：硬關（並嘗試同步返 hash，避免 stack 殘留）
-                closeModal(id, event);
-                try {
-                    const next = __modalHistoryStack.slice();
-                    // 用 replaceState 更新目前 entry 的 stack（唔改 URL）
-                    history.replaceState({ __diaryBase: true, __diaryStack: next.slice() }, document.title);
-                } catch (_) {}
-
-                try { __setNavBusy(false); } catch (_) {}
-            } catch (e) {
-                console.error(e);
-                try { closeModal(id, event); } catch (_) {}
-                try { __setNavBusy(false); } catch (_) {}
-            }
-        }
-
         // 🔧 修補：通用打開視窗 + 摺疊區塊 + 私人備註
-        function openModal(id) {
-            const el = document.getElementById(id);
-            if (!el) return;
-
-            // routing 重建期間：只改 UI，唔改 hash
-            if (__routingApplying) {
-                el.classList.add('active');
-                return;
-            }
-
-            el.classList.add('active');
-
-            // ✅ 通用 back 掣支援：除咗 editor/shareDate（佢哋有自己嘅流程），其他 modal 一律 pushState
-            if (id !== 'editorModal' && id !== 'shareDateModal') {
-                __pushModalHistory(id);
-            }
-        }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
 
         // =========================
         // 🚨 疑似資料被清除（清洗暫存）偵測 + 補救指引
@@ -4509,7 +3906,7 @@
         function openSearchModal() {
             const m = document.getElementById('searchModal');
             if (!m) return;
-            openModal('searchModal');
+            m.classList.add('active');
             const input = document.getElementById('searchInput');
             const list = document.getElementById('searchResultList');
             const hint = document.getElementById('searchHint');
@@ -4542,8 +3939,6 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
-
-        // 🖍️ 把 ==重點== 轉成黃色底 mark（安全：先 escape）
 
         // =========================
         // 🔗 網址預覽（可靠版：內容更吻合）
@@ -4878,18 +4273,18 @@
             }
 
             list.innerHTML = hits.map(e => {
-                const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
-                const tagName = tagNames[e.color] || '標籤';
+                const colorHex = getColorHex(e.color);
+                const tagName = getTagName(e.color);
                 const timeText = e.timestamp ? new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'}) : '';
                 const dateText = e.date ? e.date.replace(/-/g, '/') : '';
                 const snippet = String(e.text ?? '').trim();
                 const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
                 const entryJson = encodeURIComponent(JSON.stringify(e));
 
-	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="backOrClose('searchModal'); openReadView('${entryJson}')">
+	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="closeModal('searchModal'); openReadView('${entryJson}')">
 	                    <div class="entry-card-header">
 	                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
-	                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+	                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
 	                    </div>
 	                    <div class="entry-card-text" style="-webkit-line-clamp: 4;">${highlightHtml(preview, qRaw)}</div>
 	                </div>`;
@@ -4916,7 +4311,7 @@
             // ✅ 全屏置頂：避免背後日曆可以捲/被點
             try { document.body.style.overflow = 'hidden'; } catch (_) {}
 
-            openModal('notebookModal');
+            m.classList.add('active');
             renderNotebookList();
             setTimeout(() => { try { bindNotebookLongPress(); } catch(_){} }, 80);
             lucide.createIcons();
@@ -4976,8 +4371,8 @@
             }
 
             list.innerHTML = rows.map(e => {
-                const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
-                const tagName = tagNames[e.color] || '標籤';
+                const colorHex = getColorHex(e.color);
+                const tagName = getTagName(e.color);
                 const dateText = e.date ? e.date.replace(/-/g, '/') : '';
 
                 const ts = e.updatedAt || e.timestamp || 0;
@@ -4995,13 +4390,13 @@
                 const folderName = getNotebookFolderName(e.folderId);
                 const folderBadge = folderName ? `<span class="entry-card-tag" style="opacity:.85; border-style:dashed;">📁 ${escapeHtml(folderName)}</span>` : '';
 
-                return `<div class="entry-card ${__nbBulkMode ? 'bulk-mode' : ''} ${__nbBulkSelected.has(String(e.id)) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleNotebookCardClick(event, ${e.id}, '${entryJson}')" oncontextmenu="return false;">${__nbBulkMode ? `<div class=\"bulk-check\">${__nbBulkSelected.has(String(e.id)) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}
+                return `<div class="entry-card ${__nbBulkMode ? 'bulk-mode' : ''} ${__nbBulkSelected.has(String(e.id)) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleNotebookCardClick(event, ${e.id}, '${entryJson}')" oncontextmenu="if(!__nbBulkMode){ showNotebookEntryMenu(event, ${e.id}); } return false;">${__nbBulkMode ? `<div class=\"bulk-check\">${__nbBulkSelected.has(String(e.id)) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}
                     <div class="entry-card-header">
                         <span style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <span class="entry-card-tag">${escapeHtml(tagName)}</span>
                             ${folderBadge}
                         </span>
-                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
+                        <span class="entry-card-time">${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
                     </div>
                     <div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${escapeHtml(title)}</div>
                     ${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${escapeHtml(preview)}</div>` : ''}
@@ -5053,21 +4448,15 @@ lucide.createIcons();
                     }
 
                     const entryJson = encodeURIComponent(JSON.stringify(e));
-                    const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
-                    const tagName = tagNames[e.color] || '標籤';
+                    const colorHex = getColorHex(e.color);
+                    const tagName = getTagName(e.color);
                     const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
-                    const w = e.weather;
-                    const wArr = Array.isArray(w) ? w : (w ? [w] : []);
-                    const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
+                    const weatherDisplay = e.weather ? `<span style="color:var(--text-main);">${e.weather}</span> ` : '';
                     const idStr = String(e.id);
-                    const hlAttr = encodeURIComponent(JSON.stringify(Array.isArray(e.highlights) ? e.highlights : []));
-                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
-                // ✅ 日列表（卡片預覽）亦要顯示熒光筆
-                try { applyHighlightsToEntryCardPreviews(listEl); } catch (_) {}
             }
-            // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
-            openModal('dayModal');
+            document.getElementById('dayModal').classList.add('active');
             updateBulkUI();
             // ✅ 手機長按快速進入批量模式
             setTimeout(() => { try { bindDayLongPress(); } catch(_){} }, 60);
@@ -5165,53 +4554,58 @@ lucide.createIcons();
             }
         }
 
-        // ✅ 令閱讀頁切換有「成頁滑走」效果（類似月曆左右撥）
+        // ✅ 令閱讀頁切換有「成頁滑走」效果（更似真係一頁頁切）
         async function animateReadSwitch(dir, nextEntryId) {
             // dir: 1 = 下一篇（向左滑走）, -1 = 上一篇（向右滑走）
             const modal = document.getElementById('readModal');
             if (!modal) return;
-            const body = modal.querySelector('.modal-body');
+            const body = modal.querySelector('.modal-body') || modal.querySelector('.modal-content');
             if (!body) return;
 
-            // 1) 先把目前頁面滑走
+            // 用 px + translate3d（GPU），避免 vw 喺某些手機上「卡一卡」
+            let w = 0;
+            try { w = Math.max(1, Math.round(body.getBoundingClientRect().width || window.innerWidth || 360)); } catch (_) { w = Math.max(1, Math.round(window.innerWidth || 360)); }
             const outX = dir === 1 ? -1 : 1;
+            const inX = dir === 1 ? 1 : -1;
+
+            // 1) 先把目前頁面滑走（稍長、帶少少 easing）
             try {
-                body.style.transition = 'transform 180ms ease';
-                body.style.transform = `translateX(${outX * 92}vw)`;
+                body.style.willChange = 'transform';
+                body.style.transition = 'transform 260ms cubic-bezier(0.18, 0.82, 0.22, 1)';
+                body.style.transform = `translate3d(${outX * w}px,0,0)`;
             } catch (_) {}
 
-            await new Promise((r) => setTimeout(r, 190));
+            await new Promise((r) => setTimeout(r, 270));
 
             // 2) 換內容（成功先繼續）
             const ok = await openReadById(nextEntryId);
             if (!ok) {
                 // 回彈
                 try {
-                    body.style.transition = 'transform 220ms cubic-bezier(0.1, 0.8, 0.2, 1)';
-                    body.style.transform = 'translateX(0)';
+                    body.style.transition = 'transform 220ms cubic-bezier(0.18, 0.82, 0.22, 1)';
+                    body.style.transform = 'translate3d(0,0,0)';
                 } catch (_) {}
-                setTimeout(() => { try { body.style.transition = ''; } catch (_) {} }, 260);
+                setTimeout(() => { try { body.style.transition = ''; } catch (_) {} }, 240);
                 return;
             }
 
-            // 3) 新內容由另一邊入場
-            const inX = dir === 1 ? 1 : -1;
+            // 3) 新內容由另一邊入場（先瞬移去邊）
             try {
                 body.style.transition = 'none';
-                body.style.transform = `translateX(${inX * 92}vw)`;
+                body.style.transform = `translate3d(${inX * w}px,0,0)`;
             } catch (_) {}
 
-            // 下一幀再做 transition 入場
-            await new Promise((r) => requestAnimationFrame(() => r(null)));
+            // 兩幀保險：確保 transition 真正生效
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
             try {
-                body.style.transition = 'transform 200ms cubic-bezier(0.1, 0.8, 0.2, 1)';
-                body.style.transform = 'translateX(0)';
+                body.style.transition = 'transform 280ms cubic-bezier(0.18, 0.82, 0.22, 1)';
+                body.style.transform = 'translate3d(0,0,0)';
             } catch (_) {}
 
             // 清理 transition（避免影響其他 UI）
             setTimeout(() => {
                 try { body.style.transition = ''; } catch (_) {}
-            }, 260);
+            }, 320);
         }
 
         function bindReadSwipeOnce() {
@@ -5279,10 +4673,14 @@ lucide.createIcons();
                 // ✅ 已鎖定橫向：阻止頁面跟住郁
                 try { e.preventDefault(); } catch (_) {}
 
-                // ✅ 俾少少「郁咗」回饋（唔會真係拖走內容）
+                // ✅ 俾「真係拖緊一頁」嘅回饋：跟手指郁（有少少阻尼，避免飛走）
                 try {
-                    const pull = Math.max(-28, Math.min(28, dx * 0.12));
-                    body.style.transform = `translateX(${pull}px)`;
+                    const w = Math.max(1, Math.round(body.getBoundingClientRect().width || window.innerWidth || 360));
+                    const cap = Math.round(w * 0.85);
+                    let x = dx;
+                    if (x > cap) x = cap + (x - cap) * 0.15;
+                    if (x < -cap) x = -cap + (x + cap) * 0.15;
+                    body.style.transform = `translate3d(${Math.round(x)}px,0,0)`;
                 } catch (_) {}
             };
 
@@ -5290,23 +4688,23 @@ lucide.createIcons();
                 if (!tracking) return;
                 tracking = false;
 
-                // 收尾：復位
-                resetTransform();
-
-                if (!locked || edgeBlocked) return;
+                // 收尾：如果唔換頁就復位；如果要換頁就交俾 animateReadSwitch 做完整動畫
+                if (!locked || edgeBlocked) { resetTransform(); return; }
 
                 const now = Date.now();
-                if (now - lastNavAt < 280) return; // debounce
+                if (now - lastNavAt < 320) { resetTransform(); return; } // debounce
 
                 const nav = window.__readNav || { ids: [], idx: 0 };
-                if (!nav.ids || nav.ids.length <= 1) return;
+                if (!nav.ids || nav.ids.length <= 1) { resetTransform(); return; }
 
-                // 門檻：至少 40px
-                if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy) * 1.15) return;
+                // 門檻：至少 25% 畫面闊度 或 60px（取較細），避免「撥咗但唔換」感覺
+                let w = 0; try { w = Math.max(1, Math.round(body.getBoundingClientRect().width || window.innerWidth || 360)); } catch (_) { w = Math.max(1, Math.round(window.innerWidth || 360)); }
+                const threshold = Math.min(60, Math.round(w * 0.25));
+                if (Math.abs(dx) < threshold || Math.abs(dx) <= Math.abs(dy) * 1.10) { resetTransform(); return; }
 
                 const dir = dx < 0 ? 1 : -1; // 左撥 = 下一篇
                 const nextIdx = nav.idx + dir;
-                if (nextIdx < 0 || nextIdx >= nav.ids.length) return;
+                if (nextIdx < 0 || nextIdx >= nav.ids.length) { resetTransform(); return; }
 
                 lastNavAt = now;
                 nav.idx = nextIdx;
@@ -5316,37 +4714,30 @@ lucide.createIcons();
                 await animateReadSwitch(dir === 1 ? 1 : -1, nav.ids[nextIdx]);
             };
 
-            // ✅ 重要：避免「同一個手勢」同時觸發 touch + pointer，造成半撥卡住
-            // 方案：有 PointerEvent 就只用 pointer；冇先退回 touch。
-            const usePointer = !!window.PointerEvent;
+            // Touch
+            body.addEventListener('touchstart', (e) => {
+                try {
+                    if (!modal.classList.contains('active')) return;
+                    const t = e.touches && e.touches[0];
+                    if (!t) return;
+                    onStart(t.clientX, t.clientY);
+                } catch (_) {}
+            }, { passive: true });
 
-            if (!usePointer) {
-                // Touch（fallback）
-                body.addEventListener('touchstart', (e) => {
-                    try {
-                        if (!modal.classList.contains('active')) return;
-                        const t = e.touches && e.touches[0];
-                        if (!t) return;
-                        onStart(t.clientX, t.clientY);
-                    } catch (_) {}
-                }, { passive: true });
+            body.addEventListener('touchmove', (e) => {
+                try {
+                    const t = e.touches && e.touches[0];
+                    if (!t) return;
+                    onMove(e, t.clientX, t.clientY);
+                } catch (_) {}
+            }, { passive: false });
 
-                body.addEventListener('touchmove', (e) => {
-                    try {
-                        const t = e.touches && e.touches[0];
-                        if (!t) return;
-                        onMove(e, t.clientX, t.clientY);
-                    } catch (_) {}
-                }, { passive: false });
+            body.addEventListener('touchend', () => { onEnd().catch(console.error); }, { passive: true });
 
-                body.addEventListener('touchend', () => { onEnd().catch(console.error); }, { passive: true });
-            }
-
-            // Pointer（多數 Android / iOS 都穩定）
+            // Pointer（有啲 Android / Samsung 更穩）
             body.addEventListener('pointerdown', (e) => {
                 try {
                     if (!modal.classList.contains('active')) return;
-                    if (!usePointer) return;
                     if (e.pointerType === 'mouse') return;
                     onStart(e.clientX, e.clientY);
                     try { body.setPointerCapture(e.pointerId); } catch (_) {}
@@ -5370,16 +4761,20 @@ lucide.createIcons();
 			try { if (!currentEntryData.space) currentEntryData.space = SPACE_CALENDAR; } catch (_) {} document.getElementById('dayModal').classList.remove('active');
             const dateObj = new Date(currentEntryData.timestamp); 
             document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
-            {
-                const w = currentEntryData.weather;
-                const arr = Array.isArray(w) ? w : (w ? [w] : []);
-                document.getElementById('readWeatherBadge').textContent = arr.length ? `[ ${arr.join(' + ')} ]` : '';
-            }
+            document.getElementById('readWeatherBadge').textContent = currentEntryData.weather ? `[ ${currentEntryData.weather} ]` : '';
 
-            const colorHex = APP_COLORS.find(c => c.id === currentEntryData.color)?.hex || '#667eea'; document.getElementById('readTagBadge').style.backgroundColor = colorHex; document.getElementById('readTagBadge').textContent = tagNames[currentEntryData.color] || '標籤';
-            // ✅ 正文：記事薄可用 Markdown 預覽（不影響儲存內容）
-            document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
-            renderReadTextWithMarkdownIfNeeded();
+            const colorHex = getColorHex(currentEntryData.color);
+            document.getElementById('readTagBadge').style.backgroundColor = colorHex;
+            document.getElementById('readTagBadge').textContent = getTagName(currentEntryData.color);
+            // ✅ 每篇文章閱讀底色：用文章顏色做淡色背景（明/暗主題各一份）
+            try {
+                const readModal = document.getElementById('readModal');
+                if (readModal) {
+                    readModal.style.setProperty('--read-bg', `color-mix(in srgb, ${colorHex} 14%, var(--surface))`);
+                    readModal.style.setProperty('--read-bg-dark', `color-mix(in srgb, ${colorHex} 22%, #000)`);
+                }
+            } catch (_) {}
+            document.getElementById('readText').textContent = currentEntryData.text || ''; document.getElementById('readText').className = `read-text size-${TEXT_SIZES[currentEntryData.textSize || 1]}`;
             if (currentEntryData.images && currentEntryData.images.length > 0) { document.getElementById('readGallery').innerHTML = currentEntryData.images.map(imgSrc => `<img src="${imgSrc}" class="read-image" onclick="openLightbox('${imgSrc}')">`).join(''); } else { document.getElementById('readGallery').innerHTML = ''; }
 
             // 🔗 網址預覽
@@ -5391,10 +4786,7 @@ lucide.createIcons();
 
             renderReadAttachments();
             lucide.createIcons();
-            // ⭐ 更新星星/刪除鎖定 UI
-            try { updateReadStarUI(); } catch (_) {}
-            // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
-            openModal('readModal');
+            document.getElementById('readModal').classList.add('active');
 
             // ✅ 每次切換文章都回到頂部，避免用家覺得「冇換到」
             try {
@@ -5415,89 +4807,6 @@ lucide.createIcons();
             // ✅ 綁一次 swipe + 一次性提示
             try { bindReadSwipeOnce(); } catch (_) {}
             try { showSwipeHintOnceIfNeeded(); } catch (_) {}
-        }
-
-        // =========================
-        // 📝 記事薄 Markdown 預覽（只影響閱讀顯示，不改動儲存內容）
-        // =========================
-        const NOTEBOOK_MD_PREVIEW_KEY = 'diary_md_preview'; // '1' | '0'（全局：日曆 + 記事簿）
-
-        function isNotebookMarkdownPreviewEnabled() {
-            try {
-                const v = localStorage.getItem(NOTEBOOK_MD_PREVIEW_KEY);
-                return (v === null) ? true : (v !== '0'); // 預設：開
-            } catch (_) { return true; }
-        }
-
-        function setNotebookMarkdownPreviewEnabled(enabled) {
-            try { localStorage.setItem(NOTEBOOK_MD_PREVIEW_KEY, enabled ? '1' : '0'); } catch (_) {}
-        }
-
-        function toggleNotebookMarkdownPreview() {
-            try {
-                const isOn = isNotebookMarkdownPreviewEnabled();
-                setNotebookMarkdownPreviewEnabled(!isOn);
-                renderReadTextWithMarkdownIfNeeded();
-                try { showToast(`📝 Markdown 預覽：${!isOn ? '開' : '關'}`, 'success'); } catch (_) {}
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function renderReadTextWithMarkdownIfNeeded() {
-            const el = document.getElementById('readText');
-            if (!el) return;
-
-            const txt = (currentEntryData && currentEntryData.text) ? String(currentEntryData.text) : '';
-            const space = (currentEntryData && currentEntryData.space) ? String(currentEntryData.space) : SPACE_CALENDAR;
-            const isNotebook = (space === SPACE_NOTEBOOK);
-
-            // ✅ 讀取頁亦要顯示「熒光筆」結果：即使唔喺編輯模式
-            const highlights = (currentEntryData && Array.isArray(currentEntryData.highlights)) ? currentEntryData.highlights : [];
-            const hasHighlights = highlights && highlights.length > 0;
-
-            // ✅ 日曆 + 記事簿 都可用 Markdown 預覽
-            const btn = document.getElementById('readMdToggleBtn');
-            if (btn) {
-                btn.style.display = 'inline-flex';
-                btn.classList.toggle('active', isNotebookMarkdownPreviewEnabled());
-            }
-
-            // ✅ 有熒光筆標記：優先用「純文字 + mark」渲染（確保你出到去/直接觀看都見到）
-            //    ＊因為 highlights 係按「原文字」字數位置儲存，Markdown 解析後會改變字數，會令位置對唔準。
-            if (hasHighlights) {
-                try {
-                    el.classList.remove('markdown-rendered');
-                    // 先放入純文字，再套用 offsets 成 mark
-                    el.textContent = txt;
-                    applyHighlightsToElement(el, highlights);
-                    return;
-                } catch (e) {
-                    console.error('Apply highlights failed', e);
-                    el.classList.remove('markdown-rendered');
-                    el.textContent = txt;
-                    return;
-                }
-            }
-
-            // ✅ 無熒光筆：如開咗預覽 + 套件存在，就轉 Markdown；否則顯示純文字
-            const enabled = isNotebookMarkdownPreviewEnabled();
-            const canMd = (typeof window.marked !== 'undefined') && (typeof window.DOMPurify !== 'undefined');
-
-            if (enabled && canMd) {
-                try {
-                    const html = window.marked.parse(txt, { gfm: true, breaks: true });
-                    el.innerHTML = window.DOMPurify.sanitize(html);
-                    el.classList.add('markdown-rendered');
-                } catch (e) {
-                    console.error('Markdown render failed', e);
-                    el.classList.remove('markdown-rendered');
-                    el.textContent = txt;
-                }
-            } else {
-                el.classList.remove('markdown-rendered');
-                el.textContent = txt;
-            }
         }
 
         function backToDayView() {
@@ -5547,13 +4856,6 @@ lucide.createIcons();
         }
 
         async function deleteFromReadView() {
-            try {
-                if (isEntryStarred(currentEntryData)) {
-                    showToast('⚠️ 已加星鎖定：請先取消星星先可以刪除', 'error');
-                    try { updateReadStarUI(); } catch (_) {}
-                    return;
-                }
-            } catch (_) {}
             if (!confirm('確定要刪除這份紀錄嗎？無法復原哦。')) return;
             try {
                 const atts = (currentEntryData && currentEntryData.attachments) ? currentEntryData.attachments : [];
@@ -5610,49 +4912,37 @@ lucide.createIcons();
         }
 
         function openEditor(entryData) {
-            currentEntryData = entryData; const textarea = document.getElementById('editorText'); const rich = document.getElementById('editorRich');
-            // 🖍️ 準備內容後先 reset 歷史（否則第一步 undo 會跳返去空白）
+            currentEntryData = entryData; const textarea = document.getElementById('editorText');
             if (entryData) { 
                 document.getElementById('editorTitle').textContent = '編輯記事'; 
-                if (rich) setEditorFromTextAndHighlights(entryData.text || '', entryData.highlights || []); else textarea.value = entryData.text || '';
-                 
+                textarea.value = entryData.text || ''; 
                 selectColor(entryData.color || 'blue'); 
                 setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
                 currentImages = entryData.images ? [...entryData.images] : [];
                 currentAttachments = entryData.attachments ? [...entryData.attachments] : [];
-                selectedWeatherBadges = Array.isArray(entryData.weather) ? [...entryData.weather] : (entryData.weather ? [entryData.weather] : []);
-                refreshWeatherUI();
+                selectedWeatherBadge = entryData.weather || '';
                 // 保留原本資料夾
                 currentEntryData.folderId = entryData.folderId || '';
             } else { 
                 document.getElementById('editorTitle').textContent = '新增記事'; 
-                if (rich) setEditorFromTextAndHighlights('', []); else textarea.value = '';
-                 
+                textarea.value = ''; 
                 // ✅ 新增記事：預設沿用上一次選擇嘅顏色
-                selectColor((() => { try { return localStorage.getItem(LAST_COLOR_KEY) || selectedColor || 'yellow'; } catch (_) { return selectedColor || 'yellow'; } })()); 
+                selectColor((() => { try { return localStorage.getItem(LAST_COLOR_KEY) || selectedColor || 'blue'; } catch (_) { return selectedColor || 'blue'; } })()); 
                 setTextSize(1); 
                 currentImages = [];
                 currentAttachments = [];
-                selectedWeatherBadges = [];
-                refreshWeatherUI();
+                selectedWeatherBadge = '';
                 // ✅ 新增記事（記事簿）：預設資料夾（可於畫面即時改）
                 if (currentSpaceContext === SPACE_NOTEBOOK) {
                     try { if (!currentEntryData) currentEntryData = {}; currentEntryData.folderId = getNotebookLastWriteFolderId() || ''; } catch (_) {}
                 }
             }
-            updateWeatherUI();
-renderEditorImages(); renderAttachments();
+            updateWeatherUI(); 
+            renderEditorImages(); renderAttachments();
             setupEditorTextareaAutoGrow();
-            // 🖍️ 內容 ready 後，建立撤銷/重做起點
-            try { editorResetHistory(); } catch (_) {}
-            // 🖍️ 監聽輸入：即時高亮 + 歷史（節流）
-            try {
-                if (rich) { rich.oninput = () => { try { editorScheduleHistoryPush(); } catch(_){}; }; } else { textarea.oninput = () => { try { editorScheduleHistoryPush(); } catch(_){}; }; }
-                textarea.onscroll = () => { /* no-op */ };
-            } catch (_) {}
             updateEditorNotebookFolderRow();
             document.getElementById('editorModal').classList.add('active'); 
-            setTimeout(() => { try { (rich || textarea).focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400); 
+            setTimeout(() => { try { textarea.focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400); 
 
             // 🟩 Android 返回鍵：開啟編輯器時 push 一個 history state
             ensureBaseHistoryState();
@@ -5664,14 +4954,13 @@ renderEditorImages(); renderAttachments();
             } catch (e) { console.error(e); }
             
             // 🟢 開啟編輯器時，啟動定時自動儲存
-            // ✅ 只按「儲存記錄」先寫入資料（取消自動儲存）
-            // startAutoSave();
+            startAutoSave();
         }
 
         function selectColor(colorId) {
             selectedColor = colorId;
-            try { localStorage.setItem(LAST_COLOR_KEY, String(colorId || 'yellow')); } catch (_) {}
-            document.querySelectorAll('#colorPickerUI .color-btn').forEach(btn => {
+            try { localStorage.setItem(LAST_COLOR_KEY, String(colorId || 'blue')); } catch (_) {}
+            document.querySelectorAll('.color-btn').forEach(btn => {
                 btn.classList.remove('selected');
                 if (btn.dataset.color === colorId) {
                     btn.classList.add('selected');
@@ -6153,10 +5442,44 @@ renderEditorImages(); renderAttachments();
             });
         }
 
+async function moveNotebookEntryToCalendarAskDate(entryId) {
+            // (兼容舊按鈕/舊選單)
+            return moveNotebookEntryToCalendarPickDate(entryId);
+        }
 
 
+        function showNotebookEntryMenu(ev, entryId) {
+	            try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (_) {}
 
+	            const folders = loadNotebookFolders();
+	            const folderOptions = ['(0) 取消', '(1) 未分類']
+	                .concat(folders.map((f, idx) => `(${idx + 2}) ${f.name}`));
 
+	            const hint = [
+	                '你想做咩？',
+	                'A) 移動到資料夾（輸入數字）',
+	                'B) 移去日曆（指定日期，輸入：d）'
+	            ].join('\n');
+
+	            const ans = prompt(hint + '\n\n' + folderOptions.join('\n'), '1');
+	            if (ans === null) return;
+	            const v = String(ans).trim().toLowerCase();
+	            if (v === 'd') {
+	                moveNotebookEntryToCalendarPickDate(entryId);
+	                return;
+	            }
+
+	            const n = parseInt(v, 10);
+	            if (!Number.isFinite(n) || n === 0) return;
+
+	            if (n === 1) {
+	                moveEntryToFolder(entryId, '');
+	                return;
+	            }
+	            const pick = folders[n - 2];
+	            if (!pick) return;
+	            moveEntryToFolder(entryId, pick.id);
+	        }
 
 	        // ✅ 長按（手機）打開記事選單
         function bindNotebookLongPress() {
@@ -6170,34 +5493,34 @@ renderEditorImages(); renderAttachments();
             const start = (e) => {
                 const card = e.target && e.target.closest ? e.target.closest('.entry-card') : null;
                 if (!card) return;
+                // 從 oncontextmenu 已傳 entryId；手機就靠 dataset
                 targetId = card.getAttribute('data-entry-id');
                 if (!targetId) return;
 
                 timer = setTimeout(() => {
                     timer = null;
+                    // 長按：優先進入批量模式（方便大量刪除）
                     if (!__nbBulkMode) {
                         __nbBulkMode = true;
                         __nbBulkSelected = new Set([String(targetId)]);
                         try { renderNotebookList(); } catch (_) {}
                         updateBulkUI();
-                        showToast('已進入批量模式', 'success');
+                        showToast('已進入批量模式，可多選後刪除', 'success');
                         return;
                     }
+                    // 已在批量模式：長按等同切換選取
                     const idStr = String(targetId);
                     if (__nbBulkSelected.has(idStr)) __nbBulkSelected.delete(idStr);
                     else __nbBulkSelected.add(idStr);
                     try { renderNotebookList(); } catch (_) {}
                     updateBulkUI();
-                }, 600);
+                }, 520);
             };
             const end = () => { if (timer) { clearTimeout(timer); timer = null; } targetId = null; };
 
             list.addEventListener('touchstart', start, { passive: true });
             list.addEventListener('touchend', end);
             list.addEventListener('touchmove', end);
-            list.addEventListener('mousedown', start);
-            list.addEventListener('mouseup', end);
-            list.addEventListener('mouseleave', end);
         }
 
         // ✅ 長按（手機）快速進入「批量刪除」模式（Day）
@@ -6212,8 +5535,11 @@ renderEditorImages(); renderAttachments();
             const start = (e) => {
                 const card = e.target && e.target.closest ? e.target.closest('.entry-card') : null;
                 if (!card) return;
+                // Day list 內 onclick 係 handleDayCardClick(event, id, ...)
+                // 我哋從 onclick 抽 id 可能唔穩定，所以用 dataset 做備援：
                 targetId = card.getAttribute('data-entry-id');
                 if (!targetId) {
+                    // fallback：從 onclick 字串抽數字
                     const oc = card.getAttribute('onclick') || '';
                     const m = oc.match(/handleDayCardClick\(event,\s*([0-9]+)\s*,/);
                     if (m) targetId = m[1];
@@ -6227,15 +5553,16 @@ renderEditorImages(); renderAttachments();
                         __dayBulkSelected = new Set([String(targetId)]);
                         try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
                         updateBulkUI();
-                        showToast('已進入批量模式', 'success');
+                        showToast('已進入批量模式，可多選後刪除', 'success');
                     } else {
+                        // 已在批量模式：長按等同切換選取
                         const idStr = String(targetId);
                         if (__dayBulkSelected.has(idStr)) __dayBulkSelected.delete(idStr);
                         else __dayBulkSelected.add(idStr);
                         try { openDayView(editingDateStr, __cachedDayEntriesForBulk()); } catch (_) {}
                         updateBulkUI();
                     }
-                }, 600);
+                }, 520);
             };
 
             const end = () => { if (timer) { clearTimeout(timer); timer = null; } targetId = null; };
@@ -6243,9 +5570,6 @@ renderEditorImages(); renderAttachments();
             list.addEventListener('touchstart', start, { passive: true });
             list.addEventListener('touchend', end);
             list.addEventListener('touchmove', end);
-            list.addEventListener('mousedown', start);
-            list.addEventListener('mouseup', end);
-            list.addEventListener('mouseleave', end);
         }
 
         // =========================
@@ -6355,378 +5679,19 @@ renderEditorImages(); renderAttachments();
             // 再按一次就退出第一級
             toggleWritingMode(false);
         }
-        function saveTagName() {
-            tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤';
-            localStorage.setItem('diary_tag_names', JSON.stringify(tagNames));
-            // ✅ 即時更新上方顏色圓圈內文字
-            initColorPickerUI();
-        }
+        function saveTagName() { tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤'; localStorage.setItem('diary_tag_names', JSON.stringify(tagNames)); }
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
+        function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
 
-        // 🖍️ 熒光筆（富文字 + 可保存）
-        function __getEditorEl() {
-            return document.getElementById('editorRich') || document.getElementById('editorText');
-        }
-        function getEditorPlainText() {
-            const el = __getEditorEl();
-            if (!el) return '';
-            if (el.id === 'editorRich') return (el.innerText || '').replace(/\r\n/g, '\n');
-            return String(el.value || '');
-        }
-        function setEditorFromTextAndHighlights(text, highlights) {
-            const el = document.getElementById('editorRich');
-            if (!el) return;
-            const t = String(text || '');
-            const hs = Array.isArray(highlights) ? highlights.slice().filter(x => x && Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > x.start).sort((a,b)=>a.start-b.start) : [];
-            // merge overlaps
-            const merged = [];
-            for (const h of hs) {
-                const start = Math.max(0, Math.floor(h.start));
-                const end = Math.max(0, Math.floor(h.end));
-                if (!merged.length || start > merged[merged.length-1].end) merged.push({start, end});
-                else merged[merged.length-1].end = Math.max(merged[merged.length-1].end, end);
-            }
-            // build HTML with <br> and <mark>
-            // 重要：避免 <mark> 內直接包含 <br>，否則換行位會「斷色」
-            const esc = (str)=>String(str).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-            const plainToHtml = (s)=>esc(String(s||'')).replace(/\n/g,'<br>');
-            const hlToHtml = (s)=>{
-                const parts = String(s||'').split('\n');
-                let out = '<mark class="hl-mark">' + esc(parts[0] || '') + '</mark>';
-                for (let k=1;k<parts.length;k++) out += '<br><mark class="hl-mark">' + esc(parts[k] || '') + '</mark>';
-                return out;
-            };
-            let html = '';
-            let i = 0;
-            for (const h of merged) {
-                const a = Math.min(t.length, h.start);
-                const b = Math.min(t.length, h.end);
-                if (a > i) html += plainToHtml(t.slice(i, a));
-                if (b > a) html += hlToHtml(t.slice(a, b));
-                i = b;
-            }
-            html += plainToHtml(t.slice(i));
-            el.innerHTML = html || '';
-        }
-
-        function getSelectionOffsetsInEditor() {
-            const root = document.getElementById('editorRich');
-            const sel = window.getSelection();
-            if (!root || !sel || sel.rangeCount === 0) return null;
-            const range = sel.getRangeAt(0);
-            if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
-
-            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-            let pos = 0;
-            let start = null;
-            let end = null;
-            while (walker.nextNode()) {
-                const n = walker.currentNode;
-                const len = n.nodeValue ? n.nodeValue.length : 0;
-                if (n === range.startContainer) start = pos + range.startOffset;
-                if (n === range.endContainer) end = pos + range.endOffset;
-                pos += len;
-            }
-            if (start === null || end === null) return null;
-            if (end < start) [start, end] = [end, start];
-            return { start, end };
-        }
-
-        function __unwrapMark(markEl) {
-            const parent = markEl.parentNode;
-            if (!parent) return;
-            while (markEl.firstChild) parent.insertBefore(markEl.firstChild, markEl);
-            parent.removeChild(markEl);
-        }
-
-        function toggleHighlighter() {
-            const root = document.getElementById('editorRich');
-            if (!root) return;
-            const sel = window.getSelection();
-            if (!sel || sel.rangeCount === 0) { showToast('🖍️ 請先選擇一段文字', 'error'); return; }
-            const range = sel.getRangeAt(0);
-            if (range.collapsed) { showToast('🖍️ 請先選擇一段文字', 'error'); return; }
-            if (!root.contains(range.commonAncestorContainer)) { showToast('🖍️ 請喺輸入框內選字', 'error'); return; }
-
-            // 如果選取範圍完全落喺同一個 mark 裏面，就當取消
-            let node = range.commonAncestorContainer;
-            if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
-            const mark = node && node.closest ? node.closest('mark.hl-mark') : null;
-            if (mark && root.contains(mark)) {
-                __unwrapMark(mark);
-            } else {
-                const m = document.createElement('mark');
-                m.className = 'hl-mark';
-                try {
-                    range.surroundContents(m);
-                } catch (e) {
-                    // fallback：用 execCommand
-                    try {
-                        document.execCommand('hiliteColor', false, '#fff59d');
-                    } catch (_) {}
-                }
-            }
-            // push history snapshot
-            try { editorPushHistory(true); } catch (_) {}
-        }
-
-        function serializeHighlightsFromEditor() {
-            const root = document.getElementById('editorRich');
-            if (!root) return [];
-            const ranges = [];
-            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-            let pos = 0;
-            while (walker.nextNode()) {
-                const n = walker.currentNode;
-                const text = n.nodeValue || '';
-                const len = text.length;
-                const parent = n.parentNode;
-                if (parent && parent.nodeType === 1 && parent.matches && parent.matches('mark.hl-mark')) {
-                    ranges.push({ start: pos, end: pos + len });
-                }
-                pos += len;
-            }
-            // merge
-            ranges.sort((a,b)=>a.start-b.start);
-            const out = [];
-            for (const r of ranges) {
-                if (!out.length || r.start > out[out.length-1].end) out.push({ start: r.start, end: r.end });
-                else out[out.length-1].end = Math.max(out[out.length-1].end, r.end);
-            }
-            return out;
-        }
-
-        function applyHighlightsToElement(el, highlights) {
-            if (!el) return;
-            const txt = (el.textContent || '').replace(/\r\n/g, '\n');
-            // rebuild as plain + mark by offsets
-            const hs = Array.isArray(highlights) ? highlights.slice().filter(x => x && Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > x.start).sort((a,b)=>a.start-b.start) : [];
-            // 重要：避免 <mark> 內直接包含 <br>，否則換行位會「斷色」
-            const esc = (str)=>String(str).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-            const plainToHtml = (s)=>esc(String(s||'')).replace(/\n/g,'<br>');
-            const hlToHtml = (s)=>{
-                const parts = String(s||'').split('\n');
-                let out = '<mark class="hl-mark">' + esc(parts[0] || '') + '</mark>';
-                for (let k=1;k<parts.length;k++) out += '<br><mark class="hl-mark">' + esc(parts[k] || '') + '</mark>';
-                return out;
-            };
-            let html = '';
-            let i = 0;
-            for (const h of hs) {
-                const a = Math.min(txt.length, Math.max(0, Math.floor(h.start)));
-                const b = Math.min(txt.length, Math.max(0, Math.floor(h.end)));
-                if (a > i) html += plainToHtml(txt.slice(i, a));
-                if (b > a) html += hlToHtml(txt.slice(a, b));
-                i = b;
-            }
-            html += plainToHtml(txt.slice(i));
-            el.innerHTML = html;
-        }
-
-        // ✅ 卡片預覽：把高亮範圍裁切到目前顯示文字長度
-        function clipHighlightsToLen(highlights, maxLen) {
-            const L = Math.max(0, Number(maxLen || 0));
-            if (!Array.isArray(highlights) || L <= 0) return [];
-            const out = [];
-            for (const h of highlights) {
-                if (!h || !Number.isFinite(h.start) || !Number.isFinite(h.end)) continue;
-                let a = Math.max(0, Math.floor(h.start));
-                let b = Math.max(0, Math.floor(h.end));
-                if (b <= a) continue;
-                if (a >= L) continue;
-                a = Math.min(L, a);
-                b = Math.min(L, b);
-                if (b > a) out.push({ start: a, end: b });
-            }
-            out.sort((x,y)=>x.start-y.start);
-            // merge overlaps
-            const merged = [];
-            for (const r of out) {
-                if (!merged.length || r.start > merged[merged.length-1].end) merged.push({ start: r.start, end: r.end });
-                else merged[merged.length-1].end = Math.max(merged[merged.length-1].end, r.end);
-            }
-            return merged;
-        }
-
-        function applyHighlightsToEntryCardPreviews(container) {
-            try {
-                if (!container) return;
-                container.querySelectorAll('.entry-card[data-highlights]').forEach(card => {
-                    const raw = card.getAttribute('data-highlights');
-                    if (!raw) return;
-                    let hs = [];
-                    try { hs = JSON.parse(decodeURIComponent(raw)) || []; } catch (_) { hs = []; }
-                    if (!hs || hs.length === 0) return;
-                    const textEl = card.querySelector('.entry-card-text');
-                    if (!textEl) return;
-                    const clipped = clipHighlightsToLen(hs, (textEl.textContent || '').length);
-                    if (clipped.length) applyHighlightsToElement(textEl, clipped);
-                });
-            } catch (e) { console.error(e); }
-        }
-
-
-        // ↩️ 撤銷 / 重做（支援富文字 editorRich + 後備 textarea）
-        let __editorHist = [];
-        let __editorHistIdx = -1;
-        let __editorHistTimer = null;
-
-        function __isRichActive() {
-            const r = document.getElementById('editorRich');
-            return !!(r && r.style.display !== 'none');
-        }
-
-        function __setSelectionOffsetsInEditor(start, end) {
-            const root = document.getElementById('editorRich');
-            if (!root) return;
-            const s = Math.max(0, Number(start || 0));
-            const e = Math.max(0, Number(end || 0));
-
-            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-            let pos = 0;
-            let startNode = null, startOff = 0;
-            let endNode = null, endOff = 0;
-
-            while (walker.nextNode()) {
-                const n = walker.currentNode;
-                const len = n.nodeValue ? n.nodeValue.length : 0;
-
-                if (startNode === null && s <= pos + len) {
-                    startNode = n;
-                    startOff = Math.max(0, Math.min(len, s - pos));
-                }
-                if (endNode === null && e <= pos + len) {
-                    endNode = n;
-                    endOff = Math.max(0, Math.min(len, e - pos));
-                }
-
-                pos += len;
-                if (startNode && endNode) break;
-            }
-
-            // fallback：放到最後
-            if (!startNode) {
-                startNode = root;
-                startOff = root.childNodes.length;
-            }
-            if (!endNode) {
-                endNode = startNode;
-                endOff = startOff;
-            }
-
-            try {
-                const sel = window.getSelection();
-                if (!sel) return;
-                const range = document.createRange();
-                range.setStart(startNode, startOff);
-                range.setEnd(endNode, endOff);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } catch (_) {}
-        }
-
-        function editorResetHistory() {
-            __editorHist = [];
-            __editorHistIdx = -1;
-            editorPushHistory(true);
-        }
-
-        function editorPushHistory(force = false) {
-            const rich = document.getElementById('editorRich');
-            const ta = document.getElementById('editorText');
-
-            let snap = null;
-            if (__isRichActive() && rich) {
-                const sel = getSelectionOffsetsInEditor() || { start: 0, end: 0 };
-                snap = { t: 'rich', html: String(rich.innerHTML || ''), s: sel.start, e: sel.end };
-            } else if (ta) {
-                snap = { t: 'text', v: String(ta.value || ''), s: ta.selectionStart || 0, e: ta.selectionEnd || 0 };
-            } else {
-                return;
-            }
-
-            const cur = (__editorHistIdx >= 0 && __editorHist[__editorHistIdx]) ? __editorHist[__editorHistIdx] : null;
-            const same = cur && snap && cur.t === snap.t && ((snap.t === 'rich' && cur.html === snap.html) || (snap.t === 'text' && cur.v === snap.v));
-            if (!force && same) return;
-
-            if (__editorHistIdx < __editorHist.length - 1) __editorHist = __editorHist.slice(0, __editorHistIdx + 1);
-            __editorHist.push(snap);
-            if (__editorHist.length > 80) __editorHist.shift();
-            __editorHistIdx = __editorHist.length - 1;
-        }
-
-        function editorScheduleHistoryPush() {
-            try { if (__editorHistTimer) clearTimeout(__editorHistTimer); } catch (_) {}
-            __editorHistTimer = setTimeout(() => { try { editorPushHistory(false); } catch (_) {} }, 420);
-        }
-
-        function editorApplyHistory(idx) {
-            const snap = __editorHist[idx];
-            if (!snap) return;
-
-            const rich = document.getElementById('editorRich');
-            const ta = document.getElementById('editorText');
-
-            if (snap.t === 'rich' && rich) {
-                rich.innerHTML = String(snap.html || '');
-                try { rich.focus(); } catch (_) {}
-                try { __setSelectionOffsetsInEditor(snap.s || 0, snap.e || 0); } catch (_) {}
-                return;
-            }
-
-            if (snap.t === 'text' && ta) {
-                ta.value = String(snap.v || '');
-                try {
-                    ta.focus();
-                    ta.setSelectionRange(snap.s || 0, snap.e || 0);
-                } catch (_) {}
-            }
-        }
-
-        function editorUndo() {
-            // ✅ 先把「而家呢一刻」存入歷史（如果有變動）
-            // 否則：第一次 Undo 會退到上一格，但下一次就冇得再退 / redo 會斷
-            try { editorPushHistory(false); } catch (_) {}
-
-            if (__editorHistIdx <= 0) return;
-            __editorHistIdx--;
-            editorApplyHistory(__editorHistIdx);
-        }
-
-        function editorRedo() {
-            // ✅ redo 唔應該寫入新歷史；只係向前走
-            if (__editorHistIdx >= __editorHist.length - 1) return;
-            __editorHistIdx++;
-            editorApplyHistory(__editorHistIdx);
-        }
-
-        // 🖍️ 熒光筆：把選取文字包住 == ==（可多段、多次）
-
-        function refreshWeatherUI() {
-            if (!Array.isArray(selectedWeatherBadges)) selectedWeatherBadges = [];
-            document.querySelectorAll('.weather-btn').forEach(btn => {
-                const w = btn.getAttribute('data-weather');
-                if (selectedWeatherBadges.includes(w)) btn.classList.add('selected-weather');
-                else btn.classList.remove('selected-weather');
-            });
-        }
-
-        // 🖍️ 即時熒光：同步 textarea 內容到高亮層
-
-        function setTextSize(idx) { currentTextSizeIdx = idx; (document.getElementById('editorRich') || document.getElementById('editorText')).className = `editor-rich size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
         function toggleWeather(weatherStr) {
-            // ✅ 支援多重標記：可同時選擇（例如 黃雨 + 雷暴）
-            if (!Array.isArray(selectedWeatherBadges)) selectedWeatherBadges = [];
-            const idx = selectedWeatherBadges.indexOf(weatherStr);
-            if (idx >= 0) selectedWeatherBadges.splice(idx, 1);
-            else selectedWeatherBadges.push(weatherStr);
-
-            refreshWeatherUI();
+            if (selectedWeatherBadge === weatherStr) { selectedWeatherBadge = ''; } 
+            else { selectedWeatherBadge = weatherStr; }
+            updateWeatherUI();
         }
 
         function updateWeatherUI() {
             document.querySelectorAll('.weather-btn').forEach(btn => {
-                if (selectedWeatherBadges.includes(btn.getAttribute('data-weather'))) {
+                if (btn.getAttribute('data-weather') === selectedWeatherBadge) {
                     btn.classList.add('selected-weather');
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 } else { btn.classList.remove('selected-weather'); }
@@ -6734,13 +5699,7 @@ renderEditorImages(); renderAttachments();
         }
 
         function addToNativeCalendar() {
-            const text = getEditorPlainText().trim() || '日曆事項';
-            const tagName = tagNames[selectedColor] || '事項';
-            const dateParts = editingDateStr.split('-');
-            const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`;
-            const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2]));
-            d.setDate(d.getDate() + 1);
-            const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const text = document.getElementById('editorText').value.trim() || '日曆事項'; const tagName = tagNames[selectedColor] || '事項'; const dateParts = editingDateStr.split('-'); const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`; const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2])); d.setDate(d.getDate() + 1); const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
             const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${startStr}\nDTEND;VALUE=DATE:${endStr}\nSUMMARY:【${tagName}】\nDESCRIPTION:${text}\nEND:VEVENT\nEND:VCALENDAR`;
             const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `reminder_${startStr}.ics`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 
@@ -7376,9 +6335,9 @@ function handleImageUpload(event) {
 
         // 🟢 全新邏輯：靜默自動儲存 (唔會閂視窗)
         async function silentAutoSave() {
-            const text = getEditorPlainText().trim(); 
+            const text = document.getElementById('editorText').value.trim(); 
             // 避免新建一份完全空白的無效記錄
-            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0) && !currentEntryData) return; 
+            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && !selectedWeatherBadge && !currentEntryData) return; 
 
             // ✅ 防呆：就算 currentEntryData 被其他地方意外變成空 object，都保證有 id/timestamp
             const entryId = (currentEntryData && currentEntryData.id) ? currentEntryData.id : Date.now();
@@ -7403,13 +6362,12 @@ function handleImageUpload(event) {
                 date: editingDateStr, 
                 timestamp: entryTimestamp, 
                 updatedAt: Date.now(),
-                text: text,
-                highlights: (document.getElementById('editorRich') ? serializeHighlightsFromEditor() : []), 
+                text: text, 
                 color: selectedColor, 
                 textSize: currentTextSizeIdx, 
                 images: currentImages,
                 attachments: currentAttachments,
-                weather: (Array.isArray(selectedWeatherBadges) ? selectedWeatherBadges : []),
+                weather: selectedWeatherBadge,
 			space: currentSpaceContext,
                 folderId: (currentSpaceContext === SPACE_NOTEBOOK && folderId && folderId !== 'all') ? folderId : ''
             }; 
@@ -7458,14 +6416,19 @@ function handleImageUpload(event) {
         }
 
         // 🟢 啟動/停止自動儲存定時器
-        function startAutoSave() { /* 已停用：只按儲存鍵先寫入 */ }
+        function startAutoSave() {
+            stopAutoSave();
+            autoSaveInterval = setInterval(silentAutoSave, 30000); // 30 秒自動儲存一次
+        }
 
-        function stopAutoSave() { /* 已停用 */ }
+        function stopAutoSave() {
+            if (autoSaveInterval) { clearInterval(autoSaveInterval); autoSaveInterval = null; }
+        }
 
         // 🟢 取代原有取消按鈕：安全關閉編輯器
         // ✅ 不帶 history 操作嘅關閉（畀 popstate 用，避免循環）
         async function closeEditorNoHistory() {
-            // await silentAutoSave(); // 已停用 // 離開前強制儲存一次
+            await silentAutoSave(); // 離開前強制儲存一次
             stopAutoSave();
             closeModal('editorModal');
 
@@ -7478,14 +6441,7 @@ function handleImageUpload(event) {
 
             if (backTo === 'notebookModal') {
                 // 回記事簿列表
-                // ✅ 修正：openNotebookModal 內部會 call openModal -> __pushModalHistory
-                // 但呢度係由 closeEditor (已經處理咗 history) 觸發嘅恢復 UI，
-                // 唔應該再增加 history entry，否則 Back 掣會亂。
-                try { 
-                    __routingApplying = true;
-                    openNotebookModal(); 
-                    __routingApplying = false;
-                } catch (_) { __routingApplying = false; }
+                try { openNotebookModal(); } catch (_) {}
                 try { renderNotebookList(); } catch (_) {}
                 return;
             }
@@ -7493,22 +6449,18 @@ function handleImageUpload(event) {
             if (backTo === 'dayModal') {
                 // 回當日列表
                 try {
-                    __routingApplying = true;
                     const all = await db.getAll();
                     all.forEach(normalizeEntrySpace);
                     openDayView(editingDateStr, all.filter(e => e.date === editingDateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR));
-                    __routingApplying = false;
-                } catch (_) { __routingApplying = false; }
+                } catch (_) {}
                 return;
             }
 
             if (backTo === 'readModal') {
                 // 回閱讀頁（如仍然有 currentEntryData）
                 try {
-                    __routingApplying = true;
                     if (currentEntryData) openReadView(encodeURIComponent(JSON.stringify(currentEntryData)));
-                    __routingApplying = false;
-                } catch (_) { __routingApplying = false; }
+                } catch (_) {}
                 return;
             }
         }
@@ -7536,15 +6488,15 @@ function handleImageUpload(event) {
 
         // 手動儲存按鈕
         async function saveEntry() { 
-            const text = getEditorPlainText().trim(); 
-            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0)) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
+            const text = document.getElementById('editorText').value.trim(); 
+            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && !selectedWeatherBadge) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
             await silentAutoSave();
             stopAutoSave();
             // ✅ 用統一關閉流程（會處理 history + 返回上一層畫面）
             await closeEditor();
         }
         
-        function openBackupModal() { openModal('backupModal'); }
+        function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
 
         // ✅ 由右下角「+」展開嘅調色：先收起 FAB，再轉顏色
         function cycleThemeFromFab() {
@@ -7636,10 +6588,8 @@ async function exportData() {
             }
         }
 
-        async function importData(event) { 
+        function importData(event) { 
             const file = event.target.files[0]; if (!file) return; 
-            // ⭐ 星星鎖定：手動還原（覆蓋）屬破壞性操作，若有加星就禁止
-            if (!(await assertNoStarredBeforeDestructive('手動還原（覆蓋）'))) { event.target.value = ''; return; }
             if (!confirm('⚠️ 警告：還原資料將會「覆蓋」並清除您目前的所有紀錄。確定要繼續嗎？')) { event.target.value = ''; return; } 
             const reader = new FileReader(); 
             reader.onload = async function(e) { 
@@ -7809,7 +6759,6 @@ async function exportData() {
 
         // ✅ 修正：上面 cache key 用咗 3 個底線，呢度統一返（兼容舊 key）
         // （留空，實際 key 由 SW 產生，見 tryConsumeSharedPayload）
-
 
         window.onload = async () => {
             try { loadUIFontScale(); } catch (e) { console.error(e); }
