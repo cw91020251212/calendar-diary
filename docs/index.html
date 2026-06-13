@@ -2131,6 +2131,20 @@
             } catch (e) { console.error(e); }
         }
 
+        const __isEmbeddedPreview = (() => {
+            try { return window.top !== window.self; } catch (_) { return true; }
+        })();
+
+        function __canUseHistoryBackSafely() {
+            // 平台內嵌預覽（iframe/WebView wrapper）好多時 back 會直接退走平台頁
+            if (__isEmbeddedPreview) return false;
+            try {
+                if (!history || history.length <= 1) return false;
+                if (!history.state || !history.state.__diaryBase) return false;
+            } catch (_) { return false; }
+            return true;
+        }
+
         function closeModalFromPopstate(id) {
             __closingViaPopstate = true;
             try { closeModal(id); } finally { __closingViaPopstate = false; }
@@ -3667,7 +3681,7 @@
                     if (__shareDateHistoryPushed) {
                         __suppressNextPop = true;
                         __shareDateHistoryPushed = false;
-                        history.back();
+                        if (__canUseHistoryBackSafely()) if (__canUseHistoryBackSafely()) history.back();
                     }
                 } catch (e) { console.error(e); }
             } else {
@@ -3979,9 +3993,9 @@
                     if (id === 'moveCopyModal' && __moveCopyHistoryPushed) { __moveCopyHistoryPushed = false; needBack = true; }
                     if (id === 'briefingModal' && __briefingHistoryPushed) { __briefingHistoryPushed = false; needBack = true; }
 
-                    if (needBack) {
+                    if (needBack && __canUseHistoryBackSafely()) {
                         __suppressNextPop = true;
-                        history.back();
+                        if (__canUseHistoryBackSafely()) history.back();
                     }
                 } catch (e) { console.error(e); }
             }
@@ -4997,7 +5011,7 @@ lucide.createIcons();
                 if (__readHistoryPushed) {
                     __suppressNextPop = true;
                     __readHistoryPushed = false;
-                    history.back();
+                    if (__canUseHistoryBackSafely()) history.back();
                 }
             } catch (e) { console.error(e); }
         }
@@ -6646,7 +6660,7 @@ function handleImageUpload(event) {
                 if (__editorHistoryPushed) {
                     __suppressNextPop = true;
                     __editorHistoryPushed = false;
-                    history.back();
+                    if (__canUseHistoryBackSafely()) history.back();
                 }
             } catch (e) { console.error(e); }
         }
