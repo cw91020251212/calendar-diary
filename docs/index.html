@@ -2104,12 +2104,39 @@
         // 🟢 全新變數：自動儲存計時器
         let autoSaveInterval = null;
 
-        // 🟩 Android 返回鍵處理：用 History API 令「返回」先關編輯器並儲存
+        // 🟩 Android 返回鍵處理：用 History API 令「返回」先關彈窗（避免直接退出/白畫面）
         let __editorHistoryPushed = false;
+        let __readHistoryPushed = false;
+        let __dayHistoryPushed = false;
+        let __notebookHistoryPushed = false;
+        let __searchHistoryPushed = false;
+        let __backupHistoryPushed = false;
+        let __toolboxHistoryPushed = false;
+        let __helpHistoryPushed = false;
+        let __folderModeHistoryPushed = false;
+        let __pickDateHistoryPushed = false;
+        let __pickFolderHistoryPushed = false;
+        let __moveCopyHistoryPushed = false;
+        let __briefingHistoryPushed = false;
+
+        let __closingViaPopstate = false;
         let __suppressNextPop = false;
         // ✅ 記住編輯器由邊度開：儲存後要返回上一層（避免一下跳返月曆）
         let __editorReturnTo = null; // null | 'notebookModal' | 'dayModal' | 'readModal'
-        function ensureBaseHistoryState() {
+
+        function pushModalHistory(modalName) {
+            try {
+                ensureBaseHistoryState();
+                history.pushState({ __diaryModal: modalName }, document.title);
+            } catch (e) { console.error(e); }
+        }
+
+        function closeModalFromPopstate(id) {
+            __closingViaPopstate = true;
+            try { closeModal(id); } finally { __closingViaPopstate = false; }
+        }
+
+        function ensureBaseHistoryState() { 
             try {
                 if (!history.state || !history.state.__diaryBase) {
                     history.replaceState({ __diaryBase: true }, document.title);
@@ -2132,7 +2159,7 @@
             } catch (e) { console.error(e); }
         }
         window.addEventListener('popstate', async () => {
-            // 如果係我哋自己 closeEditor() 觸發嘅 history.back()，就唔再處理
+            // 如果係我哋自己 closeXxx() 觸發嘅 history.back()，就唔再處理
             if (__suppressNextPop) { __suppressNextPop = false; return; }
             try {
                 // 1) 先處理「分享後選日期」彈窗返回
@@ -2143,12 +2170,71 @@
                     return;
                 }
 
-                // 2) 再處理編輯器返回
+                // 2) 再處理編輯器返回（會先自動儲存）
                 const editorEl = document.getElementById('editorModal');
                 const editorActive = !!(editorEl && editorEl.classList.contains('active'));
                 if (editorActive) {
                     __editorHistoryPushed = false;
                     await closeEditorNoHistory();
+                    return;
+                }
+
+                // 3) 閱讀頁返回：回上一層（日曆當日列表 / 記事簿）
+                const readEl = document.getElementById('readModal');
+                const readActive = !!(readEl && readEl.classList.contains('active'));
+                if (readActive) {
+                    __readHistoryPushed = false;
+                    try { backToDayViewNoHistory(); } catch (e) { console.error(e); }
+                    return;
+                }
+
+                // 4) 當日列表返回：關閉當日列表
+                const dayEl = document.getElementById('dayModal');
+                const dayActive = !!(dayEl && dayEl.classList.contains('active'));
+                if (dayActive) {
+                    __dayHistoryPushed = false;
+                    try { closeModalFromPopstate('dayModal'); } catch (e) { console.error(e); }
+                    return;
+                }
+
+                // 5) 記事簿返回：關閉記事簿
+                const nbEl = document.getElementById('notebookModal');
+                const nbActive = !!(nbEl && nbEl.classList.contains('active'));
+                if (nbActive) {
+                    __notebookHistoryPushed = false;
+                    try { closeModalFromPopstate('notebookModal'); } catch (e) { console.error(e); }
+                    return;
+                }
+
+                // 6) 其他一般彈窗：逐個關（保守寫法，避免返回直接退出）
+                const ids = [
+                    'searchModal',
+                    'backupModal',
+                    'toolboxModal',
+                    'helpModal',
+                    'folderModeModal',
+                    'pickDateModal',
+                    'pickFolderModal',
+                    'moveCopyModal',
+                    'briefingModal',
+                    'welcomeModal'
+                ];
+                for (const id of ids) {
+                    const el = document.getElementById(id);
+                    if (el && el.classList.contains('active')) {
+                        try { closeModalFromPopstate(id); } catch (e) { console.error(e); }
+                        // 對應 flag 清返，避免下次關閉時誤 back
+                        if (id === 'searchModal') __searchHistoryPushed = false;
+                        if (id === 'backupModal') __backupHistoryPushed = false;
+                        if (id === 'toolboxModal') __toolboxHistoryPushed = false;
+                        if (id === 'helpModal') __helpHistoryPushed = false;
+                        if (id === 'folderModeModal') __folderModeHistoryPushed = false;
+                        if (id === 'pickDateModal') __pickDateHistoryPushed = false;
+                        if (id === 'pickFolderModal') __pickFolderHistoryPushed = false;
+                        if (id === 'moveCopyModal') __moveCopyHistoryPushed = false;
+                        if (id === 'briefingModal') __briefingHistoryPushed = false;
+                        return;
+                    }
                 }
             } catch (e) { console.error(e); }
         });
@@ -3874,6 +3960,31 @@
                     }
                 } catch (e) { console.error(e); }
             }
+
+            // ✅ 如果係用家按「X / 關閉」主動關彈窗：退返一步 history
+            // （如果係 popstate 觸發嘅關閉，唔好再 back，避免循環）
+            if (!__closingViaPopstate) {
+                try {
+                    let needBack = false;
+                    if (id === 'notebookModal' && __notebookHistoryPushed) { __notebookHistoryPushed = false; needBack = true; }
+                    if (id === 'dayModal' && __dayHistoryPushed) { __dayHistoryPushed = false; needBack = true; }
+                    if (id === 'readModal' && __readHistoryPushed) { __readHistoryPushed = false; needBack = true; }
+                    if (id === 'searchModal' && __searchHistoryPushed) { __searchHistoryPushed = false; needBack = true; }
+                    if (id === 'backupModal' && __backupHistoryPushed) { __backupHistoryPushed = false; needBack = true; }
+                    if (id === 'toolboxModal' && __toolboxHistoryPushed) { __toolboxHistoryPushed = false; needBack = true; }
+                    if (id === 'helpModal' && __helpHistoryPushed) { __helpHistoryPushed = false; needBack = true; }
+                    if (id === 'folderModeModal' && __folderModeHistoryPushed) { __folderModeHistoryPushed = false; needBack = true; }
+                    if (id === 'pickDateModal' && __pickDateHistoryPushed) { __pickDateHistoryPushed = false; needBack = true; }
+                    if (id === 'pickFolderModal' && __pickFolderHistoryPushed) { __pickFolderHistoryPushed = false; needBack = true; }
+                    if (id === 'moveCopyModal' && __moveCopyHistoryPushed) { __moveCopyHistoryPushed = false; needBack = true; }
+                    if (id === 'briefingModal' && __briefingHistoryPushed) { __briefingHistoryPushed = false; needBack = true; }
+
+                    if (needBack) {
+                        __suppressNextPop = true;
+                        history.back();
+                    }
+                } catch (e) { console.error(e); }
+            }
         }
 
         // 🔧 修補：通用打開視窗 + 摺疊區塊 + 私人備註
@@ -3921,6 +4032,15 @@
         function openSearchModal() {
             const m = document.getElementById('searchModal');
             if (!m) return;
+
+            // ✅ 手機返回鍵：入搜尋時 push 一層 history
+            try {
+                if (!__closingViaPopstate && !m.classList.contains('active')) {
+                    pushModalHistory('search');
+                    __searchHistoryPushed = true;
+                }
+            } catch (_) {}
+
             m.classList.add('active');
             const input = document.getElementById('searchInput');
             const list = document.getElementById('searchResultList');
@@ -4316,6 +4436,14 @@
             const m = document.getElementById('notebookModal');
             if (!m) return;
 
+            // ✅ 手機返回鍵：入記事簿時 push 一層 history（返回會先關記事簿）
+            try {
+                if (!__closingViaPopstate && !m.classList.contains('active')) {
+                    pushModalHistory('notebook');
+                    __notebookHistoryPushed = true;
+                }
+            } catch (_) {}
+
             // ✅ 記住排序選擇
             const sel = document.getElementById('notebookSort');
             if (sel) sel.value = localStorage.getItem('diary_notebook_sort') || (sel.value || 'updated');
@@ -4438,6 +4566,15 @@ lucide.createIcons();
         }
 
         function openDayView(dateStr, entries) {
+            // ✅ 手機返回鍵：入「當日記事」時 push 一層 history（返回會先關當日列表）
+            try {
+                const dm = document.getElementById('dayModal');
+                if (!__closingViaPopstate && dm && !dm.classList.contains('active')) {
+                    pushModalHistory('day');
+                    __dayHistoryPushed = true;
+                }
+            } catch (_) {}
+
             // ✅ 記低當日 entries（俾批量模式重繪用）
             try { window.__lastDayEntries = Array.isArray(entries) ? entries : []; } catch (_) {}
 
@@ -4772,6 +4909,15 @@ lucide.createIcons();
         }
 
         function openReadView(entryJsonEncoded) {
+            // ✅ 手機返回鍵：入閱讀頁時 push 一層 history（返回會先回上一層）
+            try {
+                const rm = document.getElementById('readModal');
+                if (!__closingViaPopstate && rm && !rm.classList.contains('active')) {
+                    pushModalHistory('read');
+                    __readHistoryPushed = true;
+                }
+            } catch (_) {}
+
             currentEntryData = JSON.parse(decodeURIComponent(entryJsonEncoded));
 			try { if (!currentEntryData.space) currentEntryData.space = SPACE_CALENDAR; } catch (_) {} document.getElementById('dayModal').classList.remove('active');
             const dateObj = new Date(currentEntryData.timestamp); 
@@ -4824,14 +4970,13 @@ lucide.createIcons();
             try { showSwipeHintOnceIfNeeded(); } catch (_) {}
         }
 
-        function backToDayView() {
+        function backToDayViewNoHistory() {
             try { closeModal('readModal'); } catch (_) {}
 
             // ✅ 根據來源返回：日曆（當日列表）/ 記事簿
             const nav = window.__readNav || { returnTo: 'day' };
             if (nav.returnTo === 'notebook') {
                 try {
-                    // 回記事簿並定位
                     __pendingNotebookFocus = { entryId: (currentEntryData && currentEntryData.id) ? String(currentEntryData.id) : null };
                 } catch (_) {}
                 try { openNotebookModal(); } catch (e) { console.error(e); }
@@ -4844,6 +4989,19 @@ lucide.createIcons();
                 openDayView(editingDateStr, all.filter(e => e.date === editingDateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR));
             });
         }
+
+        function backToDayView() {
+            backToDayViewNoHistory();
+            // ✅ 如果係由按鈕主動返回，就退返一步 history（避免堆疊越嚟越長）
+            try {
+                if (__readHistoryPushed) {
+                    __suppressNextPop = true;
+                    __readHistoryPushed = false;
+                    history.back();
+                }
+            } catch (e) { console.error(e); }
+        }
+
         function openLightbox(imgSrc) { document.getElementById('lightboxImg').src = imgSrc; document.getElementById('lightbox').classList.add('active'); }
         function closeLightbox(event) { if (event && event.target.id === 'lightboxImg') return; document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImg').src = ''; }
         function openEditorForToday() {
@@ -6511,7 +6669,18 @@ function handleImageUpload(event) {
             await closeEditor();
         }
         
-        function openBackupModal() { document.getElementById('backupModal').classList.add('active'); }
+        function openBackupModal() {
+            const m = document.getElementById('backupModal');
+            if (!m) return;
+            // ✅ 手機返回鍵：入設定/備份時 push 一層 history
+            try {
+                if (!__closingViaPopstate && !m.classList.contains('active')) {
+                    pushModalHistory('backup');
+                    __backupHistoryPushed = true;
+                }
+            } catch (_) {}
+            m.classList.add('active');
+        }
 
         // ✅ 由右下角「+」展開嘅調色：先收起 FAB，再轉顏色
         function cycleThemeFromFab() {
