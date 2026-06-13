@@ -154,7 +154,13 @@
         */
         @media (pointer: coarse) and (min-width: 600px) {
             .desktop-stage { padding: 0; }
-            .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
+            .device-frame { width: 100% !important; height: 100dvh !important; border-radius: 0 !important; border: none !important; box-shadow: none !important; }
+        }
+
+        /* ✅ 平板（含某啲會回報 pointer:fine 嘅裝置）：一樣全屏用盡 */
+        @media (min-width: 600px) and (max-width: 1200px) {
+            .desktop-stage { padding: 0 !important; }
+            .device-frame { width: 100% !important; height: 100dvh !important; border-radius: 0 !important; border: none !important; box-shadow: none !important; }
         }
 
         /* App 本體高度跟住外框走（唔再用 100dvh 硬鎖） */
