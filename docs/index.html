@@ -205,9 +205,21 @@
         }
         .icon-btn:hover { background: var(--hover); }
 
-        /* 🖍️ 熒光筆標記（配合 ==文字==） */
-        mark.hl-mark { background: #fff59d; color: inherit; padding: 0 2px; border-radius: 4px; }
-        body.theme-dark mark.hl-mark { background: rgba(255, 245, 157, 0.55); }
+        /* 🖍️ 熒光筆（真正上色） */
+        /* 🖍️ 熒光筆：更「出」+ 支援多行換行 */
+        mark.hl-mark {
+            background: rgba(255, 242, 0, 0.85);
+            color: inherit;
+            padding: 0 3px;
+            border-radius: 5px;
+            box-shadow: 0 0 0 2px rgba(255, 242, 0, 0.25);
+            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone;
+        }
+        body.theme-dark mark.hl-mark {
+            background: rgba(255, 242, 0, 0.62);
+            box-shadow: 0 0 0 2px rgba(255, 242, 0, 0.18);
+        }
 
         /* ✅ Markdown 預覽：閱讀頁正文排版（只影響 readText.markdown-rendered） */
         #readText.markdown-rendered { white-space: normal; }
@@ -470,7 +482,21 @@
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
-        .entry-card { background: var(--bg); border: 1px solid var(--outline); border-radius: 12px; padding: 16px; cursor: pointer; position: relative; overflow: hidden; }
+        .entry-card {
+            /* fallback（舊瀏覽器唔支援 color-mix 時用） */
+            background: var(--bg);
+            /* ✅ 全局：用所選標籤色做「淡底」背景（令日曆/記事簿/搜尋都一致） */
+            background-color: color-mix(in srgb, var(--card-color, var(--primary)) 14%, var(--surface));
+            border: 1px solid var(--outline);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        body.theme-dark .entry-card {
+            background-color: color-mix(in srgb, var(--card-color, var(--primary)) 22%, #000);
+        }
 
         /* ✅ 批量刪除：工具列 + 勾選 */
         .bulk-toolbar { position: sticky; top: -1px; z-index: 110; display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-bottom: 12px; }
@@ -632,12 +658,50 @@
         .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
+        /* 🌤️ 編輯模式：天氣工具列同樣縮細（同上面工具列一致） */
+        #editorModal .weather-toolbar { gap: 6px; margin-bottom: 8px; padding-bottom: 4px; }
+        #editorModal .weather-toolbar .weather-btn {
+            padding: 6px 10px;
+            font-size: calc(12px * var(--ui-font-scale));
+            line-height: 1;
+            min-height: 34px;
+            border-radius: 999px;
+        }
+        @media (max-width: 380px) {
+            #editorModal .weather-toolbar .weather-btn { padding: 5px 9px; min-height: 32px; }
+        }
+
         .tool-btn { flex: 0 0 auto; background: var(--bg); border: 1px solid var(--outline); padding: 9px 12px; border-radius: 999px; font-size: calc(13px * var(--ui-font-scale)); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text-main); white-space: nowrap; }
         .tool-btn:hover { background: var(--border); }
+
+        /* ✍️ 編輯模式：工具列縮細（高度/字/圖示）＝同一屏可見多過 3 個 */
+        #editorModal .editor-toolbar { gap: 6px; margin-bottom: 6px; padding-bottom: 4px; }
+        #editorModal .editor-toolbar .tool-btn {
+            padding: 6px 10px;
+            font-size: calc(12px * var(--ui-font-scale));
+            line-height: 1;
+            min-height: 34px;
+            border-radius: 999px;
+        }
+        #editorModal .editor-toolbar .tool-btn svg {
+            width: 18px !important;
+            height: 18px !important;
+        }
+        @media (max-width: 380px) {
+            #editorModal .editor-toolbar .tool-btn { padding: 5px 9px; min-height: 32px; }
+            #editorModal .editor-toolbar .tool-btn svg { width: 17px !important; height: 17px !important; }
+        }
         .tool-btn-alarm { background: #fff5f5; color: #e53e3e; border-color: var(--outline); }
         .tool-btn-alarm:hover { background: #fed7d7; }
 
         textarea { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; resize: none; outline: none; transition: font-size 0.2s; }
+        .editor-rich { flex: 1; width: 100%; padding: 16px; border: 1px solid var(--outline); border-radius: 12px; background: var(--bg); color: var(--text-main); font-family: inherit; outline: none; transition: font-size 0.2s; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+        .editor-rich:focus { border-color: var(--outline); background: var(--surface); box-shadow: inset 0 0 0 1px rgba(74,85,104,0.35); }
+        .editor-rich.size-sm { font-size: 16px; line-height: 1.5; }
+        .editor-rich.size-md { font-size: 20px; line-height: 1.6; }
+        .editor-rich.size-lg { font-size: 24px; line-height: 1.7; }
+        .editor-rich:empty:before { content: attr(data-placeholder); color: #b8b8b8; }
+
         textarea::placeholder { color: #b8b8b8; opacity: 1; }
         textarea::-webkit-input-placeholder { color: #b8b8b8; opacity: 1; }
         textarea::-moz-placeholder { color: #b8b8b8; opacity: 1; }
@@ -646,6 +710,7 @@
 
         .editor-text-wrap { position: relative; }
         .editor-text-wrap #editorText { padding-right: 52px; }
+
         .ta-expand-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--outline); background: rgba(255,255,255,0.0); display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.55; }
         .ta-expand-btn:hover { opacity: 0.9; background: var(--hover); }
 
@@ -1043,7 +1108,7 @@
                 <div class="modal-title"><button class="icon-btn" onclick="backToDayView()" style="margin-left:-8px;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button><span>閱讀記事</span></div>
                 <div>
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="記事薄 Markdown 預覽" style="display:none;">MD</button>
+                    <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="Markdown 預覽">MD</button>
                     <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="readDeleteBtn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
@@ -1147,7 +1212,9 @@
                 
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
-                    <button class="tool-btn" onclick="highlightSelection()" title="用熒光筆標記你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
+                    <button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
+                    <button class="tool-btn" onclick="editorUndo()" title="向後撤銷"><i data-lucide="rotate-ccw"></i> 撤銷</button>
+                    <button class="tool-btn" onclick="editorRedo()" title="向前重做"><i data-lucide="rotate-cw"></i> 重做</button>
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
@@ -1191,8 +1258,8 @@
                 <div class="editor-text-wrap">
                     <button class="ta-expand-btn" onclick="enterTextFullscreen()" title="全頁輸入">
                         <i data-lucide="maximize-2" style="width: 18px; height: 18px;"></i>
-                    </button>
-                    <textarea id="editorText" class="size-md" placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></textarea>
+                    </button>                    <div id="editorRich" class="editor-rich size-md" contenteditable="true" spellcheck="false" data-placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></div>
+                    <textarea id="editorText" style="display:none" tabindex="-1" aria-hidden="true"></textarea>
                 </div>
                 <div class="photo-gallery" id="editorGallery"></div>
                 <div class="attachments-box" id="attachmentsBox" style="display:none;">
@@ -2363,7 +2430,17 @@
         let currentEntryData = null;
         let currentTextSizeIdx = 1;
         const LAST_COLOR_KEY = 'diary_last_selected_color';
-        let selectedColor = (() => { try { return localStorage.getItem(LAST_COLOR_KEY) || 'blue'; } catch (_) { return 'blue'; } })();
+        let selectedColor = (() => {
+            // ✅ 預設標籤：第一次開（未選過/未儲存）就用「黃色：私人」
+            // 同時避免 localStorage 入面有奇怪值（例如舊版/手動改過）
+            try {
+                const v = String(localStorage.getItem(LAST_COLOR_KEY) || '').trim();
+                const ok = APP_COLORS && Array.isArray(APP_COLORS) && APP_COLORS.some(c => c && c.id === v);
+                return ok ? v : 'yellow';
+            } catch (_) {
+                return 'yellow';
+            }
+        })();
         let currentImages = [];
         let selectedWeatherBadges = [];
         let isAnimating = false; 
@@ -4016,7 +4093,7 @@
                 openEditorForNotebook();
 
                 // 帶入分享內容
-                const textarea = document.getElementById('editorText');
+                const textarea = document.getElementById('editorText'); const rich = document.getElementById('editorRich');
                 if (textarea && __pendingShared.text) textarea.value = __pendingShared.text;
                 if (__pendingShared.images && __pendingShared.images.length > 0) {
                     currentImages = __pendingShared.images;
@@ -4054,7 +4131,7 @@
             await renderCalendar();
 
             openEditor(null);
-            const textarea = document.getElementById('editorText');
+            const textarea = document.getElementById('editorText'); const rich = document.getElementById('editorRich');
             if (textarea && __pendingShared.text) textarea.value = __pendingShared.text;
 
             if (__pendingShared.images && __pendingShared.images.length > 0) {
@@ -4465,6 +4542,8 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
+
+        // 🖍️ 把 ==重點== 轉成黃色底 mark（安全：先 escape）
 
         // =========================
         // 🔗 網址預覽（可靠版：內容更吻合）
@@ -4981,8 +5060,11 @@ lucide.createIcons();
                     const wArr = Array.isArray(w) ? w : (w ? [w] : []);
                     const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
                     const idStr = String(e.id);
-                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${e.text}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    const hlAttr = encodeURIComponent(JSON.stringify(Array.isArray(e.highlights) ? e.highlights : []));
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
+                // ✅ 日列表（卡片預覽）亦要顯示熒光筆
+                try { applyHighlightsToEntryCardPreviews(listEl); } catch (_) {}
             }
             // ✅ 用 openModal 推入 history stack，令手機 Back 掣可以逐層返回
             openModal('dayModal');
@@ -5331,7 +5413,7 @@ lucide.createIcons();
         // =========================
         // 📝 記事薄 Markdown 預覽（只影響閱讀顯示，不改動儲存內容）
         // =========================
-        const NOTEBOOK_MD_PREVIEW_KEY = 'diary_notebook_md_preview'; // '1' | '0'
+        const NOTEBOOK_MD_PREVIEW_KEY = 'diary_md_preview'; // '1' | '0'（全局：日曆 + 記事簿）
 
         function isNotebookMarkdownPreviewEnabled() {
             try {
@@ -5363,30 +5445,41 @@ lucide.createIcons();
             const space = (currentEntryData && currentEntryData.space) ? String(currentEntryData.space) : SPACE_CALENDAR;
             const isNotebook = (space === SPACE_NOTEBOOK);
 
-            // 只喺「記事薄」文章先顯示 MD 掣
+            // ✅ 讀取頁亦要顯示「熒光筆」結果：即使唔喺編輯模式
+            const highlights = (currentEntryData && Array.isArray(currentEntryData.highlights)) ? currentEntryData.highlights : [];
+            const hasHighlights = highlights && highlights.length > 0;
+
+            // ✅ 日曆 + 記事簿 都可用 Markdown 預覽
             const btn = document.getElementById('readMdToggleBtn');
             if (btn) {
-                btn.style.display = isNotebook ? 'inline-flex' : 'none';
-                btn.classList.toggle('active', isNotebook && isNotebookMarkdownPreviewEnabled());
+                btn.style.display = 'inline-flex';
+                btn.classList.toggle('active', isNotebookMarkdownPreviewEnabled());
             }
 
-            // 非記事薄：保持原本純文字顯示
-            if (!isNotebook) {
-                el.classList.remove('markdown-rendered');
-                el.textContent = txt;
-                return;
+            // ✅ 有熒光筆標記：優先用「純文字 + mark」渲染（確保你出到去/直接觀看都見到）
+            //    ＊因為 highlights 係按「原文字」字數位置儲存，Markdown 解析後會改變字數，會令位置對唔準。
+            if (hasHighlights) {
+                try {
+                    el.classList.remove('markdown-rendered');
+                    // 先放入純文字，再套用 offsets 成 mark
+                    el.textContent = txt;
+                    applyHighlightsToElement(el, highlights);
+                    return;
+                } catch (e) {
+                    console.error('Apply highlights failed', e);
+                    el.classList.remove('markdown-rendered');
+                    el.textContent = txt;
+                    return;
+                }
             }
 
-            // 記事薄：如開咗預覽 + 套件存在，先轉 Markdown
+            // ✅ 無熒光筆：如開咗預覽 + 套件存在，就轉 Markdown；否則顯示純文字
             const enabled = isNotebookMarkdownPreviewEnabled();
             const canMd = (typeof window.marked !== 'undefined') && (typeof window.DOMPurify !== 'undefined');
 
             if (enabled && canMd) {
                 try {
-                    // marked: 轉 HTML；DOMPurify: 清理（避免貼入奇怪 HTML）
-                    // 🖍️ 熒光筆：把 ==重點== 轉做 <mark>（多個亦得）
-                    const mdTxt = String(txt || '').replace(/==([^=\n][^\n]*?)==/g, '<mark class="hl-mark">$1</mark>');
-                    const html = window.marked.parse(mdTxt, { gfm: true, breaks: true });
+                    const html = window.marked.parse(txt, { gfm: true, breaks: true });
                     el.innerHTML = window.DOMPurify.sanitize(html);
                     el.classList.add('markdown-rendered');
                 } catch (e) {
@@ -5510,10 +5603,12 @@ lucide.createIcons();
         }
 
         function openEditor(entryData) {
-            currentEntryData = entryData; const textarea = document.getElementById('editorText');
+            currentEntryData = entryData; const textarea = document.getElementById('editorText'); const rich = document.getElementById('editorRich');
+            // 🖍️ 準備內容後先 reset 歷史（否則第一步 undo 會跳返去空白）
             if (entryData) { 
                 document.getElementById('editorTitle').textContent = '編輯記事'; 
-                textarea.value = entryData.text || ''; 
+                if (rich) setEditorFromTextAndHighlights(entryData.text || '', entryData.highlights || []); else textarea.value = entryData.text || '';
+                 
                 selectColor(entryData.color || 'blue'); 
                 setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
                 currentImages = entryData.images ? [...entryData.images] : [];
@@ -5524,9 +5619,10 @@ lucide.createIcons();
                 currentEntryData.folderId = entryData.folderId || '';
             } else { 
                 document.getElementById('editorTitle').textContent = '新增記事'; 
-                textarea.value = ''; 
+                if (rich) setEditorFromTextAndHighlights('', []); else textarea.value = '';
+                 
                 // ✅ 新增記事：預設沿用上一次選擇嘅顏色
-                selectColor((() => { try { return localStorage.getItem(LAST_COLOR_KEY) || selectedColor || 'blue'; } catch (_) { return selectedColor || 'blue'; } })()); 
+                selectColor((() => { try { return localStorage.getItem(LAST_COLOR_KEY) || selectedColor || 'yellow'; } catch (_) { return selectedColor || 'yellow'; } })()); 
                 setTextSize(1); 
                 currentImages = [];
                 currentAttachments = [];
@@ -5537,12 +5633,19 @@ lucide.createIcons();
                     try { if (!currentEntryData) currentEntryData = {}; currentEntryData.folderId = getNotebookLastWriteFolderId() || ''; } catch (_) {}
                 }
             }
-            updateWeatherUI(); 
-            renderEditorImages(); renderAttachments();
+            updateWeatherUI();
+renderEditorImages(); renderAttachments();
             setupEditorTextareaAutoGrow();
+            // 🖍️ 內容 ready 後，建立撤銷/重做起點
+            try { editorResetHistory(); } catch (_) {}
+            // 🖍️ 監聽輸入：即時高亮 + 歷史（節流）
+            try {
+                if (rich) { rich.oninput = () => { try { editorScheduleHistoryPush(); } catch(_){}; }; } else { textarea.oninput = () => { try { editorScheduleHistoryPush(); } catch(_){}; }; }
+                textarea.onscroll = () => { /* no-op */ };
+            } catch (_) {}
             updateEditorNotebookFolderRow();
             document.getElementById('editorModal').classList.add('active'); 
-            setTimeout(() => { try { textarea.focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400); 
+            setTimeout(() => { try { (rich || textarea).focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400); 
 
             // 🟩 Android 返回鍵：開啟編輯器時 push 一個 history state
             ensureBaseHistoryState();
@@ -5554,12 +5657,13 @@ lucide.createIcons();
             } catch (e) { console.error(e); }
             
             // 🟢 開啟編輯器時，啟動定時自動儲存
-            startAutoSave();
+            // ✅ 只按「儲存記錄」先寫入資料（取消自動儲存）
+            // startAutoSave();
         }
 
         function selectColor(colorId) {
             selectedColor = colorId;
-            try { localStorage.setItem(LAST_COLOR_KEY, String(colorId || 'blue')); } catch (_) {}
+            try { localStorage.setItem(LAST_COLOR_KEY, String(colorId || 'yellow')); } catch (_) {}
             document.querySelectorAll('#colorPickerUI .color-btn').forEach(btn => {
                 btn.classList.remove('selected');
                 if (btn.dataset.color === colorId) {
@@ -6251,23 +6355,345 @@ lucide.createIcons();
             initColorPickerUI();
         }
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
-        // 🖍️ 熒光筆：把選取文字包住 == ==（可多段、多次）
-        function highlightSelection() {
-            const ta = document.getElementById('editorText');
-            if (!ta) return;
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            if (end <= start) { showToast('🖍️ 請先選擇一段文字再標記', 'error'); return; }
-            const v = ta.value || '';
-            const sel = v.slice(start, end);
-            const wrapped = '==' + sel + '==';
-            ta.value = v.slice(0, start) + wrapped + v.slice(end);
-            try {
-                ta.focus();
-                ta.setSelectionRange(start, start + wrapped.length);
-            } catch (_) {}
-            try { silentAutoSave(); } catch (_) {}
+
+        // 🖍️ 熒光筆（富文字 + 可保存）
+        function __getEditorEl() {
+            return document.getElementById('editorRich') || document.getElementById('editorText');
         }
+        function getEditorPlainText() {
+            const el = __getEditorEl();
+            if (!el) return '';
+            if (el.id === 'editorRich') return (el.innerText || '').replace(/\r\n/g, '\n');
+            return String(el.value || '');
+        }
+        function setEditorFromTextAndHighlights(text, highlights) {
+            const el = document.getElementById('editorRich');
+            if (!el) return;
+            const t = String(text || '');
+            const hs = Array.isArray(highlights) ? highlights.slice().filter(x => x && Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > x.start).sort((a,b)=>a.start-b.start) : [];
+            // merge overlaps
+            const merged = [];
+            for (const h of hs) {
+                const start = Math.max(0, Math.floor(h.start));
+                const end = Math.max(0, Math.floor(h.end));
+                if (!merged.length || start > merged[merged.length-1].end) merged.push({start, end});
+                else merged[merged.length-1].end = Math.max(merged[merged.length-1].end, end);
+            }
+            // build HTML with <br> and <mark>
+            // 重要：避免 <mark> 內直接包含 <br>，否則換行位會「斷色」
+            const esc = (str)=>String(str).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+            const plainToHtml = (s)=>esc(String(s||'')).replace(/\n/g,'<br>');
+            const hlToHtml = (s)=>{
+                const parts = String(s||'').split('\n');
+                let out = '<mark class="hl-mark">' + esc(parts[0] || '') + '</mark>';
+                for (let k=1;k<parts.length;k++) out += '<br><mark class="hl-mark">' + esc(parts[k] || '') + '</mark>';
+                return out;
+            };
+            let html = '';
+            let i = 0;
+            for (const h of merged) {
+                const a = Math.min(t.length, h.start);
+                const b = Math.min(t.length, h.end);
+                if (a > i) html += plainToHtml(t.slice(i, a));
+                if (b > a) html += hlToHtml(t.slice(a, b));
+                i = b;
+            }
+            html += plainToHtml(t.slice(i));
+            el.innerHTML = html || '';
+        }
+
+        function getSelectionOffsetsInEditor() {
+            const root = document.getElementById('editorRich');
+            const sel = window.getSelection();
+            if (!root || !sel || sel.rangeCount === 0) return null;
+            const range = sel.getRangeAt(0);
+            if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            let pos = 0;
+            let start = null;
+            let end = null;
+            while (walker.nextNode()) {
+                const n = walker.currentNode;
+                const len = n.nodeValue ? n.nodeValue.length : 0;
+                if (n === range.startContainer) start = pos + range.startOffset;
+                if (n === range.endContainer) end = pos + range.endOffset;
+                pos += len;
+            }
+            if (start === null || end === null) return null;
+            if (end < start) [start, end] = [end, start];
+            return { start, end };
+        }
+
+        function __unwrapMark(markEl) {
+            const parent = markEl.parentNode;
+            if (!parent) return;
+            while (markEl.firstChild) parent.insertBefore(markEl.firstChild, markEl);
+            parent.removeChild(markEl);
+        }
+
+        function toggleHighlighter() {
+            const root = document.getElementById('editorRich');
+            if (!root) return;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) { showToast('🖍️ 請先選擇一段文字', 'error'); return; }
+            const range = sel.getRangeAt(0);
+            if (range.collapsed) { showToast('🖍️ 請先選擇一段文字', 'error'); return; }
+            if (!root.contains(range.commonAncestorContainer)) { showToast('🖍️ 請喺輸入框內選字', 'error'); return; }
+
+            // 如果選取範圍完全落喺同一個 mark 裏面，就當取消
+            let node = range.commonAncestorContainer;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+            const mark = node && node.closest ? node.closest('mark.hl-mark') : null;
+            if (mark && root.contains(mark)) {
+                __unwrapMark(mark);
+            } else {
+                const m = document.createElement('mark');
+                m.className = 'hl-mark';
+                try {
+                    range.surroundContents(m);
+                } catch (e) {
+                    // fallback：用 execCommand
+                    try {
+                        document.execCommand('hiliteColor', false, '#fff59d');
+                    } catch (_) {}
+                }
+            }
+            // push history snapshot
+            try { editorPushHistory(true); } catch (_) {}
+        }
+
+        function serializeHighlightsFromEditor() {
+            const root = document.getElementById('editorRich');
+            if (!root) return [];
+            const ranges = [];
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            let pos = 0;
+            while (walker.nextNode()) {
+                const n = walker.currentNode;
+                const text = n.nodeValue || '';
+                const len = text.length;
+                const parent = n.parentNode;
+                if (parent && parent.nodeType === 1 && parent.matches && parent.matches('mark.hl-mark')) {
+                    ranges.push({ start: pos, end: pos + len });
+                }
+                pos += len;
+            }
+            // merge
+            ranges.sort((a,b)=>a.start-b.start);
+            const out = [];
+            for (const r of ranges) {
+                if (!out.length || r.start > out[out.length-1].end) out.push({ start: r.start, end: r.end });
+                else out[out.length-1].end = Math.max(out[out.length-1].end, r.end);
+            }
+            return out;
+        }
+
+        function applyHighlightsToElement(el, highlights) {
+            if (!el) return;
+            const txt = (el.textContent || '').replace(/\r\n/g, '\n');
+            // rebuild as plain + mark by offsets
+            const hs = Array.isArray(highlights) ? highlights.slice().filter(x => x && Number.isFinite(x.start) && Number.isFinite(x.end) && x.end > x.start).sort((a,b)=>a.start-b.start) : [];
+            // 重要：避免 <mark> 內直接包含 <br>，否則換行位會「斷色」
+            const esc = (str)=>String(str).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+            const plainToHtml = (s)=>esc(String(s||'')).replace(/\n/g,'<br>');
+            const hlToHtml = (s)=>{
+                const parts = String(s||'').split('\n');
+                let out = '<mark class="hl-mark">' + esc(parts[0] || '') + '</mark>';
+                for (let k=1;k<parts.length;k++) out += '<br><mark class="hl-mark">' + esc(parts[k] || '') + '</mark>';
+                return out;
+            };
+            let html = '';
+            let i = 0;
+            for (const h of hs) {
+                const a = Math.min(txt.length, Math.max(0, Math.floor(h.start)));
+                const b = Math.min(txt.length, Math.max(0, Math.floor(h.end)));
+                if (a > i) html += plainToHtml(txt.slice(i, a));
+                if (b > a) html += hlToHtml(txt.slice(a, b));
+                i = b;
+            }
+            html += plainToHtml(txt.slice(i));
+            el.innerHTML = html;
+        }
+
+        // ✅ 卡片預覽：把高亮範圍裁切到目前顯示文字長度
+        function clipHighlightsToLen(highlights, maxLen) {
+            const L = Math.max(0, Number(maxLen || 0));
+            if (!Array.isArray(highlights) || L <= 0) return [];
+            const out = [];
+            for (const h of highlights) {
+                if (!h || !Number.isFinite(h.start) || !Number.isFinite(h.end)) continue;
+                let a = Math.max(0, Math.floor(h.start));
+                let b = Math.max(0, Math.floor(h.end));
+                if (b <= a) continue;
+                if (a >= L) continue;
+                a = Math.min(L, a);
+                b = Math.min(L, b);
+                if (b > a) out.push({ start: a, end: b });
+            }
+            out.sort((x,y)=>x.start-y.start);
+            // merge overlaps
+            const merged = [];
+            for (const r of out) {
+                if (!merged.length || r.start > merged[merged.length-1].end) merged.push({ start: r.start, end: r.end });
+                else merged[merged.length-1].end = Math.max(merged[merged.length-1].end, r.end);
+            }
+            return merged;
+        }
+
+        function applyHighlightsToEntryCardPreviews(container) {
+            try {
+                if (!container) return;
+                container.querySelectorAll('.entry-card[data-highlights]').forEach(card => {
+                    const raw = card.getAttribute('data-highlights');
+                    if (!raw) return;
+                    let hs = [];
+                    try { hs = JSON.parse(decodeURIComponent(raw)) || []; } catch (_) { hs = []; }
+                    if (!hs || hs.length === 0) return;
+                    const textEl = card.querySelector('.entry-card-text');
+                    if (!textEl) return;
+                    const clipped = clipHighlightsToLen(hs, (textEl.textContent || '').length);
+                    if (clipped.length) applyHighlightsToElement(textEl, clipped);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+
+        // ↩️ 撤銷 / 重做（支援富文字 editorRich + 後備 textarea）
+        let __editorHist = [];
+        let __editorHistIdx = -1;
+        let __editorHistTimer = null;
+
+        function __isRichActive() {
+            const r = document.getElementById('editorRich');
+            return !!(r && r.style.display !== 'none');
+        }
+
+        function __setSelectionOffsetsInEditor(start, end) {
+            const root = document.getElementById('editorRich');
+            if (!root) return;
+            const s = Math.max(0, Number(start || 0));
+            const e = Math.max(0, Number(end || 0));
+
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            let pos = 0;
+            let startNode = null, startOff = 0;
+            let endNode = null, endOff = 0;
+
+            while (walker.nextNode()) {
+                const n = walker.currentNode;
+                const len = n.nodeValue ? n.nodeValue.length : 0;
+
+                if (startNode === null && s <= pos + len) {
+                    startNode = n;
+                    startOff = Math.max(0, Math.min(len, s - pos));
+                }
+                if (endNode === null && e <= pos + len) {
+                    endNode = n;
+                    endOff = Math.max(0, Math.min(len, e - pos));
+                }
+
+                pos += len;
+                if (startNode && endNode) break;
+            }
+
+            // fallback：放到最後
+            if (!startNode) {
+                startNode = root;
+                startOff = root.childNodes.length;
+            }
+            if (!endNode) {
+                endNode = startNode;
+                endOff = startOff;
+            }
+
+            try {
+                const sel = window.getSelection();
+                if (!sel) return;
+                const range = document.createRange();
+                range.setStart(startNode, startOff);
+                range.setEnd(endNode, endOff);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } catch (_) {}
+        }
+
+        function editorResetHistory() {
+            __editorHist = [];
+            __editorHistIdx = -1;
+            editorPushHistory(true);
+        }
+
+        function editorPushHistory(force = false) {
+            const rich = document.getElementById('editorRich');
+            const ta = document.getElementById('editorText');
+
+            let snap = null;
+            if (__isRichActive() && rich) {
+                const sel = getSelectionOffsetsInEditor() || { start: 0, end: 0 };
+                snap = { t: 'rich', html: String(rich.innerHTML || ''), s: sel.start, e: sel.end };
+            } else if (ta) {
+                snap = { t: 'text', v: String(ta.value || ''), s: ta.selectionStart || 0, e: ta.selectionEnd || 0 };
+            } else {
+                return;
+            }
+
+            const cur = (__editorHistIdx >= 0 && __editorHist[__editorHistIdx]) ? __editorHist[__editorHistIdx] : null;
+            const same = cur && snap && cur.t === snap.t && ((snap.t === 'rich' && cur.html === snap.html) || (snap.t === 'text' && cur.v === snap.v));
+            if (!force && same) return;
+
+            if (__editorHistIdx < __editorHist.length - 1) __editorHist = __editorHist.slice(0, __editorHistIdx + 1);
+            __editorHist.push(snap);
+            if (__editorHist.length > 80) __editorHist.shift();
+            __editorHistIdx = __editorHist.length - 1;
+        }
+
+        function editorScheduleHistoryPush() {
+            try { if (__editorHistTimer) clearTimeout(__editorHistTimer); } catch (_) {}
+            __editorHistTimer = setTimeout(() => { try { editorPushHistory(false); } catch (_) {} }, 420);
+        }
+
+        function editorApplyHistory(idx) {
+            const snap = __editorHist[idx];
+            if (!snap) return;
+
+            const rich = document.getElementById('editorRich');
+            const ta = document.getElementById('editorText');
+
+            if (snap.t === 'rich' && rich) {
+                rich.innerHTML = String(snap.html || '');
+                try { rich.focus(); } catch (_) {}
+                try { __setSelectionOffsetsInEditor(snap.s || 0, snap.e || 0); } catch (_) {}
+                return;
+            }
+
+            if (snap.t === 'text' && ta) {
+                ta.value = String(snap.v || '');
+                try {
+                    ta.focus();
+                    ta.setSelectionRange(snap.s || 0, snap.e || 0);
+                } catch (_) {}
+            }
+        }
+
+        function editorUndo() {
+            // ✅ 先把「而家呢一刻」存入歷史（如果有變動）
+            // 否則：第一次 Undo 會退到上一格，但下一次就冇得再退 / redo 會斷
+            try { editorPushHistory(false); } catch (_) {}
+
+            if (__editorHistIdx <= 0) return;
+            __editorHistIdx--;
+            editorApplyHistory(__editorHistIdx);
+        }
+
+        function editorRedo() {
+            // ✅ redo 唔應該寫入新歷史；只係向前走
+            if (__editorHistIdx >= __editorHist.length - 1) return;
+            __editorHistIdx++;
+            editorApplyHistory(__editorHistIdx);
+        }
+
+        // 🖍️ 熒光筆：把選取文字包住 == ==（可多段、多次）
 
         function refreshWeatherUI() {
             if (!Array.isArray(selectedWeatherBadges)) selectedWeatherBadges = [];
@@ -6278,7 +6704,9 @@ lucide.createIcons();
             });
         }
 
-        function setTextSize(idx) { currentTextSizeIdx = idx; document.getElementById('editorText').className = `size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
+        // 🖍️ 即時熒光：同步 textarea 內容到高亮層
+
+        function setTextSize(idx) { currentTextSizeIdx = idx; (document.getElementById('editorRich') || document.getElementById('editorText')).className = `editor-rich size-${TEXT_SIZES[idx]}`; document.getElementById('textSizeLabel').textContent = TEXT_LABELS[idx]; }
         function toggleWeather(weatherStr) {
             // ✅ 支援多重標記：可同時選擇（例如 黃雨 + 雷暴）
             if (!Array.isArray(selectedWeatherBadges)) selectedWeatherBadges = [];
@@ -6299,7 +6727,13 @@ lucide.createIcons();
         }
 
         function addToNativeCalendar() {
-            const text = document.getElementById('editorText').value.trim() || '日曆事項'; const tagName = tagNames[selectedColor] || '事項'; const dateParts = editingDateStr.split('-'); const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`; const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2])); d.setDate(d.getDate() + 1); const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const text = getEditorPlainText().trim() || '日曆事項';
+            const tagName = tagNames[selectedColor] || '事項';
+            const dateParts = editingDateStr.split('-');
+            const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`;
+            const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2]));
+            d.setDate(d.getDate() + 1);
+            const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
             const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${startStr}\nDTEND;VALUE=DATE:${endStr}\nSUMMARY:【${tagName}】\nDESCRIPTION:${text}\nEND:VEVENT\nEND:VCALENDAR`;
             const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `reminder_${startStr}.ics`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 
@@ -6935,7 +7369,7 @@ function handleImageUpload(event) {
 
         // 🟢 全新邏輯：靜默自動儲存 (唔會閂視窗)
         async function silentAutoSave() {
-            const text = document.getElementById('editorText').value.trim(); 
+            const text = getEditorPlainText().trim(); 
             // 避免新建一份完全空白的無效記錄
             if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0) && !currentEntryData) return; 
 
@@ -6962,7 +7396,8 @@ function handleImageUpload(event) {
                 date: editingDateStr, 
                 timestamp: entryTimestamp, 
                 updatedAt: Date.now(),
-                text: text, 
+                text: text,
+                highlights: (document.getElementById('editorRich') ? serializeHighlightsFromEditor() : []), 
                 color: selectedColor, 
                 textSize: currentTextSizeIdx, 
                 images: currentImages,
@@ -7016,19 +7451,14 @@ function handleImageUpload(event) {
         }
 
         // 🟢 啟動/停止自動儲存定時器
-        function startAutoSave() {
-            stopAutoSave();
-            autoSaveInterval = setInterval(silentAutoSave, 30000); // 30 秒自動儲存一次
-        }
+        function startAutoSave() { /* 已停用：只按儲存鍵先寫入 */ }
 
-        function stopAutoSave() {
-            if (autoSaveInterval) { clearInterval(autoSaveInterval); autoSaveInterval = null; }
-        }
+        function stopAutoSave() { /* 已停用 */ }
 
         // 🟢 取代原有取消按鈕：安全關閉編輯器
         // ✅ 不帶 history 操作嘅關閉（畀 popstate 用，避免循環）
         async function closeEditorNoHistory() {
-            await silentAutoSave(); // 離開前強制儲存一次
+            // await silentAutoSave(); // 已停用 // 離開前強制儲存一次
             stopAutoSave();
             closeModal('editorModal');
 
@@ -7099,7 +7529,7 @@ function handleImageUpload(event) {
 
         // 手動儲存按鈕
         async function saveEntry() { 
-            const text = document.getElementById('editorText').value.trim(); 
+            const text = getEditorPlainText().trim(); 
             if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0)) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
             await silentAutoSave();
             stopAutoSave();
