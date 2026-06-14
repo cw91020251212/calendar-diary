@@ -7429,6 +7429,7 @@ function toggleHighlighter() {
                         </div>
                         <div class="attachment-actions">
                             <button class="mini-btn" onclick="openAttachmentByIndex(${idx}); event.stopPropagation();"><i data-lucide="folder-open" style="width:16px;"></i> 開啟</button>
+                            <button class="mini-btn" onclick="downloadAttachmentByIndex(${idx}); event.stopPropagation();"><i data-lucide="download" style="width:16px;"></i> 下載</button>
                             <button class="mini-btn danger" onclick="removeAttachment(${idx}); event.stopPropagation();"><i data-lucide="trash-2" style="width:16px;"></i> 刪</button>
                         </div>
                     </div>
@@ -7459,6 +7460,7 @@ function toggleHighlighter() {
                         </div>
                         <div class="attachment-actions">
                             <button class="mini-btn" onclick="openReadAttachmentByIndex(${idx}); event.stopPropagation();"><i data-lucide="folder-open" style="width:16px;"></i> 開啟</button>
+                            <button class="mini-btn" onclick="downloadReadAttachmentByIndex(${idx}); event.stopPropagation();"><i data-lucide="download" style="width:16px;"></i> 下載</button>
                         </div>
                     </div>
                 `;
@@ -7496,6 +7498,22 @@ function toggleHighlighter() {
             setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
 
+        async function downloadAttachmentByIndex(idx) {
+            const a = currentAttachments[idx];
+            if (!a || !a.id) return;
+            const rec = await db.getFile(a.id);
+            if (!rec || !rec.blob) { alert('搵唔到附件（可能已被清理或備份冇包含）。'); return; }
+            const url = URL.createObjectURL(rec.blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = rec.name || 'file';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+
+
         async function openReadAttachmentByIndex(idx) {
             const atts = (currentEntryData && Array.isArray(currentEntryData.attachments)) ? currentEntryData.attachments : [];
             const a = atts[idx];
@@ -7514,6 +7532,23 @@ function toggleHighlighter() {
             }
             setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
+
+        async function downloadReadAttachmentByIndex(idx) {
+            const atts = (currentEntryData && Array.isArray(currentEntryData.attachments)) ? currentEntryData.attachments : [];
+            const a = atts[idx];
+            if (!a || !a.id) return;
+            const rec = await db.getFile(a.id);
+            if (!rec || !rec.blob) { alert('搵唔到附件（可能已被清理或備份冇包含）。'); return; }
+            const url = URL.createObjectURL(rec.blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = rec.name || 'file';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+
 
         async function removeAttachment(idx) {
             const a = currentAttachments[idx];
@@ -8234,18 +8269,27 @@ function handleImageUpload(event) {
                 await db.saveFile({ id: fr.id, name: fr.name || 'file', type: fr.type || blob.type || 'application/octet-stream', size: fr.size || blob.size, lastModified: fr.lastModified || 0, blob });
             }
         }
+		async function exportData() { 
+	            try { 
+	                const entries = await db.getAll();
+	                const filePack = await collectBackupFiles();
+	                const backupObj = { version: "2.2", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames, files: filePack.packedFiles, filesMeta: { totalBytes: filePack.totalBytes, allFilesCount: filePack.allFilesCount, packedFilesCount: filePack.packedFiles.length } }; 
 
-async function exportData() { 
-            try { 
-                const entries = await db.getAll();
-                const filePack = await collectBackupFiles();
-                const backupObj = { version: "2.2", exportDate: new Date().toISOString(), tagNames: tagNames, entries: entries, dayStatuses: dayStatuses, dayStatusNames: dayStatusNames, files: filePack.packedFiles, filesMeta: { totalBytes: filePack.totalBytes, allFilesCount: filePack.allFilesCount, packedFilesCount: filePack.packedFiles.length } }; 
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj)); 
-                const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove(); 
-            } catch (error) { alert("匯出失敗：" + error); } 
-        }
+	                // ✅ 用 Blob + ObjectURL 匯出（比 data: URL 更兼容 iOS / Android / 桌面）
+	                const fileName = `diary_backup_${formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())}.txt`;
+	                const blob = new Blob([JSON.stringify(backupObj)], { type: 'text/plain;charset=utf-8' });
+	                const url = URL.createObjectURL(blob);
+	                const a = document.createElement('a');
+	                a.href = url;
+	                a.download = fileName;
+	                document.body.appendChild(a);
+	                a.click();
+	                a.remove();
+	                setTimeout(() => URL.revokeObjectURL(url), 1000);
+	            } catch (error) { alert("匯出失敗：" + error); } 
+	        }
 
-        async function nativeShareBackup() {
+		async function nativeShareBackup() {
             const shareBtn = document.getElementById('shareBtn');
             const originalHTML = shareBtn.innerHTML;
 
