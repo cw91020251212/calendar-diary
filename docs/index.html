@@ -254,7 +254,7 @@
 
         /* ✅ 閱讀頁右上角「關閉」掣：只加方形外框（唔影響其他功能鍵） */
         #readCloseBtn {
-            border: 2px solid var(--outline) !important;
+            border: 1px solid var(--outline) !important;
             border-radius: 12px !important;
             background: rgba(255,255,255,0.18);
         }
@@ -499,7 +499,85 @@
         /* ✅ 右上角兩個功能鍵：打橫排、唔要直排慳位 */
         .modal-header > div:last-child { display:flex; flex-direction: row; gap: 8px; align-items: center; flex-wrap: nowrap; }
         .modal-header .icon-btn { display: inline-flex; }
-        .modal-title { font-size: calc(18px * var(--ui-font-scale)); font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .modal-title { font-size: calc(18px * var(--ui-font-scale)); font-weight: bold; display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* ✅ 閱讀頁頂部：重新排版 + 收窄按鈕（保留所有功能） */
+        #readModal .modal-header { justify-content: flex-start; gap: 5px; padding: 4px 4px; }
+        #readModal .modal-title { flex: 0 0 auto; white-space: nowrap; }
+        #readModal .modal-header > div:last-child { margin-left: auto; gap: 3px; }
+
+        /* 取消外框、再縮窄（保留所有功能，但避免出界） */
+        #readModal .modal-header .icon-btn,
+        #readModal .modal-header .md-toggle-btn {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 4px;
+            min-width: 30px;
+            min-height: 30px;
+            border-radius: 8px;
+        }
+        #readModal .modal-header .icon-btn:active,
+        #readModal .modal-header .md-toggle-btn:active {
+            background: var(--hover);
+            transform: scale(0.98);
+        }
+
+        /* ✅ 關閉（閱讀頁右上角 X）：加外框方便睇／易按（位唔夠都會自動細少少） */
+        #readModal #readCloseBtn {
+            border: 1px solid var(--outline) !important;
+            border-radius: 12px !important;
+            background: rgba(255,255,255,0.18) !important;
+            box-shadow: none !important;
+            padding: 4px !important;
+            min-width: 38px !important;
+            min-height: 38px !important;
+        }
+        body.theme-dark #readModal #readCloseBtn { background: rgba(0,0,0,0.18) !important; }
+
+        /* 強制覆蓋 lucide inline size（28px） */
+        #readModal .modal-header .icon-btn svg { width: 20px !important; height: 20px !important; }
+        #readModal .modal-header .md-toggle-btn { font-size: 12.5px; font-weight: 900; letter-spacing: 0.2px; padding: 3px 5px; min-width: 32px; }
+
+        @media (max-width: 420px) {
+            #readModal .modal-title { font-size: calc(16px * var(--ui-font-scale)); }
+            #readModal .modal-header { gap: 4px; padding: 3px 3px; }
+            #readModal .modal-header > div:last-child { gap: 2px; }
+            #readModal .modal-header .icon-btn,
+            #readModal .modal-header .md-toggle-btn { padding: 3px; min-width: 28px; min-height: 28px; border-radius: 8px; }
+            #readModal .modal-header .icon-btn svg { width: 19px !important; height: 19px !important; }
+            #readModal .modal-header .md-toggle-btn { font-size: 12px; min-width: 30px; }
+        }
+
+        /* ✅ 編輯器頂部：避免標題被擠到直排（變高） + 右側「X」拉到最右方便按 */
+        #editorModal .modal-header {
+            justify-content: flex-start;
+            gap: 8px;
+            /* 右邊留位畀手指 + safe-area */
+            padding-right: calc(10px + env(safe-area-inset-right));
+        }
+        #editorModal .modal-title { flex: 0 0 auto; white-space: nowrap; }
+        #editorModal #autoSaveIndicator { white-space: nowrap; }
+
+        /* 右上角工具列：保持一排，但「關閉X」同其他icon分開少少 */
+        #editorTopIconBar { gap: 8px !important; }
+        #colorSwatchBtn { margin-left: 14px; }
+        /* ✅ 編輯器右上角關閉 X：加外框（如果唔夠位就細少少都得） */
+        #editorCloseBtn {
+            margin-left: 6px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid var(--outline);
+            background: rgba(255,255,255,0.18);
+        }
+        body.theme-dark #editorCloseBtn { background: rgba(0,0,0,0.18); }
+
+        @media (max-width: 420px) {
+            #editorModal .modal-title { font-size: calc(16px * var(--ui-font-scale)); }
+            #editorCloseBtn { min-width: 40px; min-height: 40px; padding: 5px; }
+        }
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
@@ -523,7 +601,7 @@
         .bulk-toolbar { position: sticky; top: -1px; z-index: 110; display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding: 10px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-bottom: 12px; }
         body.theme-dark .bulk-toolbar { background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
         .entry-card.bulk-mode { padding-left: 52px; }
-        .bulk-check { position:absolute; left: 14px; top: 16px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--outline); background: rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; }
+        .bulk-check { position:absolute; left: 14px; top: 16px; width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--outline); background: rgba(255,255,255,0.7); display:flex; align-items:center; justify-content:center; }
         body.theme-dark .bulk-check { background: rgba(30,30,30,0.7); }
         .entry-card.selected .bulk-check { background: var(--primary); border-color: var(--primary); color: #fff; }
         .entry-card.selected { outline: 3px solid rgba(66, 153, 225, 0.65); outline-offset: -3px; }
@@ -627,7 +705,7 @@
         .lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-out; transition: transform 0.3s; }
         .lightbox-close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 301; }
 
-        #editorModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; }
+        #editorModal .modal-content { height: 100dvh; max-height: 100dvh; border-radius: 0; position: relative; }
         #editorModal .modal-header { border-radius: 0; }
 
         /* ✅ 記事簿：開啟時置頂、用曬成個畫面 */
@@ -659,7 +737,7 @@
             overflow: hidden;
         }
         .color-btn .color-label {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 900;
             line-height: 1;
             letter-spacing: 0.5px;
@@ -673,10 +751,104 @@
             box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main);
         }
 
-        /* 細屏再細少少，避免遮位 */
+                /* ✅ 編輯器：頂部色塊按鈕 + 12 色方格面板（騰出更多打字空間） */
+        .editor-color-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px; /* 方形但有少少圓角 */
+            border: 1px solid var(--outline);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+            display: inline-block;
+        }
+
+        /* ✅ 編輯器右上角：圓形「分類」浮動按鈕（顯示當前顏色） */
+        .editor-color-fab {
+            position: absolute;
+            top: calc(52px + env(safe-area-inset-top));
+            right: 10px;
+            width: 46px;
+            height: 46px;
+            border-radius: 999px;
+            border: 1px solid var(--outline);
+            background: var(--surface);
+            box-shadow: 0 12px 18px rgba(0,0,0,0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999999;
+        }
+        .editor-color-fab:active { transform: scale(0.96); }
+        .editor-color-fab-swatch {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 2px solid rgba(0,0,0,0.35);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25);
+            background: #667eea;
+            display: block;
+        }
+        body.theme-dark .editor-color-fab-swatch {
+            border: 2px solid rgba(255,255,255,0.28);
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.18);
+        }
+        /* 面板打開時，按鈕淡出一點，提醒已展開 */
+        body.color-panel-open .editor-color-fab { opacity: 0.86; }
+        #colorPickerPanel {
+            position: fixed;
+            top: calc(var(--header-h) + env(safe-area-inset-top));
+            right: 10px;
+            left: 10px;
+            z-index: 99999;
+            background: var(--bg);
+            border: 1px solid var(--outline);
+            border-radius: 14px;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+            padding: 12px;
+        }
+        #colorPickerPanel .color-picker-scroll { overflow: visible; padding-bottom: 0; }
+        #colorPickerPanel .color-picker {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            width: 100%;
+        }
+        /* 12 粒色：改做方形（無字，靠顏色辨識） */
+        #colorPickerPanel .color-btn {
+            width: 100%;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+            overflow: hidden;
+        }
+        #colorPickerPanel .color-btn .color-label {
+            display: block;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1.05;
+            text-align: center;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.18);
+            pointer-events: none;
+        }
+        #colorPickerPanel .color-btn.selected {
+            transform: none;
+            box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--text-main);
+        }
+                #colorPickerPanel .tag-name-editor { margin-top: 10px; }
+        .color-picker-panel-hidden { display: none !important; }
+
+/* 細屏再細少少，避免遮位 */
         @media (max-width: 380px) {
             .color-btn { width: 40px; height: 40px; }
-            .color-btn .color-label { font-size: 13px; }
+            .color-btn .color-label { font-size: 15px; }
+            #colorPickerPanel .color-btn .color-label { font-size: 16px; }
             .color-picker { gap: 10px; }
         }
         .tag-name-editor { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
@@ -745,8 +917,23 @@
 
         .editor-text-wrap { position: relative; }
         .editor-text-wrap #editorText { padding-right: 52px; }
-
-        .ta-expand-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 10px; border: 1px solid var(--outline); background: rgba(255,255,255,0.0); display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.55; }
+        /* ✅ 輸入框右上角：唯一的『放大/縮細』按鈕（不再喺頂部出現） */
+        .ta-expand-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid var(--outline);
+            background: rgba(255,255,255,0.0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.55;
+            z-index: 30;
+        }
         .ta-expand-btn:hover { opacity: 0.9; background: var(--hover); }
 
         .wm-float-close { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 999px; background: var(--primary); color: #fff; border: 1px solid var(--outline); display: none; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0,0,0,0.22); z-index: 9999; }
@@ -767,21 +954,46 @@
         .folder-del { position: absolute; top: -10px; right: -8px; width: 30px; height: 30px; border-radius: 999px; border: 2px solid var(--surface); background: rgba(239,68,68,0.92); color:#fff; display:none; align-items:center; justify-content:center; box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
         .folder-del svg { width: 16px !important; height: 16px !important; }
         .folder-card.manage .folder-del { display:flex; }
-        #editorModal.writing-mode .wm-float-close { display: none; }
-        #editorModal.writing-mode .ta-expand-btn { display: flex; }
+        /* ✍️ 最大畫面（writing-mode / text-fullscreen）：
+           ✅ 只保留最頂「編輯記事」嗰行（含撤銷/重做/儲存/關閉X）
+           ✅ 下邊兩行工具（editor-toolbar / weather-toolbar）要隱藏
+           ✅ 關閉 X 要喺最右邊（順手）
+           ❌ 取消額外浮動大「X」按鈕 */
 
-        #editorModal.text-fullscreen .modal-header,
-        #editorModal.text-fullscreen .editor-footer,
-        #editorModal.text-fullscreen .color-picker-container,
+        /* 最大畫面時：只保留頂部檔頭，並置頂長駐 */
+        #editorModal.writing-mode .modal-header,
+        #editorModal.text-fullscreen .modal-header {
+            display: flex !important;
+            position: sticky;
+            top: 0;
+            z-index: 120;
+            background: var(--surface);
+            padding-top: calc(6px + env(safe-area-inset-top));
+        }
+
+        /* ✅ 最大畫面時：隱藏下邊兩行工具列 */
+        #editorModal.writing-mode .editor-toolbar,
+        #editorModal.writing-mode .weather-toolbar,
         #editorModal.text-fullscreen .editor-toolbar,
-        #editorModal.text-fullscreen .weather-toolbar,
-        #editorModal.text-fullscreen .photo-gallery,
-        #editorModal.text-fullscreen .attachments-box { display: none !important; }
-        #editorModal.text-fullscreen .modal-body { padding: 0 !important; }
-        #editorModal.text-fullscreen #editorText { min-height: 100dvh !important; height: 100dvh !important; max-height: 100dvh !important; overflow-y: auto !important; border-radius: 0 !important; border-left: none; border-right: none; }
-        #editorModal.text-fullscreen .wm-float-close { display: flex; }
-        #editorModal.text-fullscreen .ta-expand-btn { display: none; }
+        #editorModal.text-fullscreen .weather-toolbar { display: none !important; }
 
+        /* ✅ 最大畫面時：隱藏「已自動儲存」字樣，避免擠走右上角縮細鍵 */
+        #editorModal.writing-mode #autoSaveIndicator,
+        #editorModal.text-fullscreen #autoSaveIndicator { display:none !important; }
+
+        /* ✅ 令「X」真係去到最右邊：頂部icon bar 拉闊，X 自己靠右 */
+        #editorTopIconBar { flex: 1 1 auto !important; justify-content: flex-end !important; }
+        #colorSwatchBtn { margin-left: 14px !important; }
+        #editorCloseBtn { margin-left: 6px !important; }
+
+        /* ✅ 不要任何額外浮動關閉掣（你圈出嗰粒大藍 X） */
+        #editorModal.writing-mode .wm-float-close,
+        #editorModal.text-fullscreen .wm-float-close { display: none !important; }
+        /* 第二級全頁輸入：收起底部儲存/返回 */
+        #editorModal.text-fullscreen .editor-footer { display: none !important; }
+
+        /* 保持內容貼近（但唔會遮住頂部檔頭） */
+        #editorModal.text-fullscreen .modal-body { padding-top: 10px; }
         textarea:focus { border-color: var(--outline); background: var(--surface); box-shadow: inset 0 0 0 1px rgba(74,85,104,0.35); }
         textarea.size-sm { font-size: 16px; line-height: 1.5; }
         textarea.size-md { font-size: 20px; line-height: 1.6; }
@@ -922,7 +1134,6 @@
         body.kbd-focus .fab-group.expanded { right: 18px; }
 
 
-
     </style>
 </head>
 <body>
@@ -1002,7 +1213,6 @@
         <button class="fab-mini fab-mini-backup" onclick="openBackupFromFab()" title="備份"><i data-lucide="download" style="width: 22px; height: 22px;"></i></button>
         <button class="fab" onclick="toggleFabMenu()" title="功能"><i data-lucide="plus" class="fab-rotate" style="width: 26px; height: 26px;"></i></button>
     </div>
-
 
 
     <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
@@ -1168,6 +1378,12 @@
                 <div class="modal-title" style="color: var(--primary);"><i data-lucide="sunrise"></i> 今日晨報</div>
                 <button class="icon-btn" onclick="backOrClose('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
             </div>
+
+            <!-- ✅ 分類浮動圓形按鈕：平時收起工具列，撳先彈出分類面板 -->
+            <button id="editorColorFab" class="editor-color-fab" onclick="toggleColorPickerPanelFromFab(event)" title="分類">
+                <span id="editorColorFabSwatch" class="editor-color-fab-swatch" aria-hidden="true"></span>
+            </button>
+
             <div class="modal-body">
                 <p style="margin-bottom:16px; color:var(--text-light); font-size:16px; font-weight: bold;">早晨！你今日有以下事項需要留意：</p>
                 <div class="entry-list" id="briefingList"></div>
@@ -1301,16 +1517,34 @@
 <div class="modal-overlay" id="editorModal" onclick="handleEditorBackdropClick(event)">
         <div class="modal-content">
             <div class="modal-header">
+                <button class="icon-btn" id="editorBackBtn" onclick="closeEditor()" title="返回" style="margin-right:6px; display:none;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button>
                 <div class="modal-title" id="editorTitle">編輯記事</div>
-                
-                <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: auto; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
-                
-                <button class="icon-btn" onclick="toggleWritingMode()" title="全畫面輸入"><i id="writingModeIcon" data-lucide="maximize-2" style="width: 26px; height: 26px;"></i></button>
 
-                <button class="icon-btn" onclick="closeEditor()"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                <!-- ✅ 置頂：撤銷/重做 + 返回/儲存（純圖標） -->
+                <div id="editorTopIconBar" style="display:flex; align-items:center; gap:6px; margin-left:auto;">
+                    <button class="icon-btn" onclick="editorUndo()" title="撤銷" style="display:inline-flex;"><i data-lucide="rotate-ccw" style="width: 26px; height: 26px;"></i></button>
+                    <button class="icon-btn" onclick="editorRedo()" title="重做" style="display:inline-flex;"><i data-lucide="rotate-cw" style="width: 26px; height: 26px;"></i></button>
+                    
+                    <button class="icon-btn" onclick="saveEntry()" title="儲存" style="display:inline-flex;"><i data-lucide="save" style="width: 26px; height: 26px;"></i></button>
+
+
+                    <button class="icon-btn" id="colorSwatchBtn" onclick="toggleColorPickerPanel()" title="分類" style="display:inline-flex;">
+                        <span id="editorColorSwatch" class="editor-color-swatch"></span>
+                    </button>
+                    <button class="icon-btn" id="editorCloseBtn" onclick="closeEditor()" title="關閉" style="display:inline-flex;"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+                </div>
+                
+                <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: 10px; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
+                
+
+                <button class="icon-btn" onclick="closeEditor()" title="返回" style="margin-left:6px; display:none;"><i data-lucide="x" style="width: 34px; height: 34px;"></i></button>
             </div>
             <div class="modal-body">
-                <div class="color-picker-container">
+                <div id="colorPickerPanel" class="color-picker-container color-picker-panel-hidden">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+                        <div style="font-size:14px; font-weight:900; color:var(--text-light);">分類</div>
+                        <button class="icon-btn" id="colorPickerPanelCloseBtn" onclick="setColorPickerPanelOpen(false)" title="收起" style="min-width:40px; min-height:40px;"><i data-lucide="x" style="width: 24px; height: 24px;"></i></button>
+                    </div>
                     <div class="color-picker-scroll">
                         <div class="color-picker" id="colorPickerUI"></div>
                     </div>
@@ -1323,8 +1557,8 @@
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
-                    <button class="tool-btn" onclick="editorUndo()" title="向後撤銷"><i data-lucide="rotate-ccw"></i> 撤銷</button>
-                    <button class="tool-btn" onclick="editorRedo()" title="向前重做"><i data-lucide="rotate-cw"></i> 重做</button>
+                    
+                    
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
@@ -1366,8 +1600,8 @@
                 </div>
 
                 <div class="editor-text-wrap">
-                    <button class="ta-expand-btn" onclick="enterTextFullscreen()" title="全頁輸入">
-                        <i data-lucide="maximize-2" style="width: 18px; height: 18px;"></i>
+                    <button class="ta-expand-btn" onclick="toggleEditorFullscreen()" title="放大 / 縮細畫面">
+                        <i id="editorFullscreenIcon" data-lucide="maximize-2" style="width: 18px; height: 18px;"></i>
                     </button>                    <div id="editorRich" class="editor-rich size-md" contenteditable="true" spellcheck="false" data-placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></div>
                     <textarea id="editorText" style="display:none" tabindex="-1" aria-hidden="true"></textarea>
                 </div>
@@ -1786,7 +2020,6 @@
         let currentSpaceContext = SPACE_CALENDAR;
 
         lucide.createIcons();
-
 
         // =========================
         // 📱 Keyboard Avoidance（自動上推，避免遮住「確定 / 儲存」）
@@ -2354,7 +2587,6 @@
 	            return e;
 	        }
 
-
         function loadNotebookFolders() {
             try {
                 const raw = localStorage.getItem(NOTEBOOK_FOLDERS_KEY);
@@ -2504,7 +2736,6 @@
             renderNotebookList();
             showToast('✅ 已更新資料夾', 'success');
         }
-
 
 		function addNotebookFolderQuick() {
 			const name = prompt('新增資料夾名稱：');
@@ -2665,7 +2896,6 @@
                 }
             } catch (_) {}
         }
-
 
         let __suppressNextPop = false;
         // ✅ 記住編輯器由邊度開：儲存後要返回上一層（避免一下跳返月曆）
@@ -3807,17 +4037,53 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                     resolve();
                 }
             }); },
-            async getAll() { return new Promise((resolve) => { const req = this.dbInstance.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll(); req.onsuccess = () => resolve(req.result); }); },
-            async save(entry) { return new Promise((resolve, reject) => {
-                try {
-                    const req = this.dbInstance.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(entry);
-                    req.onsuccess = () => {
+            async getAll() {
+                // ✅ 兼容模式：IndexedDB 不可用時改用 localStorage
+                if (this.disabled || !this.dbInstance) {
+                    try { this.__warnFallbackOnce(); } catch (_) {}
+                    return this.__readFallbackEntries();
+                }
+                return new Promise((resolve, reject) => {
+                    try {
+                        const tx = this.dbInstance.transaction(STORE_NAME, 'readonly');
+                        const req = tx.objectStore(STORE_NAME).getAll();
+                        req.onsuccess = () => resolve(req.result || []);
+                        req.onerror = () => reject(req.error || new Error('IndexedDB getAll failed'));
+                    } catch (e) { reject(e); }
+                });
+            },
+            async save(entry) {
+                // ✅ 兼容模式：IndexedDB 不可用時改用 localStorage
+                if (this.disabled || !this.dbInstance) {
+                    try {
+                        this.__warnFallbackOnce();
+                        const all = this.__readFallbackEntries();
+                        const id = entry && entry.id;
+                        const out = all.filter(x => !(x && x.id == id));
+                        out.push(entry);
+                        this.__writeFallbackEntries(out);
                         try { localStorage.setItem('diary_has_data_v1', 'true'); } catch (_) {}
-                        resolve();
-                    };
-                    req.onerror = () => reject(req.error || new Error('IndexedDB save failed'));
-                } catch (e) { reject(e); }
-            }); },
+                    } catch (_) {}
+                    return;
+                }
+
+                // ✅ 關鍵修復：等 transaction 完成先 resolve（避免「儲存成功但畫面仍讀到舊值」）
+                return new Promise((resolve, reject) => {
+                    try {
+                        const tx = this.dbInstance.transaction(STORE_NAME, 'readwrite');
+                        const store = tx.objectStore(STORE_NAME);
+                        const req = store.put(entry);
+
+                        req.onerror = () => reject(req.error || new Error('IndexedDB save failed'));
+                        tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+                        tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction error'));
+                        tx.oncomplete = () => {
+                            try { localStorage.setItem('diary_has_data_v1', 'true'); } catch (_) {}
+                            resolve();
+                        };
+                    } catch (e) { reject(e); }
+                });
+            },
             async delete(id) {
                 if (this.disabled || !this.dbInstance) {
                     try {
@@ -4063,6 +4329,107 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 if (previewToggle) previewToggle.checked = autoPreviewEnabled;
                 if (previewLabel) previewLabel.textContent = autoPreviewEnabled ? '開啟' : '關閉';
             } catch (e) { console.error(e); }
+
+            // ✅ 閱讀頁：雙擊/長按即可進入編輯
+            try { bindReadEditGestures(); } catch (e) { console.error(e); }
+        }
+
+        // =========================
+        // ✅ 閱讀記事：雙擊 / 長按 → 進入編輯
+        // =========================
+        var __readEditGestureBound = false;
+        var __readLongPressTimer = null;
+        var __readLongPressStart = null;
+        function bindReadEditGestures() {
+            if (__readEditGestureBound) return;
+            __readEditGestureBound = true;
+
+            const readModal = document.getElementById('readModal');
+            if (!readModal) return;
+
+            const getTarget = () => {
+                // 優先：正文區
+                const t = document.getElementById('readText');
+                if (t) return t;
+                const mb = readModal.querySelector('.modal-body');
+                return mb || readModal;
+            };
+
+            const shouldIgnore = (ev) => {
+                try {
+                    // 如果用家正在選字，就唔觸發（避免誤入編輯）
+                    const sel = window.getSelection ? window.getSelection() : null;
+                    if (sel && !sel.isCollapsed) return true;
+                } catch (_) {}
+                try {
+                    const el = ev && ev.target ? ev.target : null;
+                    if (!el) return false;
+                    // 點到按鈕/連結/輸入元件就唔攔截
+                    if (el.closest && el.closest('button, a, input, textarea, select, [role=button]')) return true;
+                } catch (_) {}
+                return false;
+            };
+
+            const fireEdit = () => {
+                try {
+                    // 只喺 readModal 打開緊先做
+                    if (!readModal.classList.contains('active')) return;
+                    if (!currentEntryData) return;
+                    editFromReadView();
+                } catch (e) { console.error(e); }
+            };
+
+            // Desktop：雙擊
+            try {
+                getTarget().addEventListener('dblclick', (ev) => {
+                    if (shouldIgnore(ev)) return;
+                    fireEdit();
+                }, { passive: true });
+            } catch (_) {}
+
+            // Mobile/Touch：長按（亦兼容 mouse 長按）
+            const onStart = (ev) => {
+                if (shouldIgnore(ev)) return;
+                try {
+                    const p = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+                    __readLongPressStart = { x: p.clientX, y: p.clientY, t: Date.now() };
+                } catch (_) { __readLongPressStart = { x: 0, y: 0, t: Date.now() }; }
+
+                clearTimeout(__readLongPressTimer);
+                __readLongPressTimer = setTimeout(() => {
+                    __readLongPressTimer = null;
+                    fireEdit();
+                }, 520);
+            };
+
+            const onMove = (ev) => {
+                if (!__readLongPressTimer || !__readLongPressStart) return;
+                try {
+                    const p = (ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+                    const dx = Math.abs(p.clientX - __readLongPressStart.x);
+                    const dy = Math.abs(p.clientY - __readLongPressStart.y);
+                    if (dx > 10 || dy > 10) {
+                        clearTimeout(__readLongPressTimer);
+                        __readLongPressTimer = null;
+                    }
+                } catch (_) {}
+            };
+
+            const onEnd = () => {
+                clearTimeout(__readLongPressTimer);
+                __readLongPressTimer = null;
+                __readLongPressStart = null;
+            };
+
+            const target = getTarget();
+            try { target.addEventListener('touchstart', onStart, { passive: true }); } catch (_) {}
+            try { target.addEventListener('touchmove', onMove, { passive: true }); } catch (_) {}
+            try { target.addEventListener('touchend', onEnd, { passive: true }); } catch (_) {}
+            try { target.addEventListener('touchcancel', onEnd, { passive: true }); } catch (_) {}
+            try { target.addEventListener('mousedown', onStart, { passive: true }); } catch (_) {}
+            try { target.addEventListener('mousemove', onMove, { passive: true }); } catch (_) {}
+            try { target.addEventListener('mouseup', onEnd, { passive: true }); } catch (_) {}
+            try { target.addEventListener('mouseleave', onEnd, { passive: true }); } catch (_) {}
         }
 
         function openHelpModal() { closeModal('backupModal'); openModal('helpModal'); }
@@ -4522,14 +4889,80 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             return L < 0.5 ? '#ffffff' : '#1a202c';
         }
 
-        function initColorPickerUI() {
+        
+
+                // ✅ 編輯器：把分類工具收起到最頂（右上角一粒色方塊）
+        let __colorPickerPanelOpen = false;
+
+        function getColorMeta(colorId) {
+            try {
+                const cid = String(colorId || '');
+                const obj = (Array.isArray(APP_COLORS) ? APP_COLORS : []).find(c => c && c.id === cid);
+                return obj || { id: cid, hex: '#667eea', def: '標籤' };
+            } catch (_) {
+                return { id: String(colorId || ''), hex: '#667eea', def: '標籤' };
+            }
+        }
+
+        function updateColorSwatchUI() {
+            const meta = getColorMeta(selectedColor);
+
+            const sw = document.getElementById('editorColorSwatch');
+            if (sw) sw.style.backgroundColor = meta.hex;
+
+            const fabSw = document.getElementById('editorColorFabSwatch');
+            if (fabSw) fabSw.style.backgroundColor = meta.hex;
+        }
+
+        function setColorPickerPanelOpen(open) {
+            __colorPickerPanelOpen = !!open;
+            const panel = document.getElementById('colorPickerPanel');
+            if (panel) panel.classList.toggle('color-picker-panel-hidden', !__colorPickerPanelOpen);
+
+            // ✅ 用 body class 俾 CSS 提示「面板已打開」
+            try { document.body.classList.toggle('color-panel-open', __colorPickerPanelOpen); } catch (_) {}
+
+            // 重新畫 icon（如果有）
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        function toggleColorPickerPanel() {
+            setColorPickerPanelOpen(!__colorPickerPanelOpen);
+            try { updateColorSwatchUI(); } catch (_) {}
+        }
+
+        // ✅ 浮動圓形按鈕入口：避免點擊穿透到 modal 背景
+        function toggleColorPickerPanelFromFab(ev) {
+            try {
+                if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            } catch (_) {}
+            toggleColorPickerPanel();
+        }
+
+        // ✅ 點畫面其他地方：自動收起分類面板
+        (function bindColorPanelOutsideClick(){
+            if (window.__boundColorPanelOutsideClick) return;
+            window.__boundColorPanelOutsideClick = true;
+            document.addEventListener('click', function(e){
+                try {
+                    if (!__colorPickerPanelOpen) return;
+                    const panel = document.getElementById('colorPickerPanel');
+                    const fab = document.getElementById('editorColorFab');
+                    if (panel && panel.contains(e.target)) return;
+                    if (fab && fab.contains(e.target)) return;
+                    setColorPickerPanelOpen(false);
+                } catch (_) {}
+            }, true);
+        })();
+
+function initColorPickerUI() {
             const ui = document.getElementById('colorPickerUI');
             if (!ui) return;
             ui.innerHTML = APP_COLORS.map(c => {
                 const label = (tagNames && tagNames[c.id]) ? tagNames[c.id] : (c.def || '標籤');
                 const textColor = getReadableTextColor(c.hex);
                 const selectedCls = (selectedColor === c.id) ? 'selected' : '';
-                return `<div class="color-btn ${selectedCls}" style="background-color:${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"><span class="color-label" style="color:${textColor}">${escapeHtml(label)}</span></div>`;
+                return `<div class="color-btn ${selectedCls}" title="${escapeHtml(label)}" style="background-color:${c.hex};" data-color="${c.id}" onclick="selectColor('${c.id}')"><span class="color-label" style="color:${textColor}">${escapeHtml(label)}</span></div>`;
             }).join('');
         }
 
@@ -5716,35 +6149,46 @@ lucide.createIcons();
                 
             };
 
-            // ✅ 重要：避免「同一個手勢」同時觸發 touch + pointer
+            // ✅ 重要：iOS/部分 WebView 有機會「有 PointerEvent 但實際唔穩定」
+            // 所以：同時綁 touch + pointer，再用時間窗避免雙觸發。
             const usePointer = !!window.PointerEvent;
+            let lastPointerAt = 0;
 
-            if (!usePointer) {
-                body.addEventListener('touchstart', (e) => {
-                    try {
-                        if (!modal.classList.contains('active')) return;
-                        const t = e.touches && e.touches[0];
-                        if (!t) return;
-                        onStart(t.clientX, t.clientY);
-                    } catch (_) {}
-                }, { passive: true });
+            // --- Touch (永遠綁) ---
+            body.addEventListener('touchstart', (e) => {
+                try {
+                    if (!modal.classList.contains('active')) return;
+                    // 若剛剛已經用 pointer 開始，就忽略 touch（避免雙觸發）
+                    if (Date.now() - lastPointerAt < 500) return;
+                    const t = e.touches && e.touches[0];
+                    if (!t) return;
+                    onStart(t.clientX, t.clientY);
+                } catch (_) {}
+            }, { passive: true });
 
-                body.addEventListener('touchmove', (e) => {
-                    try {
-                        const t = e.touches && e.touches[0];
-                        if (!t) return;
-                        onMove(e, t.clientX, t.clientY);
-                    } catch (_) {}
-                }, { passive: false });
+            body.addEventListener('touchmove', (e) => {
+                try {
+                    if (Date.now() - lastPointerAt < 500) return;
+                    const t = e.touches && e.touches[0];
+                    if (!t) return;
+                    onMove(e, t.clientX, t.clientY);
+                } catch (_) {}
+            }, { passive: false });
 
-                body.addEventListener('touchend', () => { onEnd().catch(console.error); }, { passive: true });
-            }
+            body.addEventListener('touchend', () => {
+                try {
+                    if (Date.now() - lastPointerAt < 500) return;
+                    onEnd().catch(console.error);
+                } catch (_) {}
+            }, { passive: true });
 
+            // --- Pointer ---
             body.addEventListener('pointerdown', (e) => {
                 try {
                     if (!modal.classList.contains('active')) return;
                     if (!usePointer) return;
                     if (e.pointerType === 'mouse') return;
+                    lastPointerAt = Date.now();
                     onStart(e.clientX, e.clientY);
                     try { body.setPointerCapture(e.pointerId); } catch (_) {}
                 } catch (_) {}
@@ -6062,6 +6506,9 @@ lucide.createIcons();
             }
             updateWeatherUI();
 renderEditorImages(); renderAttachments();
+            // ✅ 預設收起分類工具，騰出更多打字空間
+            try { updateColorSwatchUI(); } catch (_) {}
+            try { setColorPickerPanelOpen(false); } catch (_) {}
             setupEditorTextareaAutoGrow();
             // 🖍️ 內容 ready 後，建立撤銷/重做起點
             try { editorResetHistory(); } catch (_) {}
@@ -6237,10 +6684,12 @@ renderEditorImages(); renderAttachments();
                 btn.classList.remove('selected');
                 if (btn.dataset.color === colorId) {
                     btn.classList.add('selected');
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    // 避免手機瀏覽器因為 inline:'center' 而令整個畫面橫向走位
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 }
             });
             document.getElementById('tagNameInput').value = tagNames[colorId] || '';
+            try { updateColorSwatchUI(); } catch (_) {}
         }
 
         // =========================
@@ -6278,7 +6727,6 @@ renderEditorImages(); renderAttachments();
                 openPickFolderModal(currentEntryData.id);
             } catch (e) { console.error(e); }
         }
-
 
 	        
         // =========================
@@ -6578,7 +7026,6 @@ renderEditorImages(); renderAttachments();
             showToast('✅ 已刪除資料夾', 'success');
         }
 
-
         function openPickFolderModal(entryId) {
             __pickFolderEntryId = entryId || null;
             const last = localStorage.getItem(NOTEBOOK_LAST_FOLDER_KEY) || '';
@@ -6714,8 +7161,6 @@ renderEditorImages(); renderAttachments();
                 moveNotebookEntryToCalendarToDate(entryId, picked);
             });
         }
-
-
 
 
 
@@ -6857,6 +7302,29 @@ renderEditorImages(); renderAttachments();
         }
 
         // ✅ 全畫面輸入：收起工具列，集中打字（再按一次返回）
+        // ✅ 單一『放大/縮細』按鈕：永遠只用輸入框右上角嗰粒
+        function syncEditorFullscreenIcon() {
+            const modal = document.getElementById('editorModal');
+            const icon = document.getElementById('editorFullscreenIcon');
+            if (!modal || !icon) return;
+            const on = modal.classList.contains('writing-mode') || modal.classList.contains('text-fullscreen');
+            icon.setAttribute('data-lucide', on ? 'minimize-2' : 'maximize-2');
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        function toggleEditorFullscreen() {
+            const modal = document.getElementById('editorModal');
+            if (!modal) return;
+            const on = modal.classList.contains('writing-mode') || modal.classList.contains('text-fullscreen');
+            if (on) {
+                // 由全畫面直接一次過縮返正常（唔經中間狀態）
+                toggleWritingMode(false);
+            } else {
+                enterTextFullscreen();
+            }
+            syncEditorFullscreenIcon();
+        }
+
         function toggleWritingMode(force) {
             const modal = document.getElementById('editorModal');
             if (!modal) return;
@@ -6874,11 +7342,8 @@ renderEditorImages(); renderAttachments();
                 try { setupEditorTextareaAutoGrow(); } catch (_) {}
                 try { autoGrowEditorTextarea(true); } catch (_) {}
             }
-
-            // 切換 icon
-            const icon = document.getElementById('writingModeIcon');
-            if (icon) icon.setAttribute('data-lucide', willEnable ? 'minimize-2' : 'maximize-2');
-            try { lucide.createIcons(); } catch (_) {}
+            // icon 由 syncEditorFullscreenIcon() 統一處理
+            syncEditorFullscreenIcon();
 
             // 盡量保持輸入體驗
             const ta = document.getElementById('editorText');
@@ -6896,9 +7361,7 @@ renderEditorImages(); renderAttachments();
             if (!modal) return;
             modal.classList.add('writing-mode');
             modal.classList.add('text-fullscreen');
-            const icon = document.getElementById('writingModeIcon');
-            if (icon) icon.setAttribute('data-lucide', 'minimize-2');
-            try { lucide.createIcons(); } catch (_) {}
+            syncEditorFullscreenIcon();
             const ta = document.getElementById('editorText');
             if (ta) setTimeout(() => { try { ta.focus(); } catch (_) {} }, 60);
         }
@@ -6912,16 +7375,19 @@ renderEditorImages(); renderAttachments();
                 // 退出第二級後，保持第一級 writing-mode（你可繼續專心打字）
                 const ta = document.getElementById('editorText');
                 if (ta) setTimeout(() => { try { ta.focus(); } catch (_) {} }, 60);
+                syncEditorFullscreenIcon();
                 return;
             }
             // 再按一次就退出第一級
             toggleWritingMode(false);
+            syncEditorFullscreenIcon();
         }
         function saveTagName() {
             tagNames[selectedColor] = document.getElementById('tagNameInput').value.trim() || '自訂標籤';
             localStorage.setItem('diary_tag_names', JSON.stringify(tagNames));
             // ✅ 即時更新上方顏色圓圈內文字
             initColorPickerUI();
+            try { updateColorSwatchUI(); } catch (_) {}
         }
         function toggleTextSize() { currentTextSizeIdx = (currentTextSizeIdx + 1) % 3; setTextSize(currentTextSizeIdx); }
 
@@ -7210,7 +7676,6 @@ function toggleHighlighter() {
             } catch (e) { console.error(e); }
         }
 
-
         // ↩️ 撤銷 / 重做（支援富文字 editorRich + 後備 textarea）
         let __editorHist = [];
         let __editorHistIdx = -1;
@@ -7373,7 +7838,8 @@ function toggleHighlighter() {
             document.querySelectorAll('.weather-btn').forEach(btn => {
                 if (selectedWeatherBadges.includes(btn.getAttribute('data-weather'))) {
                     btn.classList.add('selected-weather');
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    // 避免手機瀏覽器因為 inline:'center' 而令整個畫面橫向走位
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
                 } else { btn.classList.remove('selected-weather'); }
             });
         }
@@ -7513,7 +7979,6 @@ function toggleHighlighter() {
             setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
 
-
         async function openReadAttachmentByIndex(idx) {
             const atts = (currentEntryData && Array.isArray(currentEntryData.attachments)) ? currentEntryData.attachments : [];
             const a = atts[idx];
@@ -7548,7 +8013,6 @@ function toggleHighlighter() {
             document.body.removeChild(link);
             setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
-
 
         async function removeAttachment(idx) {
             const a = currentAttachments[idx];
@@ -8498,7 +8962,6 @@ function handleImageUpload(event) {
 
         // ✅ 修正：上面 cache key 用咗 3 個底線，呢度統一返（兼容舊 key）
         // （留空，實際 key 由 SW 產生，見 tryConsumeSharedPayload）
-
 
         window.onload = async () => {
             try { loadUIFontScale(); } catch (e) { console.error(e); }
