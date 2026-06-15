@@ -6308,6 +6308,29 @@ lucide.createIcons();
             }
         }
 
+        // 🔗 把純文字中的網址轉為可點擊連結（避免一定要複製）
+        function linkifyPlainTextToHtml(rawText) {
+            const s = (rawText === null || rawText === undefined) ? '' : String(rawText);
+            // 先 escape，避免 XSS，再把 URL 部分換成 <a>
+            const escaped = escapeHtml(s);
+            const urlRe = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/g;
+
+            const withLinks = escaped.replace(urlRe, (m) => {
+                // 去走尾部常見標點（例如句號、括號、逗號）
+                let url = m;
+                let tail = '';
+                while (url.length && /[\]\)\}>,\.、，。！？!?:;"']$/.test(url)) {
+                    tail = url.slice(-1) + tail;
+                    url = url.slice(0, -1);
+                }
+                const href = url.startsWith('http') ? url : ('https://' + url);
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>${tail}`;
+            });
+
+            // 保留換行
+            return withLinks.replace(/\n/g, '<br>');
+        }
+
         function renderReadTextWithMarkdownIfNeeded() {
             const el = document.getElementById('readText');
             if (!el) return;
@@ -6359,8 +6382,9 @@ lucide.createIcons();
                     el.textContent = txt;
                 }
             } else {
+                // ✅ 無 Markdown（純文字）都照樣把網址變成可點擊
                 el.classList.remove('markdown-rendered');
-                el.textContent = txt;
+                el.innerHTML = linkifyPlainTextToHtml(txt);
             }
         }
 
