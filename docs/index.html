@@ -581,6 +581,29 @@
         .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 
         .entry-list { display: flex; flex-direction: column; gap: 12px; }
+        .entry-badges-inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .attachment-badge { display:inline-flex; align-items:center; gap:4px; }
+        .attachment-badge i { width: 12px; height: 12px; }
+        #notebookList.folder-desktop {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+            align-items: start;
+        }
+        #notebookList.folder-desktop .entry-card {
+            min-height: 168px;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+        }
+        body.theme-dark #notebookList.folder-desktop .entry-card {
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+        }
+        @media (min-width: 1024px) {
+            #notebookModal .modal-content { max-width: 1120px; }
+            #notebookList.folder-desktop { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+        }
+        @media (max-width: 767px) {
+            #notebookList.folder-desktop { grid-template-columns: 1fr; }
+        }
         .entry-card {
             /* fallback（舊瀏覽器唔支援 color-mix 時用） */
             background: var(--bg);
@@ -1524,14 +1547,11 @@
                 <div id="editorTopIconBar" style="display:flex; align-items:center; gap:6px; margin-left:auto;">
                     <button class="icon-btn" onclick="editorUndo()" title="撤銷" style="display:inline-flex;"><i data-lucide="rotate-ccw" style="width: 26px; height: 26px;"></i></button>
                     <button class="icon-btn" onclick="editorRedo()" title="重做" style="display:inline-flex;"><i data-lucide="rotate-cw" style="width: 26px; height: 26px;"></i></button>
-                    
+                    <button class="icon-btn" onclick="closeEditor()" title="返回" style="display:inline-flex;"><i data-lucide="arrow-left" style="width: 26px; height: 26px;"></i></button>
                     <button class="icon-btn" onclick="saveEntry()" title="儲存" style="display:inline-flex;"><i data-lucide="save" style="width: 26px; height: 26px;"></i></button>
-
-
                     <button class="icon-btn" id="colorSwatchBtn" onclick="toggleColorPickerPanel()" title="分類" style="display:inline-flex;">
                         <span id="editorColorSwatch" class="editor-color-swatch"></span>
                     </button>
-                    <button class="icon-btn" id="editorCloseBtn" onclick="closeEditor()" title="關閉" style="display:inline-flex;"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
                 
                 <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: 10px; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
@@ -1557,6 +1577,7 @@
                 <div class="editor-toolbar">
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
+                    <button class="tool-btn" onclick="toggleStrikethrough()" title="刪除線"><i data-lucide="strikethrough"></i> 刪除線</button>
                     
                     
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
@@ -1978,7 +1999,7 @@
                 </div>
             </div>
             <div class="modal-body">
-                <div id="folderModeHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：可多選要顯示嘅資料夾；右上角垃圾桶可切換刪除模式。</div>
+                <div id="folderModeHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：點一下可篩選資料夾；雙擊 / 長按可直接打開單一資料夾；右上角垃圾桶可切換刪除模式。</div>
                 <div id="folderModeGrid" class="folder-grid"></div>
             </div>
         </div>
@@ -2675,6 +2696,20 @@
             const names = ids.map(id => map.get(String(id)) || String(id));
             if (names.length === 1) return names[0];
             return `${names.length} 個資料夾`;
+        }
+
+        function renderAttachmentBadge(e) {
+            const count = Array.isArray(e && e.attachments) ? e.attachments.length : 0;
+            if (!count) return '';
+            return `<span class="entry-card-tag attachment-badge"><i data-lucide="paperclip" style="width:12px; height:12px;"></i>${count}</span>`;
+        }
+
+        let __notebookDesktopFolderId = '';
+        function setNotebookDesktopFolderFocus(folderId) {
+            __notebookDesktopFolderId = String(folderId || '');
+        }
+        function getNotebookDesktopFolderFocus() {
+            return String(__notebookDesktopFolderId || '');
         }
 
         function populateNotebookFolderSelect() {
@@ -5729,7 +5764,17 @@ function initColorPickerUI() {
                 rows.sort((a, b) => String(a.color || '').localeCompare(String(b.color || '')));
             }
 
-            if (hint) hint.textContent = `共 ${rows.length} 條記事`;
+            const desktopFolderId = getNotebookDesktopFolderFocus();
+            const isDesktopFolderView = !!desktopFolderId && folderIds.length === 1 && folderIds[0] === desktopFolderId;
+            list.classList.toggle('folder-desktop', isDesktopFolderView);
+            if (hint) {
+                if (isDesktopFolderView) {
+                    const folderTitle = getNotebookFolderName(desktopFolderId) || '未分類';
+                    hint.textContent = `已直接打開資料夾：${folderTitle} · 共 ${rows.length} 條記事`;
+                } else {
+                    hint.textContent = `共 ${rows.length} 條記事`;
+                }
+            }
 
             // ✅ 批量模式：記低目前列表可見 id（用於全選）
             try { __nbVisibleIds = rows.map(x => x && x.id).filter(Boolean); } catch (_) { __nbVisibleIds = []; }
@@ -5758,12 +5803,13 @@ function initColorPickerUI() {
 
                 const folderName = getNotebookFolderName(e.folderId);
                 const folderBadge = folderName ? `<span class="entry-card-tag" style="opacity:.85; border-style:dashed;">📁 ${escapeHtml(folderName)}</span>` : '';
+                const attachmentBadge = renderAttachmentBadge(e);
 
                 return `<div class="entry-card ${__nbBulkMode ? 'bulk-mode' : ''} ${__nbBulkSelected.has(String(e.id)) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleNotebookCardClick(event, ${e.id}, '${entryJson}')" oncontextmenu="return false;">${__nbBulkMode ? `<div class=\"bulk-check\">${__nbBulkSelected.has(String(e.id)) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}
                     <div class="entry-card-header">
-                        <span style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <span class="entry-badges-inline">
                             <span class="entry-card-tag">${escapeHtml(tagName)}</span>
-                            ${folderBadge}
+                            ${folderBadge}${attachmentBadge}
                         </span>
                         <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
                     </div>
@@ -5819,13 +5865,14 @@ lucide.createIcons();
                     const entryJson = encodeURIComponent(JSON.stringify(e));
                     const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                     const tagName = tagNames[e.color] || '標籤';
+                    const attachmentBadge = renderAttachmentBadge(e);
                     const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
                     const w = e.weather;
                     const wArr = Array.isArray(w) ? w : (w ? [w] : []);
                     const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
                     const idStr = String(e.id);
                     const hlAttr = encodeURIComponent(JSON.stringify(Array.isArray(e.highlights) ? e.highlights : []));
-                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-card-tag">${tagName}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">${tagName}</span>${attachmentBadge}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
                 // ✅ 日列表（卡片預覽）亦要顯示熒光筆
                 try { applyHighlightsToEntryCardPreviews(listEl); } catch (_) {}
@@ -6331,6 +6378,61 @@ lucide.createIcons();
             return withLinks.replace(/\n/g, '<br>');
         }
 
+        function ensureReadAnchorsOpenExternally(rootEl) {
+            const root = rootEl || document.getElementById('readText');
+            if (!root) return;
+            root.querySelectorAll('a[href]').forEach(a => {
+                try {
+                    a.setAttribute('target', '_blank');
+                    a.setAttribute('rel', 'noopener noreferrer');
+                } catch (_) {}
+            });
+        }
+
+        function linkifyElementTextNodes(rootEl) {
+            const root = rootEl || document.getElementById('readText');
+            if (!root) return;
+            const urlRe = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/g;
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    const parent = node.parentElement;
+                    if (!node || !node.nodeValue || !urlRe.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+                    urlRe.lastIndex = 0;
+                    if (parent && parent.closest('a, button, textarea, input, code, pre, script, style')) return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(node => {
+                const value = String(node.nodeValue || '');
+                const frag = document.createDocumentFragment();
+                let last = 0;
+                value.replace(urlRe, (match, _g1, offset) => {
+                    const idx = Number(offset || 0);
+                    let url = match;
+                    let tail = '';
+                    while (url.length && /[\]\)\}>,\.、，。！？!?:;"']$/.test(url)) {
+                        tail = url.slice(-1) + tail;
+                        url = url.slice(0, -1);
+                    }
+                    if (idx > last) frag.appendChild(document.createTextNode(value.slice(last, idx)));
+                    const a = document.createElement('a');
+                    a.href = url.startsWith('http') ? url : ('https://' + url);
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.textContent = url;
+                    frag.appendChild(a);
+                    if (tail) frag.appendChild(document.createTextNode(tail));
+                    last = idx + match.length;
+                    return match;
+                });
+                if (last < value.length) frag.appendChild(document.createTextNode(value.slice(last)));
+                if (node.parentNode) node.parentNode.replaceChild(frag, node);
+                urlRe.lastIndex = 0;
+            });
+        }
+
         function renderReadTextWithMarkdownIfNeeded() {
             const el = document.getElementById('readText');
             if (!el) return;
@@ -6348,6 +6450,19 @@ lucide.createIcons();
             if (btn) {
                 btn.style.display = 'inline-flex';
                 btn.classList.toggle('active', isNotebookMarkdownPreviewEnabled());
+            }
+
+            const richHtml = (currentEntryData && currentEntryData.textHtml) ? String(currentEntryData.textHtml) : '';
+            if (richHtml) {
+                try {
+                    el.classList.remove('markdown-rendered');
+                    el.innerHTML = (typeof window.DOMPurify !== 'undefined') ? window.DOMPurify.sanitize(richHtml) : richHtml;
+                    linkifyElementTextNodes(el);
+                    ensureReadAnchorsOpenExternally(el);
+                    return;
+                } catch (e) {
+                    console.error('Rich text render failed', e);
+                }
             }
 
             // ✅ 有熒光筆標記：優先用「純文字 + mark」渲染（確保你出到去/直接觀看都見到）
@@ -6376,6 +6491,7 @@ lucide.createIcons();
                     const html = window.marked.parse(txt, { gfm: true, breaks: true });
                     el.innerHTML = window.DOMPurify.sanitize(html);
                     el.classList.add('markdown-rendered');
+                    ensureReadAnchorsOpenExternally(el);
                 } catch (e) {
                     console.error('Markdown render failed', e);
                     el.classList.remove('markdown-rendered');
@@ -6385,6 +6501,7 @@ lucide.createIcons();
                 // ✅ 無 Markdown（純文字）都照樣把網址變成可點擊
                 el.classList.remove('markdown-rendered');
                 el.innerHTML = linkifyPlainTextToHtml(txt);
+                ensureReadAnchorsOpenExternally(el);
             }
         }
 
@@ -6502,7 +6619,7 @@ lucide.createIcons();
             // 🖍️ 準備內容後先 reset 歷史（否則第一步 undo 會跳返去空白）
             if (entryData) { 
                 document.getElementById('editorTitle').textContent = '編輯記事'; 
-                if (rich) setEditorFromTextAndHighlights(entryData.text || '', entryData.highlights || []); else textarea.value = entryData.text || '';
+                if (rich) { if (entryData.textHtml) rich.innerHTML = entryData.textHtml; else setEditorFromTextAndHighlights(entryData.text || '', entryData.highlights || []); } else textarea.value = entryData.text || '';
                  
                 selectColor(entryData.color || 'blue'); 
                 setTextSize(entryData.textSize !== undefined ? entryData.textSize : 1); 
@@ -6899,6 +7016,7 @@ renderEditorImages(); renderAttachments();
             __folderModeManage = false;
             renderFolderModeGrid();
             openModal('folderModeModal');
+            setTimeout(() => { try { bindFolderModeQuickOpen(); } catch(_){} }, 60);
             try { lucide.createIcons(); } catch (_) {}
         }
 
@@ -6970,7 +7088,7 @@ renderEditorImages(); renderAttachments();
             const hint = document.getElementById('folderModeHint');
             if (hint) hint.textContent = __folderModeManage
                 ? '刪除模式：點右上角 X 刪除資料夾（不會刪記事，會變未分類）。'
-                : '提示：可多選要顯示嘅資料夾；右上角垃圾桶可切換刪除模式。';
+                : '提示：點一下可篩選資料夾；雙擊 / 長按可直接打開單一資料夾；右上角垃圾桶可切換刪除模式。';
 
             try { lucide.createIcons(); } catch (_) {}
         }
@@ -6991,6 +7109,7 @@ renderEditorImages(); renderAttachments();
                 if (!ids.length) ids = ['all'];
             }
 
+            setNotebookDesktopFolderFocus('');
             setNotebookFolderFilterIds(ids);
 
             // 如果只揀咗一個（唔係 all），順便當作「預設寫入資料夾」
@@ -7001,6 +7120,89 @@ renderEditorImages(); renderAttachments();
             populateNotebookFolderSelect();
             try { renderNotebookList(); } catch (_) {}
             try { renderFolderModeGrid(); } catch (_) {}
+        }
+
+        function quickOpenFolderFromFolderMode(folderId) {
+            const fid = String(folderId || 'all');
+            if (__folderModeManage) return;
+            const targetIds = (fid === 'all') ? ['all'] : [fid];
+            setNotebookFolderFilterIds(targetIds);
+            setNotebookDesktopFolderFocus(fid === 'all' ? '' : fid);
+            try { if (fid !== 'all') setNotebookLastWriteFolderId(fid); } catch (_) {}
+            populateNotebookFolderSelect();
+            try { closeModal('folderModeModal'); } catch (_) {}
+            try { renderNotebookList(); } catch (_) {}
+            const folderTitle = (fid === 'all') ? '全部資料夾' : (getNotebookFolderName(fid) || '未分類');
+            try { showToast(`已直接打開：${folderTitle}`, 'success'); } catch (_) {}
+        }
+
+        function bindFolderModeQuickOpen() {
+            const grid = document.getElementById('folderModeGrid');
+            if (!grid || grid.__quickOpenBound) return;
+            grid.__quickOpenBound = true;
+
+            let timer = null;
+            let moved = false;
+            let targetId = null;
+            let startX = 0;
+            let startY = 0;
+
+            const clear = () => {
+                if (timer) clearTimeout(timer);
+                timer = null;
+                targetId = null;
+                moved = false;
+            };
+
+            const resolveId = (event) => {
+                const card = event && event.target && event.target.closest ? event.target.closest('.folder-card') : null;
+                if (!card) return null;
+                if (event.target && event.target.closest && event.target.closest('.folder-del')) return null;
+                const attr = card.getAttribute('onclick') || '';
+                const m = attr.match(/folderModeOpen\('([^']*)'\)/);
+                return m ? String(m[1] || 'all') : null;
+            };
+
+            const start = (event) => {
+                if (__folderModeManage) return;
+                const fid = resolveId(event);
+                if (fid === null) return;
+                targetId = fid;
+                const point = event.touches && event.touches[0] ? event.touches[0] : event;
+                startX = Number(point.clientX || 0);
+                startY = Number(point.clientY || 0);
+                moved = false;
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    timer = null;
+                    if (!moved && targetId !== null) quickOpenFolderFromFolderMode(targetId);
+                }, 520);
+            };
+
+            const move = (event) => {
+                if (!timer) return;
+                const point = event.touches && event.touches[0] ? event.touches[0] : event;
+                if (Math.abs(Number(point.clientX || 0) - startX) > 10 || Math.abs(Number(point.clientY || 0) - startY) > 10) {
+                    moved = true;
+                    clear();
+                }
+            };
+
+            grid.addEventListener('dblclick', (event) => {
+                const fid = resolveId(event);
+                if (fid === null) return;
+                event.preventDefault();
+                event.stopPropagation();
+                quickOpenFolderFromFolderMode(fid);
+            });
+            grid.addEventListener('touchstart', start, { passive: true });
+            grid.addEventListener('touchmove', move, { passive: true });
+            grid.addEventListener('touchend', clear);
+            grid.addEventListener('touchcancel', clear);
+            grid.addEventListener('mousedown', start);
+            grid.addEventListener('mousemove', move);
+            grid.addEventListener('mouseup', clear);
+            grid.addEventListener('mouseleave', clear);
         }
 
         async function deleteFolderFromFolderMode(folderId) {
@@ -7441,6 +7643,62 @@ renderEditorImages(); renderAttachments();
             if (!el) return '';
             if (el.id === 'editorRich') return (el.innerText || '').replace(/\r\n/g, '\n');
             return String(el.value || '');
+        }
+
+        function getEditorRichHtmlForStorage() {
+            const rich = document.getElementById('editorRich');
+            if (!rich) return '';
+            const clone = rich.cloneNode(true);
+            clone.querySelectorAll('.hl-boundary').forEach(n => n.remove());
+            clone.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
+            return clone.innerHTML || '';
+        }
+
+        function unwrapNodePreserveChildren(node) {
+            if (!node || !node.parentNode) return;
+            while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+            node.remove();
+        }
+
+        function toggleStrikethrough() {
+            const root = document.getElementById('editorRich');
+            if (!root) return;
+            const sel = window.getSelection ? window.getSelection() : null;
+            if (!sel || !sel.rangeCount) { showToast('請先選擇文字', 'error'); return; }
+            const range = sel.getRangeAt(0);
+            if (range.collapsed) { showToast('請先選擇文字', 'error'); return; }
+            if (!root.contains(range.commonAncestorContainer)) { showToast('請喺記事內容內選字', 'error'); return; }
+
+            let strikeNodes = [];
+            try {
+                strikeNodes = Array.from(root.querySelectorAll('s, strike, del')).filter(node => {
+                    try { return range.intersectsNode(node); } catch (_) { return false; }
+                });
+            } catch (_) { strikeNodes = []; }
+
+            if (strikeNodes.length) {
+                strikeNodes = strikeNodes.filter((node, idx, arr) => arr.indexOf(node) === idx);
+                strikeNodes.forEach(node => { try { unwrapNodePreserveChildren(node); } catch (_) {} });
+                try { root.normalize(); } catch (_) {}
+                try { editorPushHistory(true); } catch (_) {}
+                return;
+            }
+
+            const s = document.createElement('s');
+            try {
+                const frag = range.extractContents();
+                s.appendChild(frag);
+                range.insertNode(s);
+                const rr = document.createRange();
+                rr.setStartAfter(s);
+                rr.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(rr);
+                try { editorPushHistory(true); } catch (_) {}
+            } catch (e) {
+                console.error(e);
+                showToast('刪除線套用失敗', 'error');
+            }
         }
         function setEditorFromTextAndHighlights(text, highlights) {
             const el = document.getElementById('editorRich');
@@ -8572,6 +8830,7 @@ function handleImageUpload(event) {
                 timestamp: entryTimestamp, 
                 updatedAt: Date.now(),
                 text: text,
+                textHtml: (document.getElementById('editorRich') ? getEditorRichHtmlForStorage() : ''),
                 highlights: (document.getElementById('editorRich') ? serializeHighlightsFromEditor() : []), 
                 color: selectedColor, 
                 textSize: currentTextSizeIdx, 
@@ -8994,5 +9253,6 @@ function handleImageUpload(event) {
             try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
         };
     </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
