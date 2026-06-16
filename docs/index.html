@@ -151,6 +151,27 @@
             .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
 
+        /* ✅ 闊屏（電腦/電視）：取消「手機外框」限制，善用闊度；
+           但當你縮到窄視窗時（<1100px）就會自然回到手機模式。
+           只用視窗闊度判斷，唔用裝置類型。 */
+        @media (min-width: 1100px) {
+            .desktop-stage {
+                padding: 0;
+                align-items: stretch;
+                justify-content: stretch;
+            }
+            .device-frame {
+                width: 100%;
+                height: 100dvh;
+                border-radius: 0;
+                border: none;
+                box-shadow: none;
+            }
+            /* 闊屏時留白/可讀性（唔影響窄屏） */
+            header { padding: 0 18px; }
+            .modal-body { padding: 18px 22px; }
+        }
+
         /* App 本體高度跟住外框走（唔再用 100dvh 硬鎖） */
         .app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: calc(var(--statusbar-h) + env(safe-area-inset-bottom)); }
 
