@@ -79,8 +79,14 @@ self.addEventListener('fetch', (event) => {
       }
 
       // Redirect to GET so app can load and consume from cache
+      // ✅ 同時把 title/text/url 放入 query 做後備（某些機種 Cache API/控制時序會不穩）
       const u = new URL(req.url);
       u.searchParams.set('shared', '1');
+      try {
+        if (title) u.searchParams.set('title', String(title));
+        if (text) u.searchParams.set('text', String(text));
+        if (url) u.searchParams.set('url', String(url));
+      } catch (_) {}
       return Response.redirect(u.toString(), 303);
     } catch (e) {
       // On failure, still redirect to app without payload

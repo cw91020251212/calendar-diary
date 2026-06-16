@@ -9308,6 +9308,32 @@ function handleImageUpload(event) {
                 const url = new URL(window.location.href);
                 if (url.searchParams.get('shared') !== '1') return;
 
+                // ✅ 後備 A：如果 SW/Cache 暫時用唔到，但 SW redirect 已把分享內容塞咗入 query
+                // 例如：?shared=1&title=...&text=...&url=...
+                try {
+                    const qpParts = [];
+                    const qpTitle = url.searchParams.get('title');
+                    const qpText = url.searchParams.get('text');
+                    const qpUrl = url.searchParams.get('url');
+                    if (qpTitle) qpParts.push(normalizeNewlines(qpTitle));
+                    if (qpText) qpParts.push(normalizeNewlines(qpText));
+                    if (qpUrl) qpParts.push(normalizeNewlines(qpUrl));
+                    const qpCombined = qpParts.filter(v => v !== null && v !== undefined && String(v).length > 0).join('\n\n');
+                    if (qpCombined) {
+                        await renderCalendar();
+                        await new Promise(r => setTimeout(r, 20));
+                        beginShareDatePicking(qpCombined, [], []);
+
+                        // 清走 query（保留 hash），避免下次重入又彈
+                        url.searchParams.delete('shared');
+                        url.searchParams.delete('title');
+                        url.searchParams.delete('text');
+                        url.searchParams.delete('url');
+                        history.replaceState(history.state, document.title, url.pathname + (url.searchParams.toString() ? ('?' + url.searchParams.toString()) : '') + url.hash);
+                        return;
+                    }
+                } catch (_) {}
+
                 if (!('caches' in window)) return;
                 const cache = await caches.open('diary-share-cache-v1');
 
