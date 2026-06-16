@@ -1381,10 +1381,31 @@
                 </div>
 
                 <div id="shareNotebookBox" style="display:none;">
-                    <div style="margin-bottom: 12px; color: var(--text-light);">會直接打開「記事簿新增記事」，你可以再揀資料夾（可留空）。</div>
-                    <select id="shareNotebookFolder" style="width:100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
-                        <option value="">(未分類)</option>
-                    </select>
+                    <div style="margin-bottom: 12px; color: var(--text-light);">會先保存到「記事簿」（長期收藏），你可再揀資料夾；亦可同時釘到日曆某一日（建立捷徑）。</div>
+
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-weight:900; margin-bottom:6px;">保存到記事簿資料夾</div>
+                        <select id="shareNotebookFolder" style="width:100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+                            <option value="">(未分類)</option>
+                        </select>
+                    </div>
+
+                    <div style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: color-mix(in srgb, var(--surface) 88%, var(--bg));">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div>
+                                <div style="font-weight:900;">同時釘到日曆（建立捷徑）</div>
+                                <div style="font-size:13px; color:var(--text-light); margin-top:2px;">日曆會顯示「標題 + 摘要」，撳入去會開同一篇文章。</div>
+                            </div>
+                            <label class="switch" title="同時釘到日曆">
+                                <input type="checkbox" id="sharePinToCalendarToggle" checked onchange="updateSharePinUI()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div id="sharePinDateBox" style="margin-top:10px;">
+                            <div style="font-size:13px; color:var(--text-light); margin-bottom:6px;">釘到邊一日？</div>
+                            <input type="date" id="sharePinDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" />
+                        </div>
+                    </div>
                 </div>
 
                 <div style="display:flex; gap: 10px; margin-top: 14px;">
@@ -2486,6 +2507,16 @@
                 updateBulkUI();
                 return;
             }
+
+            // ✅ 如果係「捷徑」：直接打開對應文章（唔做左右撥導航）
+            try {
+                const obj = JSON.parse(decodeURIComponent(entryJsonEncoded || ''));
+                if (obj && obj.__shortcutTo) {
+                    try { window.__readNav = { ids: [], idx: 0, returnTo: 'day' }; } catch (_) {}
+                    openReadById(obj.__shortcutTo);
+                    return;
+                }
+            } catch (_) {}
 
             // ✅ Swipe 導航：記低「當日列表」嘅順序，方便閱讀頁左右撥切換
             try {
@@ -4704,6 +4735,9 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
         let __pendingShareTarget = 'calendar'; // 'calendar' | 'notebook'
         let __shareDateHistoryPushed = false;
 
+        // ✅ 由「分享接收」觸發：儲存到記事簿後，額外釘到日曆（捷徑）
+        let __afterSavePinToCalendar = null; // { dateStr: 'YYYY-MM-DD' } | null
+
         function normalizeNewlines(str) {
             return String(str ?? '').replace(/\r\n/g, '\n');
         }
@@ -4726,6 +4760,9 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             if (calBox) calBox.style.display = (__pendingShareTarget === 'calendar') ? '' : 'none';
             if (nbBox) nbBox.style.display = (__pendingShareTarget === 'notebook') ? '' : 'none';
 
+            // ✅ Notebook 模式：同步釘日曆 UI
+            try { updateSharePinUI(true); } catch (_) {}
+
             // 只有「日曆」模式先嘗試彈出 date picker
             if (!skipPickerPopup && __pendingShareTarget === 'calendar') {
                 setTimeout(() => {
@@ -4734,6 +4771,25 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                         else if (picker) { picker.focus(); picker.click(); }
                     } catch (_) {
                         try { if (picker) picker.focus(); } catch (_) {}
+                    }
+                }, 120);
+            }
+        }
+
+        function updateSharePinUI(skipPickerPopup = false) {
+            const toggle = document.getElementById('sharePinToCalendarToggle');
+            const box = document.getElementById('sharePinDateBox');
+            const picker = document.getElementById('sharePinDatePicker');
+            const on = !!(toggle && toggle.checked);
+            if (box) box.style.display = on ? '' : 'none';
+
+            if (!skipPickerPopup && on && picker) {
+                setTimeout(() => {
+                    try {
+                        if (picker.showPicker) picker.showPicker();
+                        else { picker.focus(); picker.click(); }
+                    } catch (_) {
+                        try { picker.focus(); } catch (_) {}
                     }
                 }, 120);
             }
@@ -4758,9 +4814,15 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             const now = new Date();
             picker.value = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
 
-            // 預設：保存到日曆（可切去記事簿）
-            __pendingShareTarget = 'calendar';
+            // ✅ 預設：保存到記事簿（長期收藏）；可切去日曆
+            __pendingShareTarget = 'notebook';
             try { populateShareNotebookFolderSelect(); } catch (_) {}
+
+            // 預設：釘到今日（可改）
+            try {
+                const pinPicker = document.getElementById('sharePinDatePicker');
+                if (pinPicker) pinPicker.value = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
+            } catch (_) {}
 
             modal.classList.add('active');
             updateShareTargetUI(true);
@@ -4820,6 +4882,17 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 const folderSel = document.getElementById('shareNotebookFolder');
                 const folderId = folderSel ? String(folderSel.value || '') : '';
 
+                // ✅ 可選：同時釘到日曆（捷徑）
+                let pinDateStr = '';
+                try {
+                    const t = document.getElementById('sharePinToCalendarToggle');
+                    const on = !!(t && t.checked);
+                    if (on) {
+                        const p = document.getElementById('sharePinDatePicker');
+                        pinDateStr = p ? String(p.value || '') : '';
+                    }
+                } catch (_) { pinDateStr = ''; }
+
                 closeShareDateModal(false, false);
 
                 // 直接開記事簿新增
@@ -4845,8 +4918,16 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                     currentEntryData.folderId = folderId;
                 } catch (_) {}
 
+                // ✅ 記低：等你按「儲存記錄」後自動釘日曆
+                try {
+                    if (pinDateStr) __afterSavePinToCalendar = { dateStr: pinDateStr };
+                    else __afterSavePinToCalendar = null;
+                } catch (_) { __afterSavePinToCalendar = null; }
+
                 __pendingShared = null;
-                try { showToast('✅ 已帶入分享內容（記事簿），請按「儲存記錄」', 'success'); } catch (_) {}
+                try {
+                    showToast(pinDateStr ? '✅ 已帶入分享內容（記事簿），儲存後會同時釘到日曆' : '✅ 已帶入分享內容（記事簿），請按「儲存記錄」', 'success');
+                } catch (_) {}
                 return;
             }
 
@@ -5844,8 +5925,8 @@ lucide.createIcons();
             editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
             renderDayStatusUI();
             const listEl = document.getElementById('dayEntryList');
-            // ✅ 批量模式：記低可見 id
-            try { __dayVisibleIds = (entries || []).filter(e => e && !e.__isHoliday).map(e => e && e.id).filter(Boolean); } catch (_) { __dayVisibleIds = []; }
+            // ✅ 批量模式：記低可見 id（排除公眾假期 + 排除「捷徑」避免左右撥導航入到捷徑本體）
+            try { __dayVisibleIds = (entries || []).filter(e => e && !e.__isHoliday && !e.__shortcutTo).map(e => e && e.id).filter(Boolean); } catch (_) { __dayVisibleIds = []; }
 
             if (entries.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-light); padding: 20px; font-size:18px;">這天沒有任何記事。</div>';
             } else { 
@@ -5860,6 +5941,17 @@ lucide.createIcons();
                             </div>
                             <div class="entry-card-text">${t}</div>
                         </div>`;
+                    }
+
+                    // 📌 捷徑：顯示「標題 + 摘要」，點入去會開對應文章
+                    if (e && e.__shortcutTo) {
+                        const entryJson = encodeURIComponent(JSON.stringify(e));
+                        const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
+                        const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
+                        const idStr = String(e.id);
+                        const title = escapeHtml(String(e.__shortcutTitle || '').trim() || (String(e.text || '').split('\n').find(Boolean) || '（捷徑）'));
+                        const preview = escapeHtml(String(e.__shortcutPreview || '').trim() || (String(e.text || '').split('\n').slice(1).join('\n').trim()));
+                        return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">📌 捷徑</span></span><span class="entry-card-time">${timeText}</span></div><div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${title}</div>${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${preview}</div>` : ''}</div>`;
                     }
 
                     const entryJson = encodeURIComponent(JSON.stringify(e));
@@ -8961,11 +9053,99 @@ function handleImageUpload(event) {
             await closeEditor();
         }
 
+        // =========================
+        // 📌 記事簿文章 → 釘到日曆（建立捷徑，不複製內容）
+        // =========================
+        function __extractTitlePreview(textRaw) {
+            const body = String(textRaw ?? '').trim();
+            const firstLine = body.split('\n').map(s => s.trim()).find(Boolean) || '';
+            const title = firstLine || (body ? body.slice(0, 24) : '（無標題）');
+            const rest = body && firstLine ? body.replace(firstLine, '').trim() : '';
+            const preview = rest ? (rest.length > 80 ? rest.slice(0, 80) + '…' : rest) : '';
+            return { title, preview };
+        }
+
+        async function __dbGetEntryByIdCompat(entryId) {
+            try {
+                const raw = (entryId === null || entryId === undefined) ? '' : String(entryId);
+                const numKey = (/^\d+$/.test(raw)) ? Number(raw) : null;
+                let e = null;
+                try { e = (numKey !== null) ? await db.get(numKey) : null; } catch (_) { e = null; }
+                if (!e) {
+                    try { e = await db.get(raw); } catch (_) { e = null; }
+                }
+                if (!e) {
+                    try {
+                        const all = await db.getAll();
+                        all.forEach(normalizeEntrySpace);
+                        e = all.find(x => x && String(x.id) === raw) || null;
+                    } catch (_) { e = null; }
+                }
+                return e;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        async function createCalendarShortcutForNotebookEntry(targetEntryId, dateStr) {
+            try {
+                if (!targetEntryId || !dateStr) return false;
+                const target = await __dbGetEntryByIdCompat(targetEntryId);
+                if (!target) return false;
+
+                const { title, preview } = __extractTitlePreview(target.text || '');
+                const now = Date.now();
+                const shortcut = {
+                    id: 'sc_' + now + '_' + Math.random().toString(16).slice(2),
+                    space: SPACE_CALENDAR,
+                    date: String(dateStr),
+                    timestamp: now,
+                    updatedAt: now,
+                    color: target.color || 'blue',
+                    text: title + (preview ? ('\n' + preview) : ''),
+                    __shortcutTo: String(target.id),
+                    __shortcutTitle: title,
+                    __shortcutPreview: preview
+                };
+
+                await db.save(shortcut);
+
+                // 刷新畫面
+                try { renderCalendar(); } catch (_) {}
+                try {
+                    const dayModalActive = !!document.getElementById('dayModal')?.classList.contains('active');
+                    if (dayModalActive && String(editingDateStr) === String(dateStr)) {
+                        const all = await db.getAll();
+                        all.forEach(normalizeEntrySpace);
+                        const dayEntries = all.filter(e => e && e.date === dateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
+                        openDayView(dateStr, dayEntries);
+                    }
+                } catch (_) {}
+
+                return true;
+            } catch (e) {
+                console.error(e);
+                return false;
+            }
+        }
+
         // 手動儲存按鈕
         async function saveEntry() { 
             const text = getEditorPlainText().trim(); 
             if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0)) { alert('請輸入內容、加入圖片／附件或選擇天氣狀態！'); return; } 
             await silentAutoSave();
+
+            // ✅ 如果係「分享接收→保存到記事簿」並勾選咗釘日曆：儲存後自動建立捷徑
+            try {
+                if (__afterSavePinToCalendar && __afterSavePinToCalendar.dateStr && currentEntryData && currentEntryData.id) {
+                    const ok = await createCalendarShortcutForNotebookEntry(currentEntryData.id, __afterSavePinToCalendar.dateStr);
+                    try {
+                        showToast(ok ? '📌 已釘到日曆（捷徑）' : '⚠️ 釘到日曆失敗', ok ? 'success' : 'error');
+                    } catch (_) {}
+                }
+            } catch (e) { console.error(e); }
+            try { __afterSavePinToCalendar = null; } catch (_) {}
+
             stopAutoSave();
             // ✅ 用統一關閉流程（會處理 history + 返回上一層畫面）
             await closeEditor();
