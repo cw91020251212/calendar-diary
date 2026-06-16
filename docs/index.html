@@ -151,6 +151,14 @@
             .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
 
+        /* ✅ 手機打橫：通常你係想「睇清楚啲」而唔係想用 desktop 版。
+           所以：只要係窄裝置（<=920px）但打橫，就同樣取消手機外框，令內容真正變闊。
+           （縮窄/打直時會自然回復原本手機模式） */
+        @media (orientation: landscape) and (max-width: 920px) {
+            .desktop-stage { padding: 0; }
+            .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
+        }
+
         /* ✅ 闊屏（電腦/電視）：取消「手機外框」限制，善用闊度；
            但當你縮到窄視窗時（<1100px）就會自然回到手機模式。
            只用視窗闊度判斷，唔用裝置類型。 */
