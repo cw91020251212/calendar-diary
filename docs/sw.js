@@ -6,10 +6,17 @@
  * - Redirect user to GET ./?shared=1 so the app can read cached payload
  */
 
-const CACHE_NAME = 'diary-share-cache-v1';
+const CACHE_NAME = 'diary-share-cache-v3';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
+});
+
+// ✅ v4：支持頁面要求立即啟用新 SW
+self.addEventListener('message', (event) => {
+  try {
+    if (event && event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  } catch (_) {}
 });
 
 self.addEventListener('activate', (event) => {

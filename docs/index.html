@@ -7,12 +7,12 @@
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
     <!-- ✅ 單一檔 index.html 版本（已包含左右撥月份修正） -->
-    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="manifest" href="manifest.webmanifest?v=20260616v4">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="日曆記事本">
-    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png?v=20260616v4">
     <script>
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
@@ -195,12 +195,14 @@
 
         /* ✅ 只針對兩個頁面右上角按鈕加「捆邊」更清晰 */
         #dayModal .modal-header .icon-btn,
-        #notebookModal .modal-header .icon-btn {
+        #notebookModal .modal-header .icon-btn,
+        #editorModal .modal-header .icon-btn.editor-close {
             border: 1px solid var(--outline);
             background: rgba(255,255,255,0.25);
         }
         body.theme-dark #dayModal .modal-header .icon-btn,
-        body.theme-dark #notebookModal .modal-header .icon-btn {
+        body.theme-dark #notebookModal .modal-header .icon-btn,
+        body.theme-dark #editorModal .modal-header .icon-btn.editor-close {
             background: rgba(30,30,30,0.25);
         }
         .icon-btn:hover { background: var(--hover); }
@@ -553,11 +555,21 @@
         #editorModal .modal-header {
             justify-content: flex-start;
             gap: 8px;
+            position: relative;
             /* 右邊留位畀手指 + safe-area */
             padding-right: calc(10px + env(safe-area-inset-right));
         }
         #editorModal .modal-title { flex: 0 0 auto; white-space: nowrap; }
-        #editorModal #autoSaveIndicator { white-space: nowrap; }
+        /* ✅ 自動儲存提示：用 absolute，唔阻右上角按鈕排位 */
+        #editorModal #autoSaveIndicator {
+            white-space: nowrap;
+            position: absolute;
+            right: calc(60px + env(safe-area-inset-right));
+            top: 50%;
+            transform: translateY(-50%);
+            margin: 0 !important;
+            pointer-events: none;
+        }
 
         /* 右上角工具列：保持一排，但「關閉X」同其他icon分開少少 */
         #editorTopIconBar { gap: 8px !important; }
@@ -1561,24 +1573,21 @@
 <div class="modal-overlay" id="editorModal" onclick="handleEditorBackdropClick(event)">
         <div class="modal-content">
             <div class="modal-header">
-                <button class="icon-btn" id="editorBackBtn" onclick="closeEditor()" title="返回" style="margin-right:6px; display:none;"><i data-lucide="arrow-left" style="width: 28px; height: 28px;"></i></button>
-                <div class="modal-title" id="editorTitle">編輯記事</div>
+                <div class="modal-title" id="editorTitle">編輯記事（v4）</div>
 
                 <!-- ✅ 置頂：撤銷/重做 + 返回/儲存（純圖標） -->
                 <div id="editorTopIconBar" style="display:flex; align-items:center; gap:6px; margin-left:auto;">
                     <button class="icon-btn" onclick="editorUndo()" title="撤銷" style="display:inline-flex;"><i data-lucide="rotate-ccw" style="width: 26px; height: 26px;"></i></button>
                     <button class="icon-btn" onclick="editorRedo()" title="重做" style="display:inline-flex;"><i data-lucide="rotate-cw" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" onclick="closeEditor()" title="返回" style="display:inline-flex;"><i data-lucide="arrow-left" style="width: 26px; height: 26px;"></i></button>
                     <button class="icon-btn" onclick="saveEntry()" title="儲存" style="display:inline-flex;"><i data-lucide="save" style="width: 26px; height: 26px;"></i></button>
                     <button class="icon-btn" id="colorSwatchBtn" onclick="toggleColorPickerPanel()" title="分類" style="display:inline-flex;">
                         <span id="editorColorSwatch" class="editor-color-swatch"></span>
                     </button>
+                    <button class="icon-btn editor-close" id="editorCloseBtn" onclick="closeEditor()" title="關閉" style="display:inline-flex;"><i data-lucide="x" style="width: 26px; height: 26px;"></i></button>
                 </div>
                 
                 <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: 10px; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
                 
-
-                <button class="icon-btn" onclick="closeEditor()" title="返回" style="margin-left:6px; display:none;"><i data-lucide="x" style="width: 34px; height: 34px;"></i></button>
             </div>
             <div class="modal-body">
                 <div id="colorPickerPanel" class="color-picker-container color-picker-panel-hidden">
@@ -9293,9 +9302,25 @@ function handleImageUpload(event) {
         // 📲 PWA + Android 分享接收（Web Share Target）
         // =========================
         async function registerServiceWorker() {
+            // ✅ v4：強制刷新/重裝 SW（避免舊快取長期黐住）
+            try {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (const r of regs) {
+                        try { await r.update(); } catch (_) {}
+                    }
+                }
+            } catch (_) {}
             if ('serviceWorker' in navigator) {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js', { scope: './' });
+                    const registration = await navigator.serviceWorker.register('sw.js?v=20260616v4', { scope: './' });
+                    try { await registration.update(); } catch (_) {}
+                    try {
+                        // 如果有 waiting SW，要求佢立即生效
+                        if (registration && registration.waiting) {
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    } catch (_) {}
                     console.log('Service Worker 註冊成功，範圍為:', registration.scope);
                 } catch (error) {
                     console.error('Service Worker 註冊失敗:', error);
