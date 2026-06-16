@@ -7,12 +7,12 @@
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
     <!-- ✅ 單一檔 index.html 版本（已包含左右撥月份修正） -->
-    <link rel="manifest" href="manifest.webmanifest?v=20260616v4">
+    <link rel="manifest" href="manifest.webmanifest?v=20260616v6">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="日曆記事本">
-    <link rel="apple-touch-icon" href="icon.png?v=20260616v4">
+    <link rel="apple-touch-icon" href="icon.png?v=20260616v6">
     <script>
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
@@ -218,6 +218,20 @@
             -webkit-box-decoration-break: clone;
             box-decoration-break: clone;
         }
+
+        /* ✅ 可填寫底線空格（用於表格/留空位） */
+        .blank-underline {
+            display: inline-block;
+            min-width: 70px;
+            padding: 0 6px 2px;
+            margin: 0 2px;
+            border-bottom: 2px solid var(--outline);
+            border-radius: 2px;
+            line-height: 1.4;
+            vertical-align: baseline;
+            white-space: pre;
+        }
+        body.theme-dark .blank-underline { border-bottom-color: rgba(255,255,255,0.65); }
         body.theme-dark mark.hl-mark {
             background: rgba(255, 242, 0, 0.62);
             box-shadow: 0 0 0 2px rgba(255, 242, 0, 0.18);
@@ -1608,6 +1622,10 @@
                     <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
                     <button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
                     <button class="tool-btn" onclick="toggleStrikethrough()" title="刪除線"><i data-lucide="strikethrough"></i> 刪除線</button>
+                    <button class="tool-btn" onclick="toggleBold()" title="粗體"><i data-lucide="bold"></i> 粗體</button>
+                    <button class="tool-btn" onclick="toggleItalic()" title="斜體"><i data-lucide="italic"></i> 斜體</button>
+                    <button class="tool-btn" onclick="toggleUnderline()" title="底線"><i data-lucide="underline"></i> 底線</button>
+                    <button class="tool-btn" onclick="insertUnderlineBlank()" title="插入可填寫底線空格"><i data-lucide="minus"></i> 空格底線</button>
                     
                     
                     <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
@@ -7761,6 +7779,89 @@ renderEditorImages(); renderAttachments();
             node.remove();
         }
 
+        function __wrapOrUnwrapTag(tagName) {
+            const root = document.getElementById('editorRich');
+            if (!root) return;
+            const sel = window.getSelection ? window.getSelection() : null;
+            if (!sel || !sel.rangeCount) { showToast('請先選擇文字', 'error'); return; }
+            const range = sel.getRangeAt(0);
+            if (range.collapsed) { showToast('請先選擇文字', 'error'); return; }
+            if (!root.contains(range.commonAncestorContainer)) { showToast('請喺記事內容內選字', 'error'); return; }
+
+            const tags = String(tagName || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            if (!tags.length) return;
+
+            let nodes = [];
+            try {
+                nodes = Array.from(root.querySelectorAll(tags.join(','))).filter(node => {
+                    try { return range.intersectsNode(node); } catch (_) { return false; }
+                });
+            } catch (_) { nodes = []; }
+
+            if (nodes.length) {
+                nodes = nodes.filter((node, idx, arr) => arr.indexOf(node) === idx);
+                nodes.forEach(node => { try { unwrapNodePreserveChildren(node); } catch (_) {} });
+                try { root.normalize(); } catch (_) {}
+                try { editorPushHistory(true); } catch (_) {}
+                return;
+            }
+
+            const el = document.createElement(tags[0]);
+            try {
+                const frag = range.extractContents();
+                el.appendChild(frag);
+                range.insertNode(el);
+                const rr = document.createRange();
+                rr.setStartAfter(el);
+                rr.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(rr);
+                try { root.normalize(); } catch (_) {}
+                try { editorPushHistory(true); } catch (_) {}
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function toggleBold() { __wrapOrUnwrapTag('strong, b'); }
+        function toggleItalic() { __wrapOrUnwrapTag('em, i'); }
+        function toggleUnderline() { __wrapOrUnwrapTag('u'); }
+
+        function insertUnderlineBlank() {
+            const root = document.getElementById('editorRich');
+            if (!root) return;
+            const sel = window.getSelection ? window.getSelection() : null;
+            const span = document.createElement('span');
+            span.className = 'blank-underline';
+            span.setAttribute('data-blank-underline', '1');
+            // 先放幾個 NBSP 令佢有可點擊寬度
+            span.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;';
+
+            try {
+                if (sel && sel.rangeCount) {
+                    const range = sel.getRangeAt(0);
+                    if (!root.contains(range.commonAncestorContainer)) {
+                        root.appendChild(span);
+                    } else {
+                        range.insertNode(span);
+                        // 光標移入 span 內
+                        const rr = document.createRange();
+                        rr.selectNodeContents(span);
+                        rr.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(rr);
+                    }
+                } else {
+                    root.appendChild(span);
+                }
+                try { root.normalize(); } catch (_) {}
+                try { editorPushHistory(true); } catch (_) {}
+            } catch (e) {
+                console.error(e);
+                try { root.appendChild(span); } catch (_) {}
+            }
+        }
+
         function toggleStrikethrough() {
             const root = document.getElementById('editorRich');
             if (!root) return;
@@ -9313,7 +9414,7 @@ function handleImageUpload(event) {
             } catch (_) {}
             if ('serviceWorker' in navigator) {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js?v=20260616v4', { scope: './' });
+                    const registration = await navigator.serviceWorker.register('sw.js?v=20260616v6', { scope: './' });
                     try { await registration.update(); } catch (_) {}
                     try {
                         // 如果有 waiting SW，要求佢立即生效
