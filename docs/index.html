@@ -7844,10 +7844,17 @@ renderEditorImages(); renderAttachments();
                         root.appendChild(span);
                     } else {
                         range.insertNode(span);
-                        // 光標移入 span 內
+                        // ✅ 重要：插入後，預設將光標放到「底線後面」，方便繼續打字
+                        // （用家仍然可以用手指/滑鼠點入條線內填資料）
+                        const zwsp = document.createTextNode('\u200B');
+                        if (span.nextSibling) {
+                            span.parentNode.insertBefore(zwsp, span.nextSibling);
+                        } else {
+                            span.parentNode.appendChild(zwsp);
+                        }
                         const rr = document.createRange();
-                        rr.selectNodeContents(span);
-                        rr.collapse(false);
+                        rr.setStartAfter(zwsp);
+                        rr.collapse(true);
                         sel.removeAllRanges();
                         sel.addRange(rr);
                     }
