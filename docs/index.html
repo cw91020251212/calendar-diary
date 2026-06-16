@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="日曆記事本">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.png">
     <script>
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
@@ -5951,7 +5951,7 @@ lucide.createIcons();
                         const idStr = String(e.id);
                         const title = escapeHtml(String(e.__shortcutTitle || '').trim() || (String(e.text || '').split('\n').find(Boolean) || '（捷徑）'));
                         const preview = escapeHtml(String(e.__shortcutPreview || '').trim() || (String(e.text || '').split('\n').slice(1).join('\n').trim()));
-                        return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">📌 捷徑</span></span><span class="entry-card-time">${timeText}</span></div><div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${title}</div>${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${preview}</div>` : ''}</div>`;
+                        return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, '${idStr}', '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">📌 捷徑</span></span><span class="entry-card-time">${timeText}</span></div><div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${title}</div>${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${preview}</div>` : ''}</div>`;
                     }
 
                     const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
@@ -5964,7 +5964,7 @@ lucide.createIcons();
                     const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
                     const idStr = String(e.id);
                     const hlAttr = encodeURIComponent(JSON.stringify(Array.isArray(e.highlights) ? e.highlights : []));
-                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">${tagName}</span>${attachmentBadge}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, '${idStr}', '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">${tagName}</span>${attachmentBadge}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
                 }).join(''); 
                 // ✅ 日列表（卡片預覽）亦要顯示熒光筆
                 try { applyHighlightsToEntryCardPreviews(listEl); } catch (_) {}
