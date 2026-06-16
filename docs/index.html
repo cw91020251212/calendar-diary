@@ -9360,7 +9360,7 @@ function handleImageUpload(event) {
                 } catch (_) {}
 
                 if (!('caches' in window)) return;
-                const cache = await caches.open('diary-share-cache-v1');
+                const cache = await caches.open('diary-share-cache-v3');
 
                 // 同時兼容不同部署路徑：嘗試用相對 key
 
@@ -9371,7 +9371,11 @@ function handleImageUpload(event) {
                     || (await cache.match('/share_payload'))
                     || (await cache.match('/__share_payload__'))
                     || (await cache.match('__share_payload__'));
-                if (!payloadResp) return;
+                if (!payloadResp) {
+                    // ✅ 偵錯提示：有 shared=1 但 cache 無 payload，多數係 SW/cache 版本唔同、或未更新到 SW
+                    try { showToast('⚠️ 收唔到分享資料（請重開App或重新安裝）', 'error'); } catch (_) {}
+                    return;
+                }
 
                 const payload = await payloadResp.json();
 
