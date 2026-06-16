@@ -1,109 +1,90 @@
-/* sw.js - Web Share Target receiver for 日曆記事本
- *
- * Purpose:
- * - Receive Android share-sheet POST to ./?shared=1 (Web Share Target)
- * - Store payload into Cache Storage so index.html can consume it
- * - Redirect user to GET ./?shared=1 so the app can read cached payload
- */
+/* sw.js - Web Share Target receiver for 日曆記事本 */
 
-const CACHE_NAME = 'diary-share-cache-v3';
+const SHARE_CACHE = 'diary-share-cache-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
-});
-
-// ✅ v4：支持頁面要求立即啟用新 SW
-self.addEventListener('message', (event) => {
-  try {
-    if (event && event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-  } catch (_) {}
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-async function writeText(cache, key, text) {
-  const resp = new Response(String(text ?? ''), {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  });
-  await cache.put(key, resp);
-}
-
-async function writeJson(cache, key, obj) {
-  const resp = new Response(JSON.stringify(obj ?? {}), {
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
-  await cache.put(key, resp);
-}
-
-function isShareTargetRequest(requestUrl, requestMethod) {
+self.addEventListener('message', (event) => {
   try {
-    const u = new URL(requestUrl);
-    return requestMethod === 'POST' && u.searchParams.get('shared') === '1';
-  } catch (_) {
-    return false;
+    if (event && event.data && event.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
+  } catch (_) {}
+});
+
+async function storeSharePayload({ title, text, url, files }) {
+  const cache = await caches.open(SHARE_CACHE);
+
+  const payload = {
+    title: title || '',
+    text: text || '',
+    url: url || '',
+    filesCount: Array.isArray(files) ? files.length : 0
+  };
+
+  await cache.put('share_payload', new Response(JSON.stringify(payload), {
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
+  }));
+
+  const count = payload.filesCount || 0;
+  await cache.put('share_files_count', new Response(String(count), {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  }));
+
+  for (let i = 0; i < count; i++) {
+    const f = files[i];
+    const name = (f && f.name) ? f.name : `file_${i}`;
+    const type = (f && f.type) ? f.type : 'application/octet-stream';
+
+    const headers = new Headers({
+      'Content-Type': type,
+      'X-File-Name': encodeURIComponent(name)
+    });
+
+    await cache.put(`share_file_${i}`, new Response(f, { headers }));
   }
 }
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (!isShareTargetRequest(req.url, req.method)) return;
+  const url = new URL(req.url);
 
-  event.respondWith((async () => {
-    try {
-      const formData = await req.formData();
-      const title = formData.get('title');
-      const text = formData.get('text');
-      const url = formData.get('url');
-
-      const files = formData.getAll('files') || [];
-
-      const cache = await caches.open(CACHE_NAME);
-
-      // Main payload
-      await writeJson(cache, 'share_payload', {
-        title: title ? String(title) : '',
-        text: text ? String(text) : '',
-        url: url ? String(url) : '',
-        filesCount: Array.isArray(files) ? files.length : 0,
-      });
-
-      // Files (if any)
-      const n = Array.isArray(files) ? files.length : 0;
-      await writeText(cache, 'share_files_count', String(n));
-
-      for (let i = 0; i < n; i++) {
-        const f = files[i];
-        if (!(f instanceof File)) continue;
-
-        // Store raw blob; attach filename via header so page can retrieve
-        const headers = new Headers();
-        headers.set('Content-Type', f.type || 'application/octet-stream');
-        try { headers.set('X-File-Name', encodeURIComponent(f.name || `file_${i}`)); } catch (_) {}
-
-        await cache.put(`share_file_${i}`, new Response(f, { headers }));
-      }
-
-      // Redirect to GET so app can load and consume from cache
-      // ✅ 同時把 title/text/url 放入 query 做後備（某些機種 Cache API/控制時序會不穩）
-      const u = new URL(req.url);
-      u.searchParams.set('shared', '1');
+  // Web Share Target POST endpoint
+  if (url.pathname.endsWith('/share-target') && req.method === 'POST') {
+    event.respondWith((async () => {
       try {
-        if (title) u.searchParams.set('title', String(title));
-        if (text) u.searchParams.set('text', String(text));
-        if (url) u.searchParams.set('url', String(url));
-      } catch (_) {}
-      return Response.redirect(u.toString(), 303);
-    } catch (e) {
-      // On failure, still redirect to app without payload
-      try {
-        const u = new URL(req.url);
-        u.searchParams.set('shared', '1');
-        return Response.redirect(u.toString(), 303);
-      } catch (_) {
-        return new Response('share target error', { status: 500 });
+        const form = await req.formData();
+        const title = form.get('title');
+        const text = form.get('text');
+        const sharedUrl = form.get('url');
+
+        // 'files' may be 0..n File objects
+        const files = form.getAll('files').filter(Boolean);
+
+        await storeSharePayload({
+          title: title ? String(title) : '',
+          text: text ? String(text) : '',
+          url: sharedUrl ? String(sharedUrl) : '',
+          files
+        });
+
+        // Redirect back to app; index.html will consume caches when it sees shared=1
+        const redirectTo = new URL('./?shared=1', url);
+        return Response.redirect(redirectTo.toString(), 303);
+      } catch (e) {
+        // fallback: still redirect, but without payload
+        const redirectTo = new URL('./?shared=1', url);
+        return Response.redirect(redirectTo.toString(), 303);
       }
-    }
-  })());
+    })());
+    return;
+  }
+
+  // Default passthrough
 });

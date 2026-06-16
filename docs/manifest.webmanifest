@@ -1,24 +1,14 @@
 {
-  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
   "name": "日曆記事本",
   "short_name": "日曆記事本",
-  "description": "日曆記事本 - 記錄每一天的美好時刻",
-  "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#667eea",
-  "icons": [
-    {
-      "src": "icon.png?v=20260616v6",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
+  "icons": [],
   "share_target": {
-    "action": "./?shared=1",
+    "action": "./share-target",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
