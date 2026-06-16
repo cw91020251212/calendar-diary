@@ -4986,7 +4986,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             const lastBriefing = localStorage.getItem('diary_last_briefing'); if (lastBriefing === todayStr) return;
             const allEntries = await db.getAll(); allEntries.forEach(normalizeEntrySpace); const todayEntries = allEntries.filter(e => e.date === todayStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
             if (todayEntries.length > 0) {
-                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="backOrClose('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
+                document.getElementById('briefingList').innerHTML = todayEntries.map(e => { const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea'; const tagName = tagNames[e.color] || '標籤'; const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27'); return `<div class="entry-card" style="--card-color: ${colorHex}; margin-bottom: 12px; padding: 12px;" onclick="backOrClose('briefingModal'); openReadView('${entryJson}')"><div class="entry-card-header" style="margin-bottom: 4px;"><span class="entry-card-tag" style="font-size:12px;">${tagName}</span></div>${e.text ? `<div class="entry-card-text" style="font-size:15px; -webkit-line-clamp: 2;">${e.text}</div>` : '<div style="font-size:14px; color:var(--text-light)">[ 圖片紀錄 ]</div>'}</div>`}).join('');
                 document.getElementById('briefingModal').classList.add('active'); localStorage.setItem('diary_last_briefing', todayStr);
             }
         }
@@ -5764,7 +5764,7 @@ function initColorPickerUI() {
                 const dateText = e.date ? e.date.replace(/-/g, '/') : '';
                 const snippet = String(e.text ?? '').trim();
                 const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
-                const entryJson = encodeURIComponent(JSON.stringify(e));
+                const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
 
 	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="backOrClose('searchModal'); openReadView('${entryJson}')">
 	                    <div class="entry-card-header">
@@ -5880,7 +5880,7 @@ function initColorPickerUI() {
                 const rest = body && body !== firstLine ? body.replace(firstLine, '').trim() : '';
                 const preview = rest ? (rest.length > 90 ? rest.slice(0, 90) + '…' : rest) : '';
 
-                const entryJson = encodeURIComponent(JSON.stringify(e));
+                const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
 
                 const folderName = getNotebookFolderName(e.folderId);
                 const folderBadge = folderName ? `<span class="entry-card-tag" style="opacity:.85; border-style:dashed;">📁 ${escapeHtml(folderName)}</span>` : '';
@@ -5945,7 +5945,7 @@ lucide.createIcons();
 
                     // 📌 捷徑：顯示「標題 + 摘要」，點入去會開對應文章
                     if (e && e.__shortcutTo) {
-                        const entryJson = encodeURIComponent(JSON.stringify(e));
+                        const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
                         const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                         const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
                         const idStr = String(e.id);
@@ -5954,7 +5954,7 @@ lucide.createIcons();
                         return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, ${e.id}, '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">📌 捷徑</span></span><span class="entry-card-time">${timeText}</span></div><div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${title}</div>${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${preview}</div>` : ''}</div>`;
                     }
 
-                    const entryJson = encodeURIComponent(JSON.stringify(e));
+                    const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
                     const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                     const tagName = tagNames[e.color] || '標籤';
                     const attachmentBadge = renderAttachmentBadge(e);
@@ -6060,7 +6060,7 @@ lucide.createIcons();
                     return false;
                 }
 
-                openReadView(encodeURIComponent(JSON.stringify(e)));
+                openReadView(encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27'));
                 return true;
             } catch (err) {
                 console.error(err);
