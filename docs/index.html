@@ -1497,6 +1497,7 @@
                 <div class="modal-title" id="dayModalTitle">日期</div>
                 <div>
                     <button class="icon-btn" id="dayBulkToggleBtn" onclick="toggleDayBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 26px; height: 26px;"></i></button>
+                    <button class="icon-btn" id="dayQuickWriteBtn" onclick="openEditorFromDayHeader()" title="快速輸入" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 26px; height: 26px;"></i></button>
                     <button class="icon-btn" onclick="backOrClose('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
                 </div>
             </div>
@@ -6692,6 +6693,19 @@ lucide.createIcons();
             __editorReturnTo = 'dayModal';
             closeModal('dayModal');
             setTimeout(() => openEditor(null), 200);
+        }
+
+        // ✅ 日曆「當日記事」：頂部筆掣（唔使碌到底先新增）
+        function openEditorFromDayHeader() {
+            try { openEditorFromDayView(); } catch (_) {}
+            // openEditor() 係 setTimeout(200) 之後先開，留少少時間再 focus
+            setTimeout(() => {
+                const rich = document.getElementById('editorRich');
+                if (rich) {
+                    try { rich.focus({ preventScroll: true }); } catch (_) { try { rich.focus(); } catch (_) {} }
+                    try { rich.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_) {}
+                }
+            }, 650);
         }
         function editFromReadView() {
             __editorReturnTo = 'readModal';
