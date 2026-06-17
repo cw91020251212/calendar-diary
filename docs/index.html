@@ -180,6 +180,48 @@
             .modal-body { padding: 18px 22px; }
         }
 
+        /* ✅ Split View（兩欄）：左月曆 + 右側記事 Panel
+           - 只按「視窗闊度」啟用：大於等於 1440px
+           - 視窗變窄（即使係電腦/電視）會自動回到垂直/全屏 modal
+        */
+        @media (min-width: 1440px) {
+            body.split-view { --right-panel-w: 0px; }
+            body.split-view.panel-open { --right-panel-w: min(760px, 42vw); }
+
+            /* 右側 panel 開啟時，月曆主區讓位（避免被覆蓋） */
+            body.split-view.panel-open .calendar-main { padding-right: var(--right-panel-w); transition: padding-right 0.18s ease; }
+
+            /* 把 day/read/editor 由全屏改成右側抽屜式 panel */
+            body.split-view #dayModal.modal-overlay,
+            body.split-view #readModal.modal-overlay,
+            body.split-view #editorModal.modal-overlay {
+                align-items: stretch !important;
+                justify-content: flex-end !important;
+                background: transparent !important;
+                backdrop-filter: none !important;
+                pointer-events: none; /* 令左邊月曆可點 */
+            }
+
+            body.split-view #dayModal .modal-content,
+            body.split-view #readModal .modal-content,
+            body.split-view #editorModal .modal-content {
+                pointer-events: auto; /* 只右側 panel 可點 */
+                width: var(--right-panel-w) !important;
+                max-width: none !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                border-radius: 0 !important;
+                transform: none !important; /* 取消 slide-up */
+                box-shadow: -18px 0 50px rgba(0,0,0,0.28);
+                border-left: 1px solid rgba(0,0,0,0.12);
+            }
+
+            /* 視覺微調：大屏時 header/內容唔好太貼邊 */
+            body.split-view #dayModal .modal-header,
+            body.split-view #readModal .modal-header,
+            body.split-view #editorModal .modal-header { padding-left: 18px; padding-right: 18px; }
+        }
+
         /* App 本體高度跟住外框走（唔再用 100dvh 硬鎖） */
         .app-container { display: flex; flex-direction: column; height: 100%; padding-bottom: calc(var(--statusbar-h) + env(safe-area-inset-bottom)); }
 
@@ -9639,6 +9681,56 @@ function handleImageUpload(event) {
             try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
         };
     </script>
+
+    <!-- ✅ Split View controller：大屏兩欄（左月曆＋右側記事 Panel），窄視窗自動回到垂直 -->
+    <script>
+    (function splitViewController(){
+        const SPLIT_MQ = window.matchMedia('(min-width: 1440px)');
+        const PANEL_IDS = ['dayModal','readModal','editorModal'];
+
+        function isAnyPanelActive(){
+            for (const id of PANEL_IDS) {
+                const el = document.getElementById(id);
+                if (el && el.classList.contains('active')) return true;
+            }
+            return false;
+        }
+
+        function applySplitView(){
+            document.body.classList.toggle('split-view', !!SPLIT_MQ.matches);
+            // panel-open 只喺 split-view 時有意義
+            document.body.classList.toggle('panel-open', !!SPLIT_MQ.matches && isAnyPanelActive());
+        }
+
+        function observePanelActive(){
+            try {
+                const obs = new MutationObserver(() => applySplitView());
+                for (const id of PANEL_IDS) {
+                    const el = document.getElementById(id);
+                    if (!el) continue;
+                    obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+                }
+            } catch (e) {
+                // 後備：有機會 miss class 變化，但至少 resize/媒體查詢仍會更新
+                console.warn('split-view observer unavailable', e);
+            }
+        }
+
+        // media query 變化
+        try { SPLIT_MQ.addEventListener('change', applySplitView); } catch (_) { try { SPLIT_MQ.addListener(applySplitView); } catch (_) {} }
+
+        // 亦監聽 resize 作後備
+        window.addEventListener('resize', applySplitView, { passive: true });
+
+        // DOM ready 後先綁（確保 modal 元素存在）
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => { observePanelActive(); applySplitView(); });
+        } else {
+            observePanelActive(); applySplitView();
+        }
+    })();
+    </script>
+
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>

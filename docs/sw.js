@@ -1,6 +1,6 @@
 /* sw.js - Web Share Target receiver for 日曆記事本 */
 
-const SHARE_CACHE = 'diary-share-cache-v3';
+const SHARE_CACHE = 'diary-share-cache-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -55,6 +55,11 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
+  // ✅ 只處理同源請求（避免誤攔截第三方）
+  try {
+    if (url.origin !== self.location.origin) return;
+  } catch (_) {}
+
   // Web Share Target POST endpoint
   if (url.pathname.endsWith('/share-target') && req.method === 'POST') {
     event.respondWith((async () => {
@@ -79,6 +84,8 @@ self.addEventListener('fetch', (event) => {
         return Response.redirect(redirectTo.toString(), 303);
       } catch (e) {
         // fallback: still redirect, but without payload
+        // （加少少 debug 方便排查）
+        try { console.warn('[share-target] store payload failed', e); } catch (_) {}
         const redirectTo = new URL('./?shared=1', url);
         return Response.redirect(redirectTo.toString(), 303);
       }
