@@ -1588,6 +1588,7 @@
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="readSpeakBtn" onclick="toggleReadSpeak()" title="朗讀" style="display:inline-flex;"><i data-lucide="volume-2" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="readSpeakStopBtn" onclick="stopReadSpeak()" title="停止朗讀" style="display:none;"><i data-lucide="square" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" id="readSpeakDiagBtn" onclick="ttsSelfTestFromUI()" title="朗讀自檢" style="display:inline-flex;"><i data-lucide="stethoscope" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="Markdown 預覽">MD</button>
                     <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
@@ -6728,13 +6729,69 @@ lucide.createIcons();
             idx: 0,
             voice: null,
             lang: 'zh-HK',
+            effectiveLang: 'zh-HK',
             rate: 1.02,
             pitch: 1.0,
-            volume: 1.0
+            volume: 1.0,
+            _prewarmed: false,
+            _chunkStarted: false,
+            _lastStartAt: 0
         };
+
+        // ✅ 防止「試過一次就死聲」：離開/回到頁面時重置
+        (function __bindTtsLifecycleGuards(){
+            try {
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        try { stopReadSpeak(true); } catch (_) {}
+                        try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+                    }
+                });
+                window.addEventListener('pagehide', () => {
+                    try { stopReadSpeak(true); } catch (_) {}
+                    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+                });
+                window.addEventListener('pageshow', () => {
+                    // iOS/Safari 有時返回頁面會卡住 queue
+                    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+                });
+            } catch (_) {}
+        })();
+
+        function __prewarmSpeechSynthesisOnce() {
+            if (__TTS._prewarmed) return;
+            __TTS._prewarmed = true;
+            try {
+                if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+                // 目的：喺「用家點擊」嗰一刻解鎖 audio path + 觸發 voice load
+                const u = new SpeechSynthesisUtterance(' ');
+                u.lang = __TTS.lang;
+                u.rate = 1.0;
+                u.pitch = 1.0;
+                u.volume = 0.001; // 幾乎聽唔到
+                u.onend = () => { try { if (!__TTS.active) speechSynthesis.cancel(); } catch (_) {} };
+                try { speechSynthesis.cancel(); } catch (_) {}
+                speechSynthesis.speak(u);
+            } catch (_) {}
+        }
 
         function __getVoicesSafe() {
             try { return (window.speechSynthesis && speechSynthesis.getVoices) ? speechSynthesis.getVoices() : []; } catch (_) { return []; }
+        }
+
+        async function __waitForVoices(timeoutMs = 2500) {
+            const start = Date.now();
+            try {
+                // 先觸發一次 load
+                try { if (window.speechSynthesis && speechSynthesis.getVoices) speechSynthesis.getVoices(); } catch (_) {}
+
+                while ((Date.now() - start) < timeoutMs) {
+                    const v = __getVoicesSafe();
+                    if (v && v.length) return v;
+                    await new Promise(r => setTimeout(r, 120));
+                }
+            } catch (_) {}
+            return __getVoicesSafe();
         }
 
         function pickBestCantoneseVoice() {
@@ -6950,11 +7007,25 @@ lucide.createIcons();
             __TTS.idx += 1;
 
             const u = new SpeechSynthesisUtterance(text);
-            u.lang = __TTS.lang;
+            // ✅ Android：如果 effectiveLang 係空字串，代表交畀瀏覽器揀 default voice（最穩陣）
+            // 否則就用 effectiveLang（通常等於揀到嘅 voice.lang）
+            if (__TTS.effectiveLang === '') {
+                // 不設 lang
+            } else {
+                u.lang = (__TTS.effectiveLang || __TTS.lang);
+            }
             u.rate = __TTS.rate;
             u.pitch = __TTS.pitch;
             u.volume = __TTS.volume;
+            // ✅ 只有當 browser 真係有 HK voice 時先 set voice；否則唔 set，交畀 browser
             if (__TTS.voice) u.voice = __TTS.voice;
+
+            // ✅ 用 onstart 偵測「真係開始出聲」
+            __TTS._chunkStarted = false;
+            u.onstart = () => {
+                __TTS._chunkStarted = true;
+                __TTS._lastStartAt = Date.now();
+            };
 
             u.onend = () => {
                 // 下一段
@@ -6968,16 +7039,52 @@ lucide.createIcons();
 
             try {
                 speechSynthesis.speak(u);
-                // ✅ iOS/部份瀏覽器偶爾會「已排隊但唔出聲」：輕推一下 resume
-                setTimeout(() => { try { speechSynthesis.resume(); } catch (_) {} }, 60);
+                // ✅ Android/部份瀏覽器：有時會顯示「speaking」但冇聲
+                // 1) 推一下 resume
+                setTimeout(() => { try { speechSynthesis.resume(); } catch (_) {} }, 80);
+
+                // 2) Watchdog：如果 1.5 秒都未 onstart，就當作「假朗讀」→ 改用後備語言再試一次
+                setTimeout(() => {
+                    try {
+                        if (!__TTS.active) return;
+                        if (__TTS._chunkStarted) return;
+
+                        console.warn('[TTS] watchdog: no onstart, retrying with fallback');
+                        try { speechSynthesis.cancel(); } catch (_) {}
+
+                        const u2 = new SpeechSynthesisUtterance(text);
+                        // 後備：用更通用嘅語言 tag（Android 上較易出聲）
+                        u2.lang = 'zh-CN';
+                        u2.rate = __TTS.rate;
+                        u2.pitch = __TTS.pitch;
+                        u2.volume = __TTS.volume;
+                        u2.onstart = () => { __TTS._chunkStarted = true; __TTS._lastStartAt = Date.now(); };
+                        u2.onend = () => { setTimeout(__speakNextChunk, 30); };
+                        u2.onerror = () => { setTimeout(__speakNextChunk, 30); };
+                        speechSynthesis.speak(u2);
+                        setTimeout(() => { try { speechSynthesis.resume(); } catch (_) {} }, 80);
+
+                        // 再等 1.5 秒，如果都未開始，就提示用家係「系統 TTS 引擎/語音包」問題
+                        setTimeout(() => {
+                            try {
+                                if (!__TTS.active) return;
+                                if (__TTS._chunkStarted) return;
+                                try { showToast('⚠️ 裝置 TTS 無聲（請檢查 Google 語音服務/系統文字轉語音設定，或改用 Chrome）', 'error'); } catch (_) {}
+                                stopReadSpeak(true);
+                            } catch (_) {}
+                        }, 1500);
+
+                    } catch (_) {}
+                }, 1500);
+
             } catch (e) {
                 console.error(e);
-                try { showToast('⚠️ 朗讀失敗：' + (e && e.message ? e.message : '未知錯誤'), 'error'); } catch (_) {}
+                try { showToast('⚠️ 朗讀失敗：' + (e && e.message ? e && e.message ? e.message : '未知錯誤' : '未知錯誤'), 'error'); } catch (_) {}
                 stopReadSpeak(true);
             }
         }
 
-        function startReadSpeak() {
+        async function startReadSpeak() {
             // ✅ 任何情況都先顯示「有收到點擊」的反應
             try { __setSpeakUiState(true, false); } catch (_) {}
             const content = buildSpeakableFromCurrentEntry();
@@ -7001,25 +7108,44 @@ lucide.createIcons();
                 console.log('[TTS] contentLen=', content.length, 'voices=', v.length, 'lang=', (__TTS.lang||''));
             } catch (_) {}
 
-            // ✅ iOS / 部份 WebView：需要先「解鎖」音訊輸出，否則會出現「已排隊但冇聲」
-            // 做法：喺用家點擊之後先播一個極短/空白 utterance，再 cancel。
-            try {
-                const unlock = new SpeechSynthesisUtterance(' ');
-                unlock.lang = __TTS.lang;
-                speechSynthesis.cancel();
-                speechSynthesis.speak(unlock);
-                // 立即 cancel，目的只係解鎖 audio
-                // ⚠️ 但唔可以影響真正朗讀：如果已經進入 active，就唔再 cancel
-                setTimeout(() => {
-                    try { if (!__TTS.active) speechSynthesis.cancel(); } catch (_) {}
-                }, 60);
-            } catch (e) {
-                // ignore
-            }
+            // ✅ 預熱（解鎖 audio + 觸發 voice load）
+            // 注意：唔用 setTimeout cancel，避免撞正取消真正朗讀
+            __prewarmSpeechSynthesisOnce();
 
-            // iOS/某些瀏覽器：voices 係異步 ready
-            const applyVoiceAndStart = () => {
+            // voices 係異步 ready（Android/Chrome 都會）
+            const applyVoiceAndStart = async () => {
+                // ✅ 等 voices 真的 ready，否則 Android 有時會 speak() 但冇聲
+                const voices = await __waitForVoices(2500);
+                // 取 voices（有時 Android 只會 expose 少量語言）
+                const voicesLc = (voices || []).map(v => ({ name: String(v.name||''), lang: String(v.lang||'') }));
+
+                const hasHKVoice = (voices || []).some(v => {
+                    const l = String(v.lang || '').toLowerCase();
+                    return l === 'zh-hk' || l.startsWith('zh-hk') || l.startsWith('yue');
+                });
+
                 __TTS.voice = pickBestCantoneseVoice();
+
+                // ✅ 重要：Android「系統有粵語」≠ 瀏覽器 speechSynthesis 會 expose 粵語 voice
+                // 如果瀏覽器 voices list 根本冇 zh-HK/yue，強行 set u.lang='zh-HK' 反而好易變「假朗讀無聲」。
+                if (!hasHKVoice) {
+                    __TTS.voice = null;
+                    __TTS.effectiveLang = ''; // 交畀瀏覽器揀 default voice（確保有聲）
+                    try { showToast('ℹ️ 瀏覽器未提供廣東話 voice：改用預設語音（確保出聲）', 'success'); } catch (_) {}
+                } else {
+                    // 有 HK voice：用揀到嘅 voice.lang 做真正朗讀語言，避免 mismatch
+                    __TTS.effectiveLang = (__TTS.voice && __TTS.voice.lang) ? String(__TTS.voice.lang) : __TTS.lang;
+                }
+
+                // Debug 顯示揀咗邊個 voice（同埋列出前幾個 voices）
+                try {
+                    console.log('[TTS] hasHKVoice=', hasHKVoice,
+                        'pickedVoice=', __TTS.voice ? { name: __TTS.voice.name, lang: __TTS.voice.lang } : null,
+                        'effectiveLang=', __TTS.effectiveLang,
+                        'voicesNow=', (voices && voices.length) ? voices.length : 0,
+                        'voicesSample=', voicesLc.slice(0, 10));
+                } catch (_) {}
+
                 __TTS.active = true;
                 __TTS.paused = false;
                 __TTS.idx = 0;
@@ -7034,27 +7160,18 @@ lucide.createIcons();
                 try { speechSynthesis.cancel(); } catch (_) {}
                 __setSpeakUiState(true, false);
                 __speakNextChunk();
+
+                // ✅ 觀測：如果 1 秒內仍然未 speaking，嘗試再 resume 一次
+                setTimeout(() => {
+                    try {
+                        if (__TTS.active && !__TTS.paused && window.speechSynthesis && !speechSynthesis.speaking) {
+                            speechSynthesis.resume();
+                        }
+                    } catch (_) {}
+                }, 1000);
             };
 
-            try {
-                // 觸發一次 voices load
-                const v = __getVoicesSafe();
-                if (!v || v.length === 0) {
-                    let fired = false;
-                    const handler = () => {
-                        if (fired) return;
-                        fired = true;
-                        try { speechSynthesis.removeEventListener('voiceschanged', handler); } catch (_) {}
-                        applyVoiceAndStart();
-                    };
-                    try { speechSynthesis.addEventListener('voiceschanged', handler); } catch (_) {}
-                    // fallback timeout
-                    setTimeout(handler, 250);
-                    return;
-                }
-            } catch (_) {}
-
-            applyVoiceAndStart();
+            await applyVoiceAndStart();
         }
 
         function toggleReadSpeak() {
@@ -7098,6 +7215,77 @@ lucide.createIcons();
             if (!silent) { try { showToast('⏹️ 已停止朗讀', 'success'); } catch (_) {} }
         }
 
+        // =============================
+        // 🔧 朗讀自檢（Android 排查用）
+        // =============================
+        async function ttsSelfTestFromUI() {
+            try {
+                if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+                    try { showToast('⚠️ 此瀏覽器不支援朗讀（speechSynthesis 不存在）', 'error'); } catch (_) {}
+                    return;
+                }
+
+                // 先清空 queue，避免「以為朗讀緊」但其實卡住
+                try { speechSynthesis.cancel(); } catch (_) {}
+
+                // 收集狀態
+                let voices = [];
+                try { voices = await __waitForVoices(2500); } catch (_) { voices = __getVoicesSafe(); }
+
+                const info = {
+                    ua: navigator.userAgent,
+                    voices: voices ? voices.length : 0,
+                    speaking: !!speechSynthesis.speaking,
+                    pending: !!speechSynthesis.pending,
+                    paused: !!speechSynthesis.paused
+                };
+                console.log('[TTS SELFTEST] info=', info);
+
+                // 連續測 2 次：一次 zh-HK，一次 zh-CN
+                const runOne = (lang, text) => new Promise((resolve) => {
+                    let started = false;
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.lang = lang;
+                    u.rate = 1.0;
+                    u.pitch = 1.0;
+                    u.volume = 1.0;
+                    u.onstart = () => { started = true; console.log('[TTS SELFTEST] onstart', lang); };
+                    u.onend = () => { console.log('[TTS SELFTEST] onend', lang); resolve({ lang, started, ended: true }); };
+                    u.onerror = (e) => { console.warn('[TTS SELFTEST] onerror', lang, e); resolve({ lang, started, ended: false, error: e }); };
+
+                    try { speechSynthesis.speak(u); } catch (e) { resolve({ lang, started: false, ended: false, error: e }); return; }
+
+                    // watchdog：1.6 秒未 start → 當作無聲
+                    setTimeout(() => {
+                        try {
+                            if (!started) {
+                                console.warn('[TTS SELFTEST] no onstart within 1600ms', lang);
+                                try { speechSynthesis.cancel(); } catch (_) {}
+                                resolve({ lang, started: false, ended: false, silent: true });
+                            }
+                        } catch (_) {}
+                    }, 1600);
+                });
+
+                try { showToast('🩺 朗讀自檢：會讀兩句測試字', 'success'); } catch (_) {}
+                const r1 = await runOne('zh-HK', '自檢一：一二三四。');
+                const r2 = await runOne('zh-CN', '自檢二：一二三四。');
+
+                console.log('[TTS SELFTEST] result=', { r1, r2 });
+
+                // 結果提示
+                if ((r1 && r1.started) || (r2 && r2.started)) {
+                    try { showToast('✅ 自檢：裝置有出聲能力（詳情見 Console）', 'success'); } catch (_) {}
+                } else {
+                    // 兩個都無 start：幾肯定係 Android 系統 TTS 當刻死咗/被禁
+                    try { showToast('❌ 自檢：兩句都無聲（多數係 Android 系統 TTS / Google 語音服務當刻失效）\n→ 試：換 Chrome 開 / 重開瀏覽器 / 設定-文字轉語音揀 Speech Services by Google', 'error'); } catch (_) {}
+                }
+
+            } catch (e) {
+                console.error(e);
+                try { showToast('⚠️ 自檢失敗：' + (e && e.message ? e.message : '未知錯誤'), 'error'); } catch (_) {}
+            }
+        }
 
 
         function backToDayView() {
