@@ -154,7 +154,7 @@
         /* ✅ 手機打橫：通常你係想「睇清楚啲」而唔係想用 desktop 版。
            所以：只要係窄裝置（<=920px）但打橫，就同樣取消手機外框，令內容真正變闊。
            （縮窄/打直時會自然回復原本手機模式） */
-        @media (orientation: landscape) and (max-width: 920px) {
+        @media (orientation: landscape) && (max-width: 920px) {
             .desktop-stage { padding: 0; }
             .device-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
         }
@@ -181,10 +181,10 @@
         }
 
         /* ✅ Split View（兩欄）：左月曆 + 右側記事 Panel
-           - 只按「視窗闊度」啟用：大於等於 1440px
+           - 只按「視窗闊度」啟用：大於等於 1100px
            - 視窗變窄（即使係電腦/電視）會自動回到垂直/全屏 modal
         */
-        @media (min-width: 1440px) {
+        @media (min-width: 1100px) {
             body.split-view { --right-panel-w: 0px; }
             body.split-view.panel-open { --right-panel-w: min(760px, 42vw); }
 
@@ -251,6 +251,17 @@
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
+
+        /* 🔊 朗讀狀態（閱讀頁） */
+        #readSpeakBtn.speaking {
+            background: rgba(59,130,246,0.18);
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.28) inset;
+        }
+        #readSpeakBtn.paused {
+            background: rgba(245,158,11,0.18);
+            box-shadow: 0 0 0 2px rgba(245,158,11,0.28) inset;
+        }
+
 
         /* ✅ Modal 內按鈕：四個掣統一大細（慳位但一致） */
         .modal-header .icon-btn {
@@ -392,7 +403,7 @@
         .days-grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); background: var(--gridline, var(--border)); gap: 1px; min-height: 0; transform: translateZ(0); }
 
         /* ✅ 平板/電腦橫屏：更善用橫向空間（加少少 padding、令內容更易睇） */
-        @media (orientation: landscape) and (min-width: 768px) {
+        @media (orientation: landscape) && (min-width: 768px) {
             .day-cell { padding: 8px; }
             .day-num { font-size: calc(24px * var(--ui-font-scale)); }
             .lunar-subtext { font-size: calc(14px * var(--ui-font-scale)); }
@@ -1575,6 +1586,8 @@
                 <div class="modal-title"><span>閱讀記事</span></div>
                 <div>
                     <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" id="readSpeakBtn" onclick="toggleReadSpeak()" title="朗讀" style="display:inline-flex;"><i data-lucide="volume-2" style="width: 28px; height: 28px;"></i></button>
+                    <button class="icon-btn" id="readSpeakStopBtn" onclick="stopReadSpeak()" title="停止朗讀" style="display:none;"><i data-lucide="square" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="Markdown 預覽">MD</button>
                     <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
                     <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
@@ -5382,6 +5395,8 @@ function initColorPickerUI() {
         // - 如果呢個 modal 係 stack 頂層：直接 back（由 hashchange/popstate 去重建畫面）
         // - 如果唔係頂層/冇 stack：先用舊 closeModal 硬關作後備
         function backOrClose(id, event) {
+            try { if (typeof stopReadSpeak === 'function') stopReadSpeak(true); } catch (_) {}
+
             try {
                 if (event && event.target && event.target.id !== id) return;
 
@@ -6133,6 +6148,8 @@ lucide.createIcons();
         }
 
         async function openReadById(entryId) {
+            try { if (typeof stopReadSpeak === 'function') stopReadSpeak(true); } catch (_) {}
+
             try {
                 // ✅ IndexedDB key 有機會係 number：
                 // 我哋導航時用 string 存 id（方便比較），但讀 DB 時要兼容 number key。
@@ -6643,6 +6660,345 @@ lucide.createIcons();
                 btn.classList.toggle('active', isNotebookMarkdownPreviewEnabled());
             }
 
+
+        // =============================
+        // 🔊 廣東話朗讀（閱讀頁）
+        // 目標：讀得似真人——自動略過網址/電話/雜項，並分段播放
+        // =============================
+
+        const __TTS = {
+            active: false,
+            paused: false,
+            chunks: [],
+            idx: 0,
+            voice: null,
+            lang: 'zh-HK',
+            rate: 1.02,
+            pitch: 1.0,
+            volume: 1.0
+        };
+
+        function __getVoicesSafe() {
+            try { return (window.speechSynthesis && speechSynthesis.getVoices) ? speechSynthesis.getVoices() : []; } catch (_) { return []; }
+        }
+
+        function pickBestCantoneseVoice() {
+            const voices = __getVoicesSafe();
+            if (!voices || voices.length === 0) return null;
+
+            const score = (v) => {
+                const lang = String(v.lang || '').toLowerCase();
+                const name = String(v.name || '').toLowerCase();
+                let s = 0;
+                if (lang === 'zh-hk') s += 100;
+                if (lang.startsWith('zh-hk')) s += 95;
+                if (lang.startsWith('yue')) s += 90; // 有啲系統用 yue
+                if (name.includes('hong kong')) s += 40;
+                if (name.includes('cantonese') || name.includes('廣東話') || name.includes('粤语') || name.includes('粵語')) s += 45;
+                if (lang.startsWith('zh')) s += 10;
+                return s;
+            };
+
+            let best = voices[0];
+            let bestScore = -1;
+            for (const v of voices) {
+                const sc = score(v);
+                if (sc > bestScore) { bestScore = sc; best = v; }
+            }
+            // 如果完全無命中，就照用第一個中文 voice（再唔係就 null）
+            if (bestScore <= 0) {
+                const zh = voices.find(v => String(v.lang||'').toLowerCase().startsWith('zh'));
+                return zh || null;
+            }
+            return best;
+        }
+
+        function __setSpeakUiState(active, paused) {
+            const btn = document.getElementById('readSpeakBtn');
+            const stopBtn = document.getElementById('readSpeakStopBtn');
+            if (btn) {
+                btn.classList.toggle('speaking', !!active && !paused);
+                btn.classList.toggle('paused', !!active && !!paused);
+                btn.title = (!active) ? '朗讀' : (paused ? '繼續朗讀' : '暫停朗讀');
+            }
+            if (stopBtn) {
+                stopBtn.style.display = active ? 'inline-flex' : 'none';
+            }
+            // 重新渲染lucide icon（有啲時候新增按鈕要 refresh）
+            try { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); } catch (_) {}
+        }
+
+        function __normalizeNewlinesForSpeak(s) {
+            return String(s || '')
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .replace(/\n{3,}/g, '\n\n');
+        }
+
+        function __removeUrls(s) {
+            let t = String(s || '');
+            // 刪網址（包含 www/https）
+            t = t.replace(/\bhttps?:\/\/[^\s<>]+/gi, '');
+            t = t.replace(/\bwww\.[^\s<>]+/gi, '');
+            // 刪 mailto/tel
+            t = t.replace(/\bmailto:[^\s<>]+/gi, '');
+            t = t.replace(/\btel:[^\s<>]+/gi, '');
+            return t;
+        }
+
+        function __removePhoneNumbers(s) {
+            let t = String(s || '');
+            // 盡量避免誤傷年份：要求出現 + 或 ( ) 或 - 或空格分段
+            // +852 9123 4567 / (852)91234567 / 9123-4567 / 9123 4567
+            const phone = /(?:\+\d{1,3}[\s-]*)?(?:\(\d{1,4}\)[\s-]*)?(?:\d{2,4}[\s-]*){2,4}\d{2,4}/g;
+            t = t.replace(phone, (m) => {
+                const mm = String(m);
+                const digits = mm.replace(/\D/g,'');
+                // 8-15 位數較像電話
+                if (digits.length >= 8 && digits.length <= 15 && /[\+\-\(\)\s]/.test(mm)) return '';
+                return mm;
+            });
+            return t;
+        }
+
+        function __stripJunkLines(s) {
+            const junk = [
+                '延伸閱讀','相關文章','上一篇','下一篇','更多文章','熱門文章',
+                '訂閱','subscribe','follow','like','share','分享','追蹤',
+                'cookies','privacy','條款','同意',
+                'advertisement','廣告','sponsored','promotion','贊助'
+            ];
+            const lines = __normalizeNewlinesForSpeak(s).split('\n');
+            const kept = [];
+            for (let line of lines) {
+                const raw = String(line || '');
+                const l = raw.trim();
+                if (!l) { kept.push(''); continue; }
+                const low = l.toLowerCase();
+                // 太短又只係符號/分隔線
+                if (/^[-=•·_|]{3,}$/.test(l)) continue;
+                // 垃圾關鍵字：整行丟棄
+                if (junk.some(k => low.includes(String(k).toLowerCase()))) continue;
+                kept.push(raw);
+            }
+            return kept.join('\n');
+        }
+
+        function cleanTextForCantoneseTTS(s) {
+            let t = String(s || '');
+            t = __normalizeNewlinesForSpeak(t);
+            t = __removeUrls(t);
+            t = __removePhoneNumbers(t);
+            t = __stripJunkLines(t);
+
+            // 清理多餘空白
+            t = t.replace(/[ \t]{2,}/g, ' ');
+            t = t.replace(/\n[ \t]+/g, '\n');
+            t = t.replace(/[ \t]+\n/g, '\n');
+            t = t.replace(/\n{3,}/g, '\n\n');
+
+            return t.trim();
+        }
+
+        function __stripTitleLeadingIndex(title) {
+            // 只刪「開頭序號」：例如 (1) / 1. / 1、 / （2）
+            return String(title || '').replace(/^\s*(?:[（(]?\d+[）)]?)[\s\.-、:：]+/,'').trim();
+        }
+
+        function buildSpeakableFromCurrentEntry() {
+            // 1) 如果有 richHtml，先轉文字（避免讀到HTML標籤）
+            let main = '';
+            try {
+                const richHtml = (currentEntryData && currentEntryData.textHtml) ? String(currentEntryData.textHtml) : '';
+                if (richHtml) {
+                    const div = document.createElement('div');
+                    div.innerHTML = (typeof window.DOMPurify !== 'undefined') ? window.DOMPurify.sanitize(richHtml) : richHtml;
+                    main = div.innerText || div.textContent || '';
+                }
+            } catch (_) {}
+
+            if (!main) {
+                main = (currentEntryData && currentEntryData.text) ? String(currentEntryData.text) : '';
+            }
+
+            // 2) 如果係分享入嚟，通常第一段係 title / text / url
+            //    我哋唔硬分，但會做清理，url/電話會自動刪
+            main = cleanTextForCantoneseTTS(main);
+
+            // 3) 額外：如果第一行好似標題，幫你刪開頭序號
+            const lines = main.split(/\n+/);
+            if (lines.length >= 2) {
+                const first = lines[0].trim();
+                if (first.length > 0 && first.length <= 60) {
+                    lines[0] = __stripTitleLeadingIndex(first);
+                    main = lines.join('\n\n');
+                }
+            }
+
+            return main.trim();
+        }
+
+        function splitSpeakChunks(text, maxLen = 200) {
+            const t = __normalizeNewlinesForSpeak(text);
+            const paras = t.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+            const chunks = [];
+
+            const pushSentenceWise = (p) => {
+                // 以中英文標點切句
+                const parts = p
+                    .replace(/([。！？!?]+)/g, '$1\n')
+                    .replace(/([；;]+)/g, '$1\n')
+                    .replace(/([，,]+)/g, '$1\n')
+                    .split('\n')
+                    .map(x => x.trim())
+                    .filter(Boolean);
+
+                let buf = '';
+                for (const seg of parts) {
+                    if (!buf) {
+                        buf = seg;
+                    } else if ((buf.length + 1 + seg.length) <= maxLen) {
+                        buf = buf + ' ' + seg;
+                    } else {
+                        chunks.push(buf);
+                        buf = seg;
+                    }
+                }
+                if (buf) chunks.push(buf);
+            };
+
+            for (const p of paras) {
+                if (p.length <= maxLen) {
+                    chunks.push(p)
+                } else {
+                    pushSentenceWise(p);
+                }
+            }
+
+            return chunks;
+        }
+
+        function __speakNextChunk() {
+            if (!__TTS.active) return;
+            if (!window.speechSynthesis) {
+                try { showToast('⚠️ 此瀏覽器不支援朗讀', 'error'); } catch (_) {}
+                stopReadSpeak(true);
+                return;
+            }
+
+            if (__TTS.idx >= __TTS.chunks.length) {
+                stopReadSpeak(true);
+                return;
+            }
+
+            const text = __TTS.chunks[__TTS.idx];
+            __TTS.idx += 1;
+
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = __TTS.lang;
+            u.rate = __TTS.rate;
+            u.pitch = __TTS.pitch;
+            u.volume = __TTS.volume;
+            if (__TTS.voice) u.voice = __TTS.voice;
+
+            u.onend = () => {
+                // 下一段
+                setTimeout(__speakNextChunk, 30);
+            };
+            u.onerror = (e) => {
+                console.error('TTS error', e);
+                // 避免卡死：略過此段
+                setTimeout(__speakNextChunk, 30);
+            };
+
+            try {
+                speechSynthesis.speak(u);
+            } catch (e) {
+                console.error(e);
+                stopReadSpeak(true);
+            }
+        }
+
+        function startReadSpeak() {
+            const content = buildSpeakableFromCurrentEntry();
+            if (!content) {
+                try { showToast('⚠️ 無可朗讀內容', 'error'); } catch (_) {}
+                return;
+            }
+
+            if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+                try { showToast('⚠️ 此瀏覽器不支援朗讀', 'error'); } catch (_) {}
+                return;
+            }
+
+            // iOS/某些瀏覽器：voices 係異步 ready
+            const applyVoiceAndStart = () => {
+                __TTS.voice = pickBestCantoneseVoice();
+                __TTS.active = true;
+                __TTS.paused = false;
+                __TTS.idx = 0;
+                __TTS.chunks = splitSpeakChunks(content, 200);
+
+                try { speechSynthesis.cancel(); } catch (_) {}
+                __setSpeakUiState(true, false);
+                __speakNextChunk();
+            };
+
+            try {
+                // 觸發一次 voices load
+                const v = __getVoicesSafe();
+                if (!v || v.length === 0) {
+                    let fired = false;
+                    const handler = () => {
+                        if (fired) return;
+                        fired = true;
+                        try { speechSynthesis.removeEventListener('voiceschanged', handler); } catch (_) {}
+                        applyVoiceAndStart();
+                    };
+                    try { speechSynthesis.addEventListener('voiceschanged', handler); } catch (_) {}
+                    // fallback timeout
+                    setTimeout(handler, 250);
+                    return;
+                }
+            } catch (_) {}
+
+            applyVoiceAndStart();
+        }
+
+        function toggleReadSpeak() {
+            if (!window.speechSynthesis) { startReadSpeak(); return; }
+
+            if (!__TTS.active) {
+                startReadSpeak();
+                return;
+            }
+
+            // active -> pause/resume
+            try {
+                if (__TTS.paused) {
+                    speechSynthesis.resume();
+                    __TTS.paused = false;
+                    __setSpeakUiState(true, false);
+                } else {
+                    speechSynthesis.pause();
+                    __TTS.paused = true;
+                    __setSpeakUiState(true, true);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function stopReadSpeak(silent = false) {
+            try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (_) {}
+            __TTS.active = false;
+            __TTS.paused = false;
+            __TTS.chunks = [];
+            __TTS.idx = 0;
+            __setSpeakUiState(false, false);
+            if (!silent) { try { showToast('⏹️ 已停止朗讀', 'success'); } catch (_) {} }
+        }
+
             const richHtml = (currentEntryData && currentEntryData.textHtml) ? String(currentEntryData.textHtml) : '';
             if (richHtml) {
                 try {
@@ -6697,6 +7053,8 @@ lucide.createIcons();
         }
 
         function backToDayView() {
+            try { if (typeof stopReadSpeak === 'function') stopReadSpeak(true); } catch (_) {}
+
             try { closeModal('readModal'); } catch (_) {}
 
             // ✅ 根據來源返回：日曆（當日列表）/ 記事簿
@@ -6717,7 +7075,13 @@ lucide.createIcons();
             });
         }
         function openLightbox(imgSrc) { document.getElementById('lightboxImg').src = imgSrc; document.getElementById('lightbox').classList.add('active'); }
-        function closeLightbox(event) { if (event && event.target.id === 'lightboxImg') return; document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImg').src = ''; }
+        function closeLightbox(event) {
+            if (event && event.target && event.target.id === 'lightboxImg') return;
+            document.getElementById('lightbox').classList.remove('active');
+            const img = document.getElementById('lightboxImg');
+            // ✅ 避免瀏覽器嘗試載入空 src（會報 Failed to load img）
+            if (img) { try { img.removeAttribute('src'); } catch (_) { img.src = 'about:blank'; } }
+        }
         function openEditorForToday() {
             currentSpaceContext = SPACE_CALENDAR;
             __editorReturnTo = null;
@@ -8007,7 +8371,7 @@ renderEditorImages(); renderAttachments();
                 if (!merged.length || start > merged[merged.length-1].end) merged.push({start, end});
                 else merged[merged.length-1].end = Math.max(merged[merged.length-1].end, end);
             }
-            // build HTML with <br> and <mark>
+            // build HTML with <br> && <mark>
             // 重要：避免 <mark> 內直接包含 <br>，否則換行位會「斷色」
             const esc = (str)=>String(str).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
             const plainToHtml = (s)=>esc(String(s||'')).replace(/\n/g,'<br>');
@@ -9685,7 +10049,7 @@ function handleImageUpload(event) {
     <!-- ✅ Split View controller：大屏兩欄（左月曆＋右側記事 Panel），窄視窗自動回到垂直 -->
     <script>
     (function splitViewController(){
-        const SPLIT_MQ = window.matchMedia('(min-width: 1440px)');
+        const SPLIT_MQ = window.matchMedia('(min-width: 1100px)');
         const PANEL_IDS = ['dayModal','readModal','editorModal'];
 
         function isAnyPanelActive(){
