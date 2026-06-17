@@ -1,6 +1,7 @@
 {
   "name": "日曆記事本",
   "short_name": "日曆記事本",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -8,13 +9,13 @@
   "theme_color": "#667eea",
   "icons": [
     {
-      "src": "icons/icon-1024.png",
+      "src": "./icon-1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-1024b.png",
+      "src": "./icon-1024b.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
@@ -29,10 +30,7 @@
       "text": "text",
       "url": "url",
       "files": [
-        {
-          "name": "files",
-          "accept": ["*/*"]
-        }
+        { "name": "files", "accept": ["*/*"] }
       ]
     }
   }
