@@ -3,7 +3,9 @@ const CACHE_NAME = 'calendar-notebook-v3';
 const ASSETS = [
   './',
   './index.html',
+  './manifest.json',
   './manifest.webmanifest',
+  './share-target.html',
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
@@ -31,7 +33,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  if (req.method === 'POST' && url.pathname.endsWith('/share-target')) {
+  if (req.method === 'POST' && (url.pathname.endsWith('/share-target') || url.pathname.endsWith('/share-target.html'))) {
     event.respondWith(handleShareTarget(event));
     return;
   }
