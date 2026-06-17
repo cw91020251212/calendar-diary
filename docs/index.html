@@ -6661,7 +6661,62 @@ lucide.createIcons();
             }
 
 
-        // =============================
+        
+
+            const richHtml = (currentEntryData && currentEntryData.textHtml) ? String(currentEntryData.textHtml) : '';
+            if (richHtml) {
+                try {
+                    el.classList.remove('markdown-rendered');
+                    el.innerHTML = (typeof window.DOMPurify !== 'undefined') ? window.DOMPurify.sanitize(richHtml) : richHtml;
+                    linkifyElementTextNodes(el);
+                    ensureReadAnchorsOpenExternally(el);
+                    return;
+                } catch (e) {
+                    console.error('Rich text render failed', e);
+                }
+            }
+
+            // ✅ 有熒光筆標記：優先用「純文字 + mark」渲染（確保你出到去/直接觀看都見到）
+            //    ＊因為 highlights 係按「原文字」字數位置儲存，Markdown 解析後會改變字數，會令位置對唔準。
+            if (hasHighlights) {
+                try {
+                    el.classList.remove('markdown-rendered');
+                    // 先放入純文字，再套用 offsets 成 mark
+                    el.textContent = txt;
+                    applyHighlightsToElement(el, highlights);
+                    return;
+                } catch (e) {
+                    console.error('Apply highlights failed', e);
+                    el.classList.remove('markdown-rendered');
+                    el.textContent = txt;
+                    return;
+                }
+            }
+
+            // ✅ 無熒光筆：如開咗預覽 + 套件存在，就轉 Markdown；否則顯示純文字
+            const enabled = isNotebookMarkdownPreviewEnabled();
+            const canMd = (typeof window.marked !== 'undefined') && (typeof window.DOMPurify !== 'undefined');
+
+            if (enabled && canMd) {
+                try {
+                    const html = window.marked.parse(txt, { gfm: true, breaks: true });
+                    el.innerHTML = window.DOMPurify.sanitize(html);
+                    el.classList.add('markdown-rendered');
+                    ensureReadAnchorsOpenExternally(el);
+                } catch (e) {
+                    console.error('Markdown render failed', e);
+                    el.classList.remove('markdown-rendered');
+                    el.textContent = txt;
+                }
+            } else {
+                // ✅ 無 Markdown（純文字）都照樣把網址變成可點擊
+                el.classList.remove('markdown-rendered');
+                el.innerHTML = linkifyPlainTextToHtml(txt);
+                ensureReadAnchorsOpenExternally(el);
+            }
+        }
+
+// =============================
         // 🔊 廣東話朗讀（閱讀頁）
         // 目標：讀得似真人——自動略過網址/電話/雜項，並分段播放
         // =============================
@@ -6923,18 +6978,28 @@ lucide.createIcons();
         }
 
         function startReadSpeak() {
+            // ✅ 任何情況都先顯示「有收到點擊」的反應
+            try { __setSpeakUiState(true, false); } catch (_) {}
             const content = buildSpeakableFromCurrentEntry();
             if (!content) {
                 try { showToast('⚠️ 無可朗讀內容', 'error'); } catch (_) { alert('無可朗讀內容'); }
+                try { __setSpeakUiState(false, false); } catch (_) {}
                 return;
             }
 
             if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
                 try { showToast('⚠️ 此瀏覽器不支援朗讀', 'error'); } catch (_) { alert('此瀏覽器不支援朗讀'); }
+                try { __setSpeakUiState(false, false); } catch (_) {}
                 return;
             }
 
             try { showToast('🔊 準備朗讀…', 'success'); } catch (_) {}
+
+            // ✅ Debug：如果之後仍然無聲，可以靠呢個訊息判斷
+            try {
+                const v = (speechSynthesis.getVoices && speechSynthesis.getVoices()) ? speechSynthesis.getVoices() : [];
+                console.log('[TTS] contentLen=', content.length, 'voices=', v.length, 'lang=', (__TTS.lang||''));
+            } catch (_) {}
 
             // iOS/某些瀏覽器：voices 係異步 ready
             const applyVoiceAndStart = () => {
@@ -6943,6 +7008,12 @@ lucide.createIcons();
                 __TTS.paused = false;
                 __TTS.idx = 0;
                 __TTS.chunks = splitSpeakChunks(content, 200);
+
+                if (!__TTS.chunks || __TTS.chunks.length === 0) {
+                    try { showToast('⚠️ 無可朗讀段落（可能全被略過）', 'error'); } catch (_) { alert('無可朗讀段落'); }
+                    stopReadSpeak(true);
+                    return;
+                }
 
                 try { speechSynthesis.cancel(); } catch (_) {}
                 __setSpeakUiState(true, false);
@@ -7011,58 +7082,7 @@ lucide.createIcons();
             if (!silent) { try { showToast('⏹️ 已停止朗讀', 'success'); } catch (_) {} }
         }
 
-            const richHtml = (currentEntryData && currentEntryData.textHtml) ? String(currentEntryData.textHtml) : '';
-            if (richHtml) {
-                try {
-                    el.classList.remove('markdown-rendered');
-                    el.innerHTML = (typeof window.DOMPurify !== 'undefined') ? window.DOMPurify.sanitize(richHtml) : richHtml;
-                    linkifyElementTextNodes(el);
-                    ensureReadAnchorsOpenExternally(el);
-                    return;
-                } catch (e) {
-                    console.error('Rich text render failed', e);
-                }
-            }
 
-            // ✅ 有熒光筆標記：優先用「純文字 + mark」渲染（確保你出到去/直接觀看都見到）
-            //    ＊因為 highlights 係按「原文字」字數位置儲存，Markdown 解析後會改變字數，會令位置對唔準。
-            if (hasHighlights) {
-                try {
-                    el.classList.remove('markdown-rendered');
-                    // 先放入純文字，再套用 offsets 成 mark
-                    el.textContent = txt;
-                    applyHighlightsToElement(el, highlights);
-                    return;
-                } catch (e) {
-                    console.error('Apply highlights failed', e);
-                    el.classList.remove('markdown-rendered');
-                    el.textContent = txt;
-                    return;
-                }
-            }
-
-            // ✅ 無熒光筆：如開咗預覽 + 套件存在，就轉 Markdown；否則顯示純文字
-            const enabled = isNotebookMarkdownPreviewEnabled();
-            const canMd = (typeof window.marked !== 'undefined') && (typeof window.DOMPurify !== 'undefined');
-
-            if (enabled && canMd) {
-                try {
-                    const html = window.marked.parse(txt, { gfm: true, breaks: true });
-                    el.innerHTML = window.DOMPurify.sanitize(html);
-                    el.classList.add('markdown-rendered');
-                    ensureReadAnchorsOpenExternally(el);
-                } catch (e) {
-                    console.error('Markdown render failed', e);
-                    el.classList.remove('markdown-rendered');
-                    el.textContent = txt;
-                }
-            } else {
-                // ✅ 無 Markdown（純文字）都照樣把網址變成可點擊
-                el.classList.remove('markdown-rendered');
-                el.innerHTML = linkifyPlainTextToHtml(txt);
-                ensureReadAnchorsOpenExternally(el);
-            }
-        }
 
         function backToDayView() {
             try { if (typeof stopReadSpeak === 'function') stopReadSpeak(true); } catch (_) {}
