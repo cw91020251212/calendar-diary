@@ -8,13 +8,48 @@
 <meta content="#22c55e" name="theme-color"/>
 <title>日曆記事本</title>
 <!-- ✅ 單一檔 index.html 版本（已包含左右撥月份修正） -->
-<link href="manifest.webmanifest?v=20260616v6" rel="manifest"/>
+<link href="./manifest.webmanifest" rel="manifest"/>
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="default" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="日曆記事本" name="apple-mobile-web-app-title"/>
-<link href="icon.png?v=20260616v6" rel="apple-touch-icon"/>
+<link href="./apple-touch-icon.png" rel="apple-touch-icon"/>
 <script>
+      // Web Share Target: pull shared payload from SW cache
+      (async function(){
+        try {
+          const qs = new URLSearchParams(location.search);
+          const key = qs.get('share_key');
+          if (!key) return;
+
+          const metaRes = await fetch(`./__share/meta/${encodeURIComponent(key)}.json`, { cache: 'no-store' });
+          if (!metaRes.ok) return;
+          const meta = await metaRes.json();
+
+          const fileRes = await fetch(`./__share/file/${encodeURIComponent(key)}`, { cache: 'no-store' });
+          let fileBlob = null;
+          if (fileRes.ok) fileBlob = await fileRes.blob();
+
+          if (fileBlob) {
+            const a = document.createElement('a');
+            const u = URL.createObjectURL(fileBlob);
+            a.href = u;
+            a.download = (meta.files && meta.files[0] && meta.files[0].name) ? meta.files[0].name : 'shared-file';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(()=>URL.revokeObjectURL(u), 2000);
+          }
+
+          const msg = meta.title || meta.text || meta.url || (meta.files && meta.files[0] && meta.files[0].name) || '已接收分享內容';
+          alert('已接收分享：\n' + msg);
+
+          qs.delete('share_key');
+          const newQs = qs.toString();
+          history.replaceState(null, '', location.pathname + (newQs ? ('?' + newQs) : '') + location.hash);
+        } catch (e) {}
+      })();
+
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
       window.__googleInitHook = null;
