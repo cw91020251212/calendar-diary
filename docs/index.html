@@ -1,19 +1,20 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="日曆記事本 - 記錄每一天的美好時刻">
-    <meta name="theme-color" content="#667eea">
-    <title>日曆記事本</title>
-    <!-- ✅ 單一檔 index.html 版本（已包含左右撥月份修正） -->
-    <link rel="manifest" href="manifest.webmanifest?v=20260616v6">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="日曆記事本">
-    <link rel="apple-touch-icon" href="icon.png?v=20260616v6">
-    <script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<meta content="日曆記事本 - 記錄每一天的美好時刻" name="description"/>
+<meta content="#22c55e" name="theme-color"/>
+<title>日曆記事本</title>
+<!-- ✅ 單一檔 index.html 版本（已包含左右撥月份修正） -->
+<link href="manifest.webmanifest?v=20260616v6" rel="manifest"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="default" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="日曆記事本" name="apple-mobile-web-app-title"/>
+<link href="icon.png?v=20260616v6" rel="apple-touch-icon"/>
+<script>
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
       window.__googleInitHook = null;
@@ -26,14 +27,14 @@
         if (typeof window.__googleInitHook === 'function') window.__googleInitHook();
       };
     </script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
-    <!-- ✅ Markdown 預覽（記事薄用） -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-    <style>
+<script async="" defer="" onload="gapiLoaded()" src="https://apis.google.com/js/api.js"></script>
+<script async="" defer="" onload="gisLoaded()" src="https://accounts.google.com/gsi/client"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
+<!-- ✅ Markdown 預覽（記事薄用） -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+<style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         /* ☁️ 小提示 toast（唔會遮住畫面） */
@@ -1266,907 +1267,801 @@
 
 
     </style>
-</head>
+<link href="./icon-192.png" rel="icon" type="image/png"/><meta content="#22c55e" name="msapplication-TileColor"/><meta content="./mstile-144.png" name="msapplication-TileImage"/></head>
 <body>
-
-    <div class="desktop-stage">
-        <div class="device-frame" id="deviceFrame">
-
-            <div class="app-container">
-        <header>
-            <div class="header-title"><span>月曆</span></div>
-            <div class="month-selector">
-                <div id="cloudMiniStatus" style="display:none;"></div>
-                <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
-                <div class="current-month-wrapper" title="點擊選擇日期">
-                    <div class="current-month" id="currentMonthStr"></div>
-                    <input type="date" id="quickDatePicker" class="quick-date-picker" onchange="handleQuickDateSelect(event)">
-                </div>
-                <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
-                
-                
-                <button class="icon-btn" onclick="openNotebookModal()" title="記事簿"><i data-lucide="notebook-text" style="width: 26px; height: 26px;"></i></button>
-					<button class="icon-btn" onclick="openBackupModal()" title="功能選單"><i data-lucide="menu" style="width: 26px; height: 26px;"></i></button>
-            </div>
-        </header>
-
-        <div class="calendar-main" id="calendarMainArea">
-            <div class="calendar-viewport" id="calendarViewport">
-                <div class="calendar-track" id="calendarTrack">
-                    <div class="calendar-slide" id="calendarSlideCurrent">
-                        <div class="weekdays">
-                            <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
-                            <div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div>
-                        </div>
-                        <div class="days-grid" id="calendarGrid"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 📌 底部資訊欄（狀態） -->
-        <div class="statusbar" id="statusBar" role="status" aria-live="polite" title="點擊查看詳情">
-            <span class="statusbar-dot" id="statusBarDot"></span>
-            <span class="statusbar-text" id="statusBarText">已儲存</span>
-            <button class="statusbar-action" id="statusBarAction" onclick="event.stopPropagation();"></button>
-        </div>
-
-        <!-- 📌 狀態詳情小卡 -->
-        <div class="statuspanel-overlay" id="statusPanelOverlay" onclick="closeStatusPanel(event)">
-            <div class="statuspanel" onclick="event.stopPropagation()">
-                <div class="statuspanel-header">
-                    <div>狀態詳情</div>
-                    <button class="icon-btn" onclick="closeStatusPanel()"><i data-lucide="x" style="width: 22px; height: 22px;"></i></button>
-                </div>
-                <div class="statuspanel-body" id="statusPanelBody"></div>
-                <div class="statuspanel-actions" style="display:flex; flex-direction:column; gap:10px;">
-                    <button class="action-btn" id="statusPanelSyncBtn" style="background:#4285F4; color:white; border:none;" onclick="handleStatusPanelSync()"><i data-lucide="cloud-upload"></i> 雲端備份</button>
-                    <button class="action-btn" id="statusPanelManualBtn" style="background: var(--surface); color: var(--text-main);" onclick="handleStatusPanelManualBackup()"><i data-lucide="download"></i> 手動備份（下載到手機）</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ 右下角圓形「+」功能群 -->
-    <div class="fab-group" id="fabGroup">
-        <!-- ✅ 文字放大（A±）：彈出 + / - -->
-        <div class="fab-font-pop" id="uiFontPop" aria-hidden="true">
-            <button class="fab-mini fab-mini-font-step" onclick="increaseUIFont()" title="文字放大"><span class="font-step">A+</span></button>
-            <button class="fab-mini fab-mini-font-step" onclick="decreaseUIFont()" title="文字縮小"><span class="font-step">A-</span></button>
-        </div>
-        <button class="fab-mini fab-mini-font" onclick="toggleUIFontMenu(event)" title="文字放大 / 縮小">
-            <span class="font-a">A</span><span class="font-pm">±</span>
-        </button>
-
-        <button class="fab-mini" onclick="cycleThemeFromFab()" title="整體轉顏色"><i data-lucide="palette" id="themeIcon" style="width: 22px; height: 22px;"></i></button>
-        <button class="fab-mini" onclick="openSearchFromFab()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-        <button class="fab-mini" onclick="openAddFromFab()" title="新增記事"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
-        <button class="fab-mini fab-mini-backup" onclick="openBackupFromFab()" title="備份"><i data-lucide="download" style="width: 22px; height: 22px;"></i></button>
-        <button class="fab" onclick="toggleFabMenu()" title="功能"><i data-lucide="plus" class="fab-rotate" style="width: 26px; height: 26px;"></i></button>
-    </div>
-
-
-    <div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
-        <div class="modal-content" style="max-height: 85dvh; height: auto;">
-            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
-                <div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 歡迎使用日曆</div>
-            </div>
-            <div class="modal-body" style="line-height: 1.6;">
-                <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
-                <div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--outline);">
-                    <ul style="padding-left: 20px; color: var(--text-main); font-size: 16px; display: flex; flex-direction: column; gap: 10px;">
-							<li>⚠️ <strong>最重要：</strong>記得定期用 <strong>「手動備份（下載到手機）」</strong> 或 <strong>Google 雲端同步</strong>，避免清理暫存後資料消失。</li>
-                        <li>點擊右下角 <strong style="color: var(--primary); font-size: 20px;">「+」</strong> 隨時新增記事。</li>
-                        <li>用手指 <strong>「左右撥動畫面」</strong> 或點擊頂部年月，可快速切換日子。</li>
-                        <li>需要詳細教學？隨時點擊右上角 <strong>「☰ 功能選單」</strong> 查看說明書。</li>
-                    </ul>
-                </div>
-                <button class="action-btn primary" onclick="closeWelcomeModal(null, true)" style="width: 100%; font-size: 18px;">我明白了，開始使用！</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="helpModal" onclick="backOrClose('helpModal', event)">
-        <div class="modal-content" style="max-height: 85dvh; height: auto;">
-            <div class="modal-header">
-                <div class="modal-title" style="color: var(--primary); font-size: 20px;"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> 詳細使用教學</div>
-                <button class="icon-btn" onclick="backOrClose('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body" style="line-height: 1.6;">
-                <div class="tutorial-box" style="border: 2px solid #e53e3e; background: rgba(229, 62, 62, 0.06);">
-                    <div class="tutorial-title"><i data-lucide="alert-triangle" style="color: #e53e3e;"></i> <strong>最重要：請經常備份（清洗瀏覽器暫存前一定要備份）</strong></div>
-                    <div class="tutorial-text">
-                        本 App 嘅資料主要儲存在你部裝置嘅瀏覽器本機儲存（Local Storage / IndexedDB）。<br>
-                        <strong>如果你清洗／清除瀏覽器暫存、網站資料，所有記事／圖片／附件有機會會一次過冇晒。</strong><br><br>
-                        建議你養成呢個習慣：<br>
-                        — <strong>每次記完重要內容，即刻做一次備份</strong>（尤其係加咗相／附件）。<br>
-                        — <strong>每星期/每月定期備份一次</strong>（按你使用頻率）。<br>
-                        — <strong>每次清洗暫存／更新瀏覽器／換機之前，必須先做一次備份</strong>。<br><br>
+<div class="desktop-stage">
+<div class="device-frame" id="deviceFrame">
+<div class="app-container">
+<header>
+<div class="header-title"><span>月曆</span></div>
+<div class="month-selector">
+<div id="cloudMiniStatus" style="display:none;"></div>
+<button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
+<div class="current-month-wrapper" title="點擊選擇日期">
+<div class="current-month" id="currentMonthStr"></div>
+<input class="quick-date-picker" id="quickDatePicker" onchange="handleQuickDateSelect(event)" type="date"/>
+</div>
+<button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" onclick="openNotebookModal()" title="記事簿"><i data-lucide="notebook-text" style="width: 26px; height: 26px;"></i></button>
+<button class="icon-btn" onclick="openBackupModal()" title="功能選單"><i data-lucide="menu" style="width: 26px; height: 26px;"></i></button>
+</div>
+</header>
+<div class="calendar-main" id="calendarMainArea">
+<div class="calendar-viewport" id="calendarViewport">
+<div class="calendar-track" id="calendarTrack">
+<div class="calendar-slide" id="calendarSlideCurrent">
+<div class="weekdays">
+<div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
+<div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div>
+</div>
+<div class="days-grid" id="calendarGrid"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- 📌 底部資訊欄（狀態） -->
+<div aria-live="polite" class="statusbar" id="statusBar" role="status" title="點擊查看詳情">
+<span class="statusbar-dot" id="statusBarDot"></span>
+<span class="statusbar-text" id="statusBarText">已儲存</span>
+<button class="statusbar-action" id="statusBarAction" onclick="event.stopPropagation();"></button>
+</div>
+<!-- 📌 狀態詳情小卡 -->
+<div class="statuspanel-overlay" id="statusPanelOverlay" onclick="closeStatusPanel(event)">
+<div class="statuspanel" onclick="event.stopPropagation()">
+<div class="statuspanel-header">
+<div>狀態詳情</div>
+<button class="icon-btn" onclick="closeStatusPanel()"><i data-lucide="x" style="width: 22px; height: 22px;"></i></button>
+</div>
+<div class="statuspanel-body" id="statusPanelBody"></div>
+<div class="statuspanel-actions" style="display:flex; flex-direction:column; gap:10px;">
+<button class="action-btn" id="statusPanelSyncBtn" onclick="handleStatusPanelSync()" style="background:#4285F4; color:white; border:none;"><i data-lucide="cloud-upload"></i> 雲端備份</button>
+<button class="action-btn" id="statusPanelManualBtn" onclick="handleStatusPanelManualBackup()" style="background: var(--surface); color: var(--text-main);"><i data-lucide="download"></i> 手動備份（下載到手機）</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ✅ 右下角圓形「+」功能群 -->
+<div class="fab-group" id="fabGroup">
+<!-- ✅ 文字放大（A±）：彈出 + / - -->
+<div aria-hidden="true" class="fab-font-pop" id="uiFontPop">
+<button class="fab-mini fab-mini-font-step" onclick="increaseUIFont()" title="文字放大"><span class="font-step">A+</span></button>
+<button class="fab-mini fab-mini-font-step" onclick="decreaseUIFont()" title="文字縮小"><span class="font-step">A-</span></button>
+</div>
+<button class="fab-mini fab-mini-font" onclick="toggleUIFontMenu(event)" title="文字放大 / 縮小">
+<span class="font-a">A</span><span class="font-pm">±</span>
+</button>
+<button class="fab-mini" onclick="cycleThemeFromFab()" title="整體轉顏色"><i data-lucide="palette" id="themeIcon" style="width: 22px; height: 22px;"></i></button>
+<button class="fab-mini" onclick="openSearchFromFab()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
+<button class="fab-mini" onclick="openAddFromFab()" title="新增記事"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
+<button class="fab-mini fab-mini-backup" onclick="openBackupFromFab()" title="備份"><i data-lucide="download" style="width: 22px; height: 22px;"></i></button>
+<button class="fab" onclick="toggleFabMenu()" title="功能"><i class="fab-rotate" data-lucide="plus" style="width: 26px; height: 26px;"></i></button>
+</div>
+<div class="modal-overlay" id="welcomeModal" onclick="closeWelcomeModal(event)">
+<div class="modal-content" style="max-height: 85dvh; height: auto;">
+<div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+<div class="modal-title" style="color: var(--primary); font-size: 24px;"><i data-lucide="sparkles" style="width: 32px; height: 32px;"></i> 歡迎使用日曆</div>
+</div>
+<div class="modal-body" style="line-height: 1.6;">
+<p style="font-size: 16px; font-weight: bold; margin-bottom: 16px; color: var(--text-main);">你好！這是一個專為你設計的極簡、安全的個人記事本。</p>
+<div style="background: var(--bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--outline);">
+<ul style="padding-left: 20px; color: var(--text-main); font-size: 16px; display: flex; flex-direction: column; gap: 10px;">
+<li>⚠️ <strong>最重要：</strong>記得定期用 <strong>「手動備份（下載到手機）」</strong> 或 <strong>Google 雲端同步</strong>，避免清理暫存後資料消失。</li>
+<li>點擊右下角 <strong style="color: var(--primary); font-size: 20px;">「+」</strong> 隨時新增記事。</li>
+<li>用手指 <strong>「左右撥動畫面」</strong> 或點擊頂部年月，可快速切換日子。</li>
+<li>需要詳細教學？隨時點擊右上角 <strong>「☰ 功能選單」</strong> 查看說明書。</li>
+</ul>
+</div>
+<button class="action-btn primary" onclick="closeWelcomeModal(null, true)" style="width: 100%; font-size: 18px;">我明白了，開始使用！</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="helpModal" onclick="backOrClose('helpModal', event)">
+<div class="modal-content" style="max-height: 85dvh; height: auto;">
+<div class="modal-header">
+<div class="modal-title" style="color: var(--primary); font-size: 20px;"><i data-lucide="book-open" style="width: 28px; height: 28px;"></i> 詳細使用教學</div>
+<button class="icon-btn" onclick="backOrClose('helpModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body" style="line-height: 1.6;">
+<div class="tutorial-box" style="border: 2px solid #e53e3e; background: rgba(229, 62, 62, 0.06);">
+<div class="tutorial-title"><i data-lucide="alert-triangle" style="color: #e53e3e;"></i> <strong>最重要：請經常備份（清洗瀏覽器暫存前一定要備份）</strong></div>
+<div class="tutorial-text">
+                        本 App 嘅資料主要儲存在你部裝置嘅瀏覽器本機儲存（Local Storage / IndexedDB）。<br/>
+<strong>如果你清洗／清除瀏覽器暫存、網站資料，所有記事／圖片／附件有機會會一次過冇晒。</strong><br/><br/>
+                        建議你養成呢個習慣：<br/>
+                        — <strong>每次記完重要內容，即刻做一次備份</strong>（尤其係加咗相／附件）。<br/>
+                        — <strong>每星期/每月定期備份一次</strong>（按你使用頻率）。<br/>
+                        — <strong>每次清洗暫存／更新瀏覽器／換機之前，必須先做一次備份</strong>。<br/><br/>
                         你可以喺底部「狀態欄」或右上角「☰ 功能選單」入面，直接去「設定與備份」。
                     </div>
-                </div>
-
-                <div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
-                    <div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 1. 備份方法（推介次序）</div>
-                    <div class="tutorial-text">
-                        <strong>A) Google 雲端同步（最方便）</strong>：去「設定與備份」登入 Google，按「同步上傳」；亦可開啟「自動同步（每 30 秒）」。<br>
-                        <small style="color:var(--text-light);">提示：自動同步只會喺呢個網頁保持開住嗰陣運作；關咗頁／退出瀏覽器就會停止。</small><br><br>
-                        <strong>B) 手動備份（最穩陣，建議一定要識）</strong>：撳「手動下載備份檔」→ 請確認儲存到手機/電腦嘅 Downloads（下載）資料夾。<br>
-                        <strong>C) 一鍵分享</strong>：用 WhatsApp/Telegram/電郵/AirDrop 等傳出去，當成第二份備份。<br><br>
-                        <strong>重要：</strong>如果底部顯示「雲端上傳失敗／未同步」，請立即做一次「手動備份（下載到手機）」。
+</div>
+<div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
+<div class="tutorial-title"><i data-lucide="cloud" style="color: #4285F4;"></i> 1. 備份方法（推介次序）</div>
+<div class="tutorial-text">
+<strong>A) Google 雲端同步（最方便）</strong>：去「設定與備份」登入 Google，按「同步上傳」；亦可開啟「自動同步（每 30 秒）」。<br/>
+<small style="color:var(--text-light);">提示：自動同步只會喺呢個網頁保持開住嗰陣運作；關咗頁／退出瀏覽器就會停止。</small><br/><br/>
+<strong>B) 手動備份（最穩陣，建議一定要識）</strong>：撳「手動下載備份檔」→ 請確認儲存到手機/電腦嘅 Downloads（下載）資料夾。<br/>
+<strong>C) 一鍵分享</strong>：用 WhatsApp/Telegram/電郵/AirDrop 等傳出去，當成第二份備份。<br/><br/>
+<strong>重要：</strong>如果底部顯示「雲端上傳失敗／未同步」，請立即做一次「手動備份（下載到手機）」。
                     </div>
-                </div>
-
-                <div class="tutorial-box" style="border-color: var(--outline); background: #f0fff4;">
-                    <div class="tutorial-title"><i data-lucide="upload" style="color:#276749;"></i> 2. 還原方法（搵返舊資料）</div>
-                    <div class="tutorial-text">
-                        <strong>A) 有備份檔（.txt/.json）</strong>：去「設定與備份」→「手動上傳並還原資料」→ 揀返嗰個檔案。<br>
-                        <strong>B) 有用 Google 雲端</strong>：登入後按「從雲端還原至本機」。<br><br>
-                        <small style="color:var(--text-light);">提示：如果你冇任何備份/雲端同步，而瀏覽器資料已被清除，通常係無法由程式自動救返。</small>
-                    </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 3. 快速上手：新增、翻頁、跳轉</div>
-                    <div class="tutorial-text">
-                        點右下角 <strong>「+」</strong> 新增今日記事。<br>
-                        <strong>左右撥</strong> 或用頂部左右箭咀切換月份。<br>
+</div>
+<div class="tutorial-box" style="border-color: var(--outline); background: #f0fff4;">
+<div class="tutorial-title"><i data-lucide="upload" style="color:#276749;"></i> 2. 還原方法（搵返舊資料）</div>
+<div class="tutorial-text">
+<strong>A) 有備份檔（.txt/.json）</strong>：去「設定與備份」→「手動上傳並還原資料」→ 揀返嗰個檔案。<br/>
+<strong>B) 有用 Google 雲端</strong>：登入後按「從雲端還原至本機」。<br/><br/>
+<small style="color:var(--text-light);">提示：如果你冇任何備份/雲端同步，而瀏覽器資料已被清除，通常係無法由程式自動救返。</small>
+</div>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="calendar-search" style="color: var(--secondary);"></i> 3. 快速上手：新增、翻頁、跳轉</div>
+<div class="tutorial-text">
+                        點右下角 <strong>「+」</strong> 新增今日記事。<br/>
+<strong>左右撥</strong> 或用頂部左右箭咀切換月份。<br/>
                         點擊頂部 <strong>「年份月份」</strong>（或日期）可以快速跳轉。
                     </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="pen-line" style="color: #805ad5;"></i> 4. 編輯器：常用工具列</div>
-                    <div class="tutorial-text">
-                        <strong>字體</strong>：切換細/中/大字。<br>
-                        <strong>加圖</strong>：加入相片（可多張）。<br>
-                        <strong>加檔</strong>：加入附件（PDF/文件/錄音/任何檔案）。<br>
-                        <strong>提提我</strong>：生成日曆檔，加到手機行事曆提醒。<br>
-                        <strong>移動/複製</strong>：搬去第二日，或複製多份到其他日子。
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="pen-line" style="color: #805ad5;"></i> 4. 編輯器：常用工具列</div>
+<div class="tutorial-text">
+<strong>字體</strong>：切換細/中/大字。<br/>
+<strong>加圖</strong>：加入相片（可多張）。<br/>
+<strong>加檔</strong>：加入附件（PDF/文件/錄音/任何檔案）。<br/>
+<strong>提提我</strong>：生成日曆檔，加到手機行事曆提醒。<br/>
+<strong>移動/複製</strong>：搬去第二日，或複製多份到其他日子。
                     </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 5. 自動儲存與狀態欄</div>
-                    <div class="tutorial-text">
-                        系統會定時自動儲存；你亦可以留意底部 <strong>狀態欄</strong>：顯示「已儲存／正在儲存／雲端狀態」。<br>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="save" style="color: #48bb78;"></i> 5. 自動儲存與狀態欄</div>
+<div class="tutorial-text">
+                        系統會定時自動儲存；你亦可以留意底部 <strong>狀態欄</strong>：顯示「已儲存／正在儲存／雲端狀態」。<br/>
                         點擊狀態欄可打開「狀態詳情」，入面亦有快捷「雲端備份／手動備份」。
                     </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 6. 標籤、天氣／狀態、日期底色</div>
-                    <div class="tutorial-text">
-                        你可以為每篇記事加 12 色標籤（亦可自訂每種顏色代表咩意思）。<br>
-                        編輯器下方有天氣/狀態按鈕：<strong>點一下選中</strong>，再點一次可取消。<br>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="tag" style="color: #ed8936;"></i> 6. 標籤、天氣／狀態、日期底色</div>
+<div class="tutorial-text">
+                        你可以為每篇記事加 12 色標籤（亦可自訂每種顏色代表咩意思）。<br/>
+                        編輯器下方有天氣/狀態按鈕：<strong>點一下選中</strong>，再點一次可取消。<br/>
                         喺「日期視窗」可以為個日子設定 <strong>背景底色</strong>（例如放假/重要日）。
                     </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="paperclip" style="color: #4a5568;"></i> 7. 圖片與附件（重要注意）</div>
-                    <div class="tutorial-text">
-                        圖片/附件會儲存在瀏覽器嘅本機資料庫（IndexedDB）。<br>
-                        — <strong>開啟</strong>：通常會喺新分頁打開；如果瀏覽器限制，會改為下載。<br>
-                        — <strong>刪</strong>：移除該附件。<br><br>
-                        <small style="color:var(--text-light);">提示：如果你用「檔案直接 double click 打開 HTML」而唔係 HTTPS/localhost，個別瀏覽器可能會限制 IndexedDB，附件/大檔會受影響。</small>
-                    </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="shuffle" style="color: #667eea;"></i> 8. 移動／複製（含撤銷）</div>
-                    <div class="tutorial-text">
-                        想用「移動/複製」之前，建議先儲存一次，確保記事已存在。<br>
-                        你可以揀單一日期，或者用「日期範圍 + 星期幾」做批量操作。<br>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="paperclip" style="color: #4a5568;"></i> 7. 圖片與附件（重要注意）</div>
+<div class="tutorial-text">
+                        圖片/附件會儲存在瀏覽器嘅本機資料庫（IndexedDB）。<br/>
+                        — <strong>開啟</strong>：通常會喺新分頁打開；如果瀏覽器限制，會改為下載。<br/>
+                        — <strong>刪</strong>：移除該附件。<br/><br/>
+<small style="color:var(--text-light);">提示：如果你用「檔案直接 double click 打開 HTML」而唔係 HTTPS/localhost，個別瀏覽器可能會限制 IndexedDB，附件/大檔會受影響。</small>
+</div>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="shuffle" style="color: #667eea;"></i> 8. 移動／複製（含撤銷）</div>
+<div class="tutorial-text">
+                        想用「移動/複製」之前，建議先儲存一次，確保記事已存在。<br/>
+                        你可以揀單一日期，或者用「日期範圍 + 星期幾」做批量操作。<br/>
                         如果揀錯，畫面會提供 <strong>撤銷</strong>（Undo）按鈕，方便即刻回復。
                     </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="notebook-text" style="color: #2b6cb0;"></i> 9. 記事簿、資料夾、搜尋</div>
-                    <div class="tutorial-text">
-                        右上角入「記事簿」可以集中睇/搵所有記事。<br>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="notebook-text" style="color: #2b6cb0;"></i> 9. 記事簿、資料夾、搜尋</div>
+<div class="tutorial-text">
+                        右上角入「記事簿」可以集中睇/搵所有記事。<br/>
                         你可以用 <strong>資料夾</strong> 來分類，亦支援篩選同排序；用 <strong>搜尋</strong> 可以快速搵返關鍵字。
                     </div>
-                </div>
-
-                <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="copy" style="color: #2b6cb0;"></i> 10. 閱讀模式：一鍵複製正文</div>
-                    <div class="tutorial-text">打開一篇記事進入「閱讀視窗」後，右上角有 <strong>複製</strong> 圖示，可以一鍵複製正文文字。</div>
-                </div>
-
-                        </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="shareDateModal" onclick="handleShareDateBackdropClick(event)">
-        <div class="modal-content" style="max-height: 60dvh; height: auto;">
-            <div class="modal-header">
-                <div class="modal-title" style="color: var(--primary);"><i data-lucide="share-2"></i> 分享內容保存到</div>
-                <button class="icon-btn" onclick="closeShareDateModal(true, false)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body" style="line-height: 1.6;">
-                <div style="display:flex; gap:10px; margin-bottom: 12px;">
-                    <button id="shareTargetCalendarBtn" class="tool-btn" style="flex:1; justify-content:center;" onclick="setShareTarget('calendar')"><i data-lucide="calendar" style="width:16px;"></i> 日曆</button>
-                    <button id="shareTargetNotebookBtn" class="tool-btn" style="flex:1; justify-content:center;" onclick="setShareTarget('notebook')"><i data-lucide="notebook-text" style="width:16px;"></i> 記事簿</button>
-                </div>
-
-                <div id="shareCalendarBox">
-                    <div style="margin-bottom: 12px; color: var(--text-light);">你揀咗日期之後，我先會打開「新增記事」並帶入分享文字/圖片。</div>
-                    <input type="date" id="shareDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" />
-                </div>
-
-                <div id="shareNotebookBox" style="display:none;">
-                    <div style="margin-bottom: 12px; color: var(--text-light);">會先保存到「記事簿」（長期收藏），你可再揀資料夾；亦可同時釘到日曆某一日（建立捷徑）。</div>
-
-                    <div style="margin-bottom: 10px;">
-                        <div style="font-weight:900; margin-bottom:6px;">保存到記事簿資料夾</div>
-                        <select id="shareNotebookFolder" style="width:100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
-                            <option value="">(未分類)</option>
-                        </select>
+</div>
+<div class="tutorial-box"><div class="tutorial-title"><i data-lucide="copy" style="color: #2b6cb0;"></i> 10. 閱讀模式：一鍵複製正文</div>
+<div class="tutorial-text">打開一篇記事進入「閱讀視窗」後，右上角有 <strong>複製</strong> 圖示，可以一鍵複製正文文字。</div>
+</div>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="shareDateModal" onclick="handleShareDateBackdropClick(event)">
+<div class="modal-content" style="max-height: 60dvh; height: auto;">
+<div class="modal-header">
+<div class="modal-title" style="color: var(--primary);"><i data-lucide="share-2"></i> 分享內容保存到</div>
+<button class="icon-btn" onclick="closeShareDateModal(true, false)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body" style="line-height: 1.6;">
+<div style="display:flex; gap:10px; margin-bottom: 12px;">
+<button class="tool-btn" id="shareTargetCalendarBtn" onclick="setShareTarget('calendar')" style="flex:1; justify-content:center;"><i data-lucide="calendar" style="width:16px;"></i> 日曆</button>
+<button class="tool-btn" id="shareTargetNotebookBtn" onclick="setShareTarget('notebook')" style="flex:1; justify-content:center;"><i data-lucide="notebook-text" style="width:16px;"></i> 記事簿</button>
+</div>
+<div id="shareCalendarBox">
+<div style="margin-bottom: 12px; color: var(--text-light);">你揀咗日期之後，我先會打開「新增記事」並帶入分享文字/圖片。</div>
+<input class="quick-date-picker" id="shareDatePicker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" type="date"/>
+</div>
+<div id="shareNotebookBox" style="display:none;">
+<div style="margin-bottom: 12px; color: var(--text-light);">會先保存到「記事簿」（長期收藏），你可再揀資料夾；亦可同時釘到日曆某一日（建立捷徑）。</div>
+<div style="margin-bottom: 10px;">
+<div style="font-weight:900; margin-bottom:6px;">保存到記事簿資料夾</div>
+<select id="shareNotebookFolder" style="width:100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+<option value="">(未分類)</option>
+</select>
+</div>
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: color-mix(in srgb, var(--surface) 88%, var(--bg));">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+<div>
+<div style="font-weight:900;">同時釘到日曆（建立捷徑）</div>
+<div style="font-size:13px; color:var(--text-light); margin-top:2px;">日曆會顯示「標題 + 摘要」，撳入去會開同一篇文章。</div>
+</div>
+<label class="switch" title="同時釘到日曆">
+<input checked="" id="sharePinToCalendarToggle" onchange="updateSharePinUI()" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div id="sharePinDateBox" style="margin-top:10px;">
+<div style="font-size:13px; color:var(--text-light); margin-bottom:6px;">釘到邊一日？</div>
+<input class="quick-date-picker" id="sharePinDatePicker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" type="date"/>
+</div>
+</div>
+</div>
+<div style="display:flex; gap: 10px; margin-top: 14px;">
+<button class="action-btn" onclick="closeShareDateModal(true, false)" style="flex:1;">取消 / 返回</button>
+<button class="action-btn primary" onclick="confirmShareDate()" style="flex:1;">確定</button>
+</div>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="briefingModal" onclick="backOrClose('briefingModal', event)">
+<div class="modal-content" style="max-height: 80dvh; height: auto;">
+<div class="modal-header">
+<div class="modal-title" style="color: var(--primary);"><i data-lucide="sunrise"></i> 今日晨報</div>
+<button class="icon-btn" onclick="backOrClose('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<!-- ✅ 分類浮動圓形按鈕：平時收起工具列，撳先彈出分類面板 -->
+<button class="editor-color-fab" id="editorColorFab" onclick="toggleColorPickerPanelFromFab(event)" title="分類">
+<span aria-hidden="true" class="editor-color-fab-swatch" id="editorColorFabSwatch"></span>
+</button>
+<div class="modal-body">
+<p style="margin-bottom:16px; color:var(--text-light); font-size:16px; font-weight: bold;">早晨！你今日有以下事項需要留意：</p>
+<div class="entry-list" id="briefingList"></div>
+<button class="action-btn primary" onclick="backOrClose('briefingModal')" style="margin-top:24px;">開始今日日程</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="dayModal" onclick="backOrClose('dayModal', event)">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title" id="dayModalTitle">日期</div>
+<div>
+<button class="icon-btn" id="dayBulkToggleBtn" onclick="toggleDayBulkMode()" style="display:inline-flex;" title="批量刪除"><i data-lucide="list-checks" style="width: 26px; height: 26px;"></i></button>
+<button class="icon-btn" id="dayQuickWriteBtn" onclick="openEditorFromDayHeader()" style="display:inline-flex;" title="快速輸入"><i data-lucide="edit-3" style="width: 26px; height: 26px;"></i></button>
+<button class="icon-btn" onclick="backOrClose('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+</div>
+<div class="modal-body">
+<div class="bulk-toolbar" id="dayBulkToolbar" style="display:none;">
+<button class="tool-btn" onclick="dayBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
+<button class="tool-btn" onclick="dayBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
+<button class="tool-btn tool-btn-alarm" onclick="dayBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="dayBulkCount">0</span>)</button>
+<button class="tool-btn" onclick="exitDayBulkMode()"><i data-lucide="x" style="width:16px;"></i> 取消</button>
+</div>
+<div class="color-picker-container" style="margin-bottom: 20px;">
+<div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+<i data-lucide="paint-bucket" style="width:20px; color:var(--secondary)"></i> 標記此日底色
                     </div>
+<div class="color-picker-scroll">
+<div class="color-picker" id="dayStatusUI"></div>
+</div>
+<div class="tag-name-editor">
+<i data-lucide="tag" style="width:20px; color:var(--text-light)"></i>
+<input class="tag-name-input" id="statusNameInput" oninput="saveStatusName()" placeholder="請先選擇顏色..." type="text"/>
+</div>
+</div>
+<div class="entry-list" id="dayEntryList"></div>
+<button class="add-entry-btn" onclick="openEditorFromDayView()"><i data-lucide="pen-line"></i> 新增此日記事</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="readModal" onclick="backOrClose('readModal', event)">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title"><span>閱讀記事</span></div>
+<div>
+<button class="icon-btn" onclick="copyReadText()" style="display:inline-flex;" title="複製正文"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" id="readSpeakBtn" onclick="toggleReadSpeak()" style="display:inline-flex;" title="朗讀"><i data-lucide="volume-2" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" id="readSpeakStopBtn" onclick="stopReadSpeak()" style="display:none;" title="停止朗讀"><i data-lucide="square" style="width: 28px; height: 28px;"></i></button>
 
-                    <div style="border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: color-mix(in srgb, var(--surface) 88%, var(--bg));">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <div>
-                                <div style="font-weight:900;">同時釘到日曆（建立捷徑）</div>
-                                <div style="font-size:13px; color:var(--text-light); margin-top:2px;">日曆會顯示「標題 + 摘要」，撳入去會開同一篇文章。</div>
-                            </div>
-                            <label class="switch" title="同時釘到日曆">
-                                <input type="checkbox" id="sharePinToCalendarToggle" checked onchange="updateSharePinUI()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div id="sharePinDateBox" style="margin-top:10px;">
-                            <div style="font-size:13px; color:var(--text-light); margin-bottom:6px;">釘到邊一日？</div>
-                            <input type="date" id="sharePinDatePicker" class="quick-date-picker" style="position: static; opacity: 1; pointer-events: auto; width: 100%; height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main);" />
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display:flex; gap: 10px; margin-top: 14px;">
-                    <button class="action-btn" onclick="closeShareDateModal(true, false)" style="flex:1;">取消 / 返回</button>
-                    <button class="action-btn primary" onclick="confirmShareDate()" style="flex:1;">確定</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="briefingModal" onclick="backOrClose('briefingModal', event)">
-        <div class="modal-content" style="max-height: 80dvh; height: auto;">
-            <div class="modal-header">
-                <div class="modal-title" style="color: var(--primary);"><i data-lucide="sunrise"></i> 今日晨報</div>
-                <button class="icon-btn" onclick="backOrClose('briefingModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-
-            <!-- ✅ 分類浮動圓形按鈕：平時收起工具列，撳先彈出分類面板 -->
-            <button id="editorColorFab" class="editor-color-fab" onclick="toggleColorPickerPanelFromFab(event)" title="分類">
-                <span id="editorColorFabSwatch" class="editor-color-fab-swatch" aria-hidden="true"></span>
-            </button>
-
-            <div class="modal-body">
-                <p style="margin-bottom:16px; color:var(--text-light); font-size:16px; font-weight: bold;">早晨！你今日有以下事項需要留意：</p>
-                <div class="entry-list" id="briefingList"></div>
-                <button class="action-btn primary" onclick="backOrClose('briefingModal')" style="margin-top:24px;">開始今日日程</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="dayModal" onclick="backOrClose('dayModal', event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="dayModalTitle">日期</div>
-                <div>
-                    <button class="icon-btn" id="dayBulkToggleBtn" onclick="toggleDayBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" id="dayQuickWriteBtn" onclick="openEditorFromDayHeader()" title="快速輸入" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('dayModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div id="dayBulkToolbar" class="bulk-toolbar" style="display:none;">
-                    <button class="tool-btn" onclick="dayBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
-                    <button class="tool-btn" onclick="dayBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
-                    <button class="tool-btn tool-btn-alarm" onclick="dayBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="dayBulkCount">0</span>)</button>
-                    <button class="tool-btn" onclick="exitDayBulkMode()"><i data-lucide="x" style="width:16px;"></i> 取消</button>
-                </div>
-
-                <div class="color-picker-container" style="margin-bottom: 20px;">
-                    <div style="font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="paint-bucket" style="width:20px; color:var(--secondary)"></i> 標記此日底色
-                    </div>
-                    <div class="color-picker-scroll">
-                        <div class="color-picker" id="dayStatusUI"></div>
-                    </div>
-                    <div class="tag-name-editor">
-                        <i data-lucide="tag" style="width:20px; color:var(--text-light)"></i>
-                        <input type="text" id="statusNameInput" class="tag-name-input" placeholder="請先選擇顏色..." oninput="saveStatusName()">
-                    </div>
-                </div>
-                <div class="entry-list" id="dayEntryList"></div>
-                <button class="add-entry-btn" onclick="openEditorFromDayView()"><i data-lucide="pen-line"></i> 新增此日記事</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal-overlay" id="readModal" onclick="backOrClose('readModal', event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title"><span>閱讀記事</span></div>
-                <div>
-                    <button class="icon-btn" onclick="copyReadText()" title="複製正文" style="display:inline-flex;"><i data-lucide="copy" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="readSpeakBtn" onclick="toggleReadSpeak()" title="朗讀" style="display:inline-flex;"><i data-lucide="volume-2" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="readSpeakStopBtn" onclick="stopReadSpeak()" title="停止朗讀" style="display:none;"><i data-lucide="square" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="readSpeakDiagBtn" onclick="ttsSelfTestFromUI()" title="朗讀自檢" style="display:inline-flex;"><i data-lucide="stethoscope" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="Markdown 預覽">MD</button>
-                    <button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" title="星星鎖定（防誤刪）" style="display:inline-flex;"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" title="移動 / 複製" style="display:inline-flex;"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="readDeleteBtn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
-                    <button class="icon-btn" id="readCloseBtn" onclick="backToDayView()" title="關閉" style="display:inline-flex;"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div class="read-time">
-                    <span id="readTimeStr"></span>
-                    <span id="readWeatherBadge" class="read-weather-badge"></span>
-                </div>
-                <div><span class="read-tag-badge" id="readTagBadge"></span></div>
-                <div id="readText" class="read-text"></div>
-                <div id="readGallery" class="read-gallery"></div>
-                <div id="readLinkPreview"></div>
-                <div id="swipeHint" class="swipe-hint">左右撥可切換上一篇／下一篇</div>
-                <div class="attachments-box" id="readAttachmentsBox" style="display:none; margin-top:16px;">
-                    <div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
-                    <div class="attachments-list" id="readAttachmentList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    
-
-    <!-- ✅ 選擇日期：用於「移去日曆頁」 -->
-    
-
-    <!-- ✅ 選擇資料夾：用於「移去記事簿」一次完成（分類 + 可選跳轉） -->
-    <div class="modal-overlay" id="pickFolderModal" onclick="backOrClose('pickFolderModal', event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">移去記事簿</div>
-                <button class="icon-btn" onclick="backOrClose('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body">
-                <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請揀資料夾（或未分類）</div>
-
-                <!-- ✅ 常用資料夾快捷卡片（最近用過 N 個） -->
-                <div id="pickFolderCards" class="folder-grid"></div>
-
-                <!-- 仍保留 select 作為兼容/後備（預設隱藏） -->
-                <select id="pickFolderSelect" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px; display:none;"></select>
-
-                <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center;">
-                    <button class="mini-btn" id="pickFolderMoreBtn" onclick="togglePickFolderShowAll()" style="flex:1; justify-content:center;"><i data-lucide="chevrons-down" style="width:18px;"></i> 更多資料夾</button>
-                    <button class="mini-btn" id="pickFolderManageBtn" onclick="togglePickFolderManageMode()" style="flex:1; justify-content:center;"><i data-lucide="settings" style="width:18px;"></i> 管理</button>
-                    <button class="mini-btn" onclick="addFolderFromPickModal()" style="flex:1; justify-content:center;"><i data-lucide="plus" style="width:18px;"></i> 新增</button>
-                </div>
-
-                <div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap;">
-                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="backOrClose('pickFolderModal')">取消</button>
-                    <button class="action-btn" style="flex:1; min-width:140px;" onclick="confirmPickFolder(false)">確定</button>
-                    <button class="action-btn primary" style="flex:1; min-width:160px;" onclick="confirmPickFolder(true)">確定並跳去</button>
-                </div>
-
-                <div style="margin-top:10px; font-size:12px; color:var(--text-light); line-height:1.35;">
+<button class="icon-btn md-toggle-btn" id="readMdToggleBtn" onclick="toggleNotebookMarkdownPreview()" title="Markdown 預覽">MD</button>
+<button class="icon-btn" id="readStarBtn" onclick="toggleStarFromReadView()" style="display:inline-flex;" title="星星鎖定（防誤刪）"><i data-lucide="star" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" id="moveCopyBtn" onclick="openMoveCopyModal()" style="display:inline-flex;" title="移動 / 複製"><i data-lucide="shuffle" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" id="readDeleteBtn" onclick="deleteFromReadView()" style="color: #ef4444; display:inline-flex;"><i data-lucide="trash-2" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" onclick="editFromReadView()" style="display:inline-flex;"><i data-lucide="edit-3" style="width: 28px; height: 28px;"></i></button>
+<button class="icon-btn" id="readCloseBtn" onclick="backToDayView()" style="display:inline-flex;" title="關閉"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+</div>
+<div class="modal-body">
+<div class="read-time">
+<span id="readTimeStr"></span>
+<span class="read-weather-badge" id="readWeatherBadge"></span>
+</div>
+<div><span class="read-tag-badge" id="readTagBadge"></span></div>
+<div class="read-text" id="readText"></div>
+<div class="read-gallery" id="readGallery"></div>
+<div id="readLinkPreview"></div>
+<div class="swipe-hint" id="swipeHint">左右撥可切換上一篇／下一篇</div>
+<div class="attachments-box" id="readAttachmentsBox" style="display:none; margin-top:16px;">
+<div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
+<div class="attachments-list" id="readAttachmentList"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- ✅ 選擇日期：用於「移去日曆頁」 -->
+<!-- ✅ 選擇資料夾：用於「移去記事簿」一次完成（分類 + 可選跳轉） -->
+<div class="modal-overlay" id="pickFolderModal" onclick="backOrClose('pickFolderModal', event)">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">移去記事簿</div>
+<button class="icon-btn" onclick="backOrClose('pickFolderModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body">
+<div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請揀資料夾（或未分類）</div>
+<!-- ✅ 常用資料夾快捷卡片（最近用過 N 個） -->
+<div class="folder-grid" id="pickFolderCards"></div>
+<!-- 仍保留 select 作為兼容/後備（預設隱藏） -->
+<select id="pickFolderSelect" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px; display:none;"></select>
+<div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center;">
+<button class="mini-btn" id="pickFolderMoreBtn" onclick="togglePickFolderShowAll()" style="flex:1; justify-content:center;"><i data-lucide="chevrons-down" style="width:18px;"></i> 更多資料夾</button>
+<button class="mini-btn" id="pickFolderManageBtn" onclick="togglePickFolderManageMode()" style="flex:1; justify-content:center;"><i data-lucide="settings" style="width:18px;"></i> 管理</button>
+<button class="mini-btn" onclick="addFolderFromPickModal()" style="flex:1; justify-content:center;"><i data-lucide="plus" style="width:18px;"></i> 新增</button>
+</div>
+<div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap;">
+<button class="action-btn" onclick="backOrClose('pickFolderModal')" style="flex:1; min-width:140px;">取消</button>
+<button class="action-btn" onclick="confirmPickFolder(false)" style="flex:1; min-width:140px;">確定</button>
+<button class="action-btn primary" onclick="confirmPickFolder(true)" style="flex:1; min-width:160px;">確定並跳去</button>
+</div>
+<div style="margin-top:10px; font-size:12px; color:var(--text-light); line-height:1.35;">
                     提示：『確定並跳去』會直接打開記事簿；你亦可以喺記事簿用『資料夾模式』睇全部資料夾。
                 </div>
-            </div>
-        </div>
-    </div>
+</div>
+</div>
+</div>
 <div class="modal-overlay" id="pickDateModal" onclick="backOrClose('pickDateModal', event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">選擇日期</div>
-                <button class="icon-btn" onclick="backOrClose('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body">
-                <div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請直接揀日子（YYYY-MM-DD）</div>
-                <input id="pickDateInput" type="date" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px;" />
-                <div style="display:flex; gap:12px; margin-top:16px;">
-                    <button class="action-btn" style="flex:1;" onclick="backOrClose('pickDateModal')">取消</button>
-                    <button class="action-btn primary" style="flex:1;" onclick="confirmPickDate()">確定</button>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title">選擇日期</div>
+<button class="icon-btn" onclick="backOrClose('pickDateModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body">
+<div style="font-size:14px; color:var(--text-light); margin-bottom:10px;">請直接揀日子（YYYY-MM-DD）</div>
+<input id="pickDateInput" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:16px;" type="date"/>
+<div style="display:flex; gap:12px; margin-top:16px;">
+<button class="action-btn" onclick="backOrClose('pickDateModal')" style="flex:1;">取消</button>
+<button class="action-btn primary" onclick="confirmPickDate()" style="flex:1;">確定</button>
+</div>
+</div>
+</div>
+</div>
 <div class="modal-overlay" id="editorModal" onclick="handleEditorBackdropClick(event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="editorTitle">編輯記事（v4）</div>
-
-                <!-- ✅ 置頂：撤銷/重做 + 返回/儲存（純圖標） -->
-                <div id="editorTopIconBar" style="display:flex; align-items:center; gap:6px; margin-left:auto;">
-                    <button class="icon-btn" onclick="editorUndo()" title="撤銷" style="display:inline-flex;"><i data-lucide="rotate-ccw" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" onclick="editorRedo()" title="重做" style="display:inline-flex;"><i data-lucide="rotate-cw" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" onclick="saveEntry()" title="儲存" style="display:inline-flex;"><i data-lucide="save" style="width: 26px; height: 26px;"></i></button>
-                    <button class="icon-btn" id="colorSwatchBtn" onclick="toggleColorPickerPanel()" title="分類" style="display:inline-flex;">
-                        <span id="editorColorSwatch" class="editor-color-swatch"></span>
-                    </button>
-                    <button class="icon-btn editor-close" id="editorCloseBtn" onclick="closeEditor()" title="關閉" style="display:inline-flex;"><i data-lucide="x" style="width: 26px; height: 26px;"></i></button>
-                </div>
-                
-                <span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: 10px; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
-                
-            </div>
-            <div class="modal-body">
-                <div id="colorPickerPanel" class="color-picker-container color-picker-panel-hidden">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
-                        <div style="font-size:14px; font-weight:900; color:var(--text-light);">分類</div>
-                        <button class="icon-btn" id="colorPickerPanelCloseBtn" onclick="setColorPickerPanelOpen(false)" title="收起" style="min-width:40px; min-height:40px;"><i data-lucide="x" style="width: 24px; height: 24px;"></i></button>
-                    </div>
-                    <div class="color-picker-scroll">
-                        <div class="color-picker" id="colorPickerUI"></div>
-                    </div>
-                    <div class="tag-name-editor">
-                        <i data-lucide="tag" style="width:20px; color:var(--text-light)"></i>
-                        <input type="text" id="tagNameInput" class="tag-name-input" placeholder="自訂此顏色的代表意義..." oninput="saveTagName()">
-                    </div>
-                </div>
-                
-                <div class="editor-toolbar">
-                    <button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
-                    <button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
-                    <button class="tool-btn" onclick="toggleStrikethrough()" title="刪除線"><i data-lucide="strikethrough"></i> 刪除線</button>
-                    <button class="tool-btn" onclick="toggleBold()" title="粗體"><i data-lucide="bold"></i> 粗體</button>
-                    <button class="tool-btn" onclick="toggleItalic()" title="斜體"><i data-lucide="italic"></i> 斜體</button>
-                    <button class="tool-btn" onclick="toggleUnderline()" title="底線"><i data-lucide="underline"></i> 底線</button>
-                    <button class="tool-btn" onclick="insertUnderlineBlank()" title="插入可填寫底線空格"><i data-lucide="minus"></i> 空格底線</button>
-                    
-                    
-                    <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
-                    <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
-                    <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
-                    <button class="tool-btn" onclick="document.getElementById('attachInput').click()"><i data-lucide="paperclip"></i> 加檔</button>
-                    <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
-                    <input type="file" id="attachInput" multiple onchange="handleAttachmentUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
-                </div>
-
-                <div class="weather-toolbar" id="weatherToolbarUI">
-                    <button class="weather-btn" data-weather="☀️ 晴天" onclick="toggleWeather('☀️ 晴天')">☀️ 晴天</button>
-                    <button class="weather-btn" data-weather="⛅ 多雲" onclick="toggleWeather('⛅ 多雲')">⛅ 多雲</button>
-                    <button class="weather-btn" data-weather="🌧️ 落雨" onclick="toggleWeather('🌧️ 落雨')">🌧️ 落雨</button>
-                    <button class="weather-btn" data-weather="⛈️ 雷暴" onclick="toggleWeather('⛈️ 雷暴')">⛈️ 雷暴</button>
-                    <button class="weather-btn" data-weather="🌡️🔥 酷熱" onclick="toggleWeather('🌡️🔥 酷熱')">🌡️🔥 酷熱</button>
-                    <button class="weather-btn" data-weather="❄️ 寒冷" onclick="toggleWeather('❄️ 寒冷')">❄️ 寒冷</button>
-                    <button class="weather-btn" data-weather="💧 潮濕" onclick="toggleWeather('💧 潮濕')">💧 潮濕</button>
-                    <button class="weather-btn" data-weather="🍂 乾燥" onclick="toggleWeather('🍂 乾燥')">🍂 乾燥</button>
-                    <button class="weather-btn" data-weather="⛄ 落雪" onclick="toggleWeather('⛄ 落雪')">⛄ 落雪</button>
-                    <button class="weather-btn" data-weather="🧊 落雹" onclick="toggleWeather('🧊 落雹')">🧊 落雹</button>
-                    <button class="weather-btn" data-weather="🟡 黃雨" onclick="toggleWeather('🟡 黃雨')">🟡 黃雨</button>
-                    <button class="weather-btn" data-weather="🔴 紅雨" onclick="toggleWeather('🔴 紅雨')">🔴 紅雨</button>
-                    <button class="weather-btn" data-weather="⚫ 黑雨" onclick="toggleWeather('⚫ 黑雨')">⚫ 黑雨</button>
-                    <button class="weather-btn" data-weather="🌀 3號風球" onclick="toggleWeather('🌀 3號風球')">🌀 3號</button>
-                    <button class="weather-btn" data-weather="🌀 8號風球" onclick="toggleWeather('🌀 8號風球')">🌀 8號</button>
-                    <button class="weather-btn" data-weather="🌀 10號風球" onclick="toggleWeather('🌀 10號風球')">🌀 10號</button>
-                    <button class="weather-btn" data-weather="🌊 水浸" onclick="toggleWeather('🌊 水浸')">🌊 水浸</button>
-                    <button class="weather-btn" data-weather="🌋 地震" onclick="toggleWeather('🌋 地震')">🌋 地震</button>
-                </div>
-
-                <!-- 📁 記事簿：新增/編輯時可揀資料夾（只喺記事簿顯示） -->
-                <div id="editorNotebookFolderRow" style="display:none; margin: 10px 0 6px; padding: 10px 12px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface);">
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <div style="font-size: 13px; color: var(--text-light); font-weight: 800; white-space:nowrap;">放入資料夾</div>
-                        <select id="editorNotebookFolder" onchange="onEditorNotebookFolderChange()" style="flex:1; height: 44px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
-                            <option value="">未分類</option>
-                        </select>
-                        <button class="icon-btn" onclick="addNotebookFolderQuick(); refreshEditorNotebookFolderSelect();" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
-                    </div>
-                </div>
-
-                <div class="editor-text-wrap">
-                    <button class="ta-expand-btn" onclick="toggleEditorFullscreen()" title="放大 / 縮細畫面">
-                        <i id="editorFullscreenIcon" data-lucide="maximize-2" style="width: 18px; height: 18px;"></i>
-                    </button>                    <div id="editorRich" class="editor-rich size-md" contenteditable="true" spellcheck="false" data-placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." style="min-height: 42vh;"></div>
-                    <textarea id="editorText" style="display:none" tabindex="-1" aria-hidden="true"></textarea>
-                </div>
-                <div class="photo-gallery" id="editorGallery"></div>
-                <div class="attachments-box" id="attachmentsBox" style="display:none;">
-                    <div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
-                    <div class="attachments-list" id="attachmentList"></div>
-                </div>
-                <div class="editor-footer">
-                    <button class="btn btn-cancel" onclick="closeEditor()"><i data-lucide="arrow-left"></i> 返回</button>
-                    <button class="btn btn-save" onclick="saveEntry()"><i data-lucide="save"></i> 儲存記錄</button>
-                </div>
-            </div>
-
-            <button class="wm-float-close" onclick="exitWritingModes()" title="關閉全畫面">
-                <i data-lucide="x" style="width: 26px; height: 26px;"></i>
-            </button>
-        </div>
-    </div>
-    
-        
-        
-    
-    <div class="modal-overlay" id="moveCopyModal" onclick="backOrClose('moveCopyModal', event)">
-        <div class="modal-content" style="height:auto; max-height: 70dvh;">
-            <div class="modal-header">
-                <div class="modal-title"><i data-lucide="shuffle" style="width: 22px;"></i> 移動 / 複製</div>
-                <button class="icon-btn" onclick="backOrClose('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body">
-
-                <!-- ✅ 目標：日曆 / 記事簿（統一介面） -->
-                <div class="move-mode" style="margin-bottom: 10px;">
-                    <button class="mini-btn active" id="mcTargetCalendar" onclick="setMoveCopyTarget('calendar')"><i data-lucide="calendar" style="width:16px;"></i> 日曆</button>
-                    <button class="mini-btn" id="mcTargetNotebook" onclick="setMoveCopyTarget('notebook')"><i data-lucide="notebook-text" style="width:16px;"></i> 記事簿</button>
-                </div>
-
-                <div class="move-mode" id="mcCalendarModeRow">
-                    <button class="mini-btn active" id="mcModeSingle" onclick="setMoveCopyMode('single')">單一日期</button>
-                    <button class="mini-btn" id="mcModeBulk" onclick="setMoveCopyMode('bulk')">多個日期</button>
-                </div>
-
-                <div class="move-row" id="mcNotebookBox" style="display:none;">
-                    <label>目標資料夾（記事簿）</label>
-                    <select id="mcNotebookFolder" style="width:100%; height: 46px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
-                        <option value="">(未分類)</option>
-                    </select>
-                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">提示：
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title" id="editorTitle">編輯記事（v4）</div>
+<!-- ✅ 置頂：撤銷/重做 + 返回/儲存（純圖標） -->
+<div id="editorTopIconBar" style="display:flex; align-items:center; gap:6px; margin-left:auto;">
+<button class="icon-btn" onclick="editorUndo()" style="display:inline-flex;" title="撤銷"><i data-lucide="rotate-ccw" style="width: 26px; height: 26px;"></i></button>
+<button class="icon-btn" onclick="editorRedo()" style="display:inline-flex;" title="重做"><i data-lucide="rotate-cw" style="width: 26px; height: 26px;"></i></button>
+<button class="icon-btn" onclick="saveEntry()" style="display:inline-flex;" title="儲存"><i data-lucide="save" style="width: 26px; height: 26px;"></i></button>
+<button class="icon-btn" id="colorSwatchBtn" onclick="toggleColorPickerPanel()" style="display:inline-flex;" title="分類">
+<span class="editor-color-swatch" id="editorColorSwatch"></span>
+</button>
+<button class="icon-btn editor-close" id="editorCloseBtn" onclick="closeEditor()" style="display:inline-flex;" title="關閉"><i data-lucide="x" style="width: 26px; height: 26px;"></i></button>
+</div>
+<span id="autoSaveIndicator" style="font-size: 13px; color: var(--primary); opacity: 0; transition: opacity 0.5s; font-weight: bold; margin-left: 10px; margin-right: 12px;">已自動儲存 <i data-lucide="check-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i></span>
+</div>
+<div class="modal-body">
+<div class="color-picker-container color-picker-panel-hidden" id="colorPickerPanel">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+<div style="font-size:14px; font-weight:900; color:var(--text-light);">分類</div>
+<button class="icon-btn" id="colorPickerPanelCloseBtn" onclick="setColorPickerPanelOpen(false)" style="min-width:40px; min-height:40px;" title="收起"><i data-lucide="x" style="width: 24px; height: 24px;"></i></button>
+</div>
+<div class="color-picker-scroll">
+<div class="color-picker" id="colorPickerUI"></div>
+</div>
+<div class="tag-name-editor">
+<i data-lucide="tag" style="width:20px; color:var(--text-light)"></i>
+<input class="tag-name-input" id="tagNameInput" oninput="saveTagName()" placeholder="自訂此顏色的代表意義..." type="text"/>
+</div>
+</div>
+<div class="editor-toolbar">
+<button class="tool-btn" onclick="toggleTextSize()"><i data-lucide="type"></i> <span id="textSizeLabel">中字</span></button>
+<button class="tool-btn" onclick="toggleHighlighter()" title="用熒光筆標記/取消你揀選嘅文字"><i data-lucide="highlighter"></i> 熒光筆</button>
+<button class="tool-btn" onclick="toggleStrikethrough()" title="刪除線"><i data-lucide="strikethrough"></i> 刪除線</button>
+<button class="tool-btn" onclick="toggleBold()" title="粗體"><i data-lucide="bold"></i> 粗體</button>
+<button class="tool-btn" onclick="toggleItalic()" title="斜體"><i data-lucide="italic"></i> 斜體</button>
+<button class="tool-btn" onclick="toggleUnderline()" title="底線"><i data-lucide="underline"></i> 底線</button>
+<button class="tool-btn" onclick="insertUnderlineBlank()" title="插入可填寫底線空格"><i data-lucide="minus"></i> 空格底線</button>
+<button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
+<button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
+<button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
+<button class="tool-btn" onclick="document.getElementById('attachInput').click()"><i data-lucide="paperclip"></i> 加檔</button>
+<input accept="image/*" aria-hidden="true" id="fileInput" multiple="" onchange="handleImageUpload(event)" style="display:none" tabindex="-1" type="file"/>
+<input aria-hidden="true" id="attachInput" multiple="" onchange="handleAttachmentUpload(event)" style="display:none" tabindex="-1" type="file"/>
+</div>
+<div class="weather-toolbar" id="weatherToolbarUI">
+<button class="weather-btn" data-weather="☀️ 晴天" onclick="toggleWeather('☀️ 晴天')">☀️ 晴天</button>
+<button class="weather-btn" data-weather="⛅ 多雲" onclick="toggleWeather('⛅ 多雲')">⛅ 多雲</button>
+<button class="weather-btn" data-weather="🌧️ 落雨" onclick="toggleWeather('🌧️ 落雨')">🌧️ 落雨</button>
+<button class="weather-btn" data-weather="⛈️ 雷暴" onclick="toggleWeather('⛈️ 雷暴')">⛈️ 雷暴</button>
+<button class="weather-btn" data-weather="🌡️🔥 酷熱" onclick="toggleWeather('🌡️🔥 酷熱')">🌡️🔥 酷熱</button>
+<button class="weather-btn" data-weather="❄️ 寒冷" onclick="toggleWeather('❄️ 寒冷')">❄️ 寒冷</button>
+<button class="weather-btn" data-weather="💧 潮濕" onclick="toggleWeather('💧 潮濕')">💧 潮濕</button>
+<button class="weather-btn" data-weather="🍂 乾燥" onclick="toggleWeather('🍂 乾燥')">🍂 乾燥</button>
+<button class="weather-btn" data-weather="⛄ 落雪" onclick="toggleWeather('⛄ 落雪')">⛄ 落雪</button>
+<button class="weather-btn" data-weather="🧊 落雹" onclick="toggleWeather('🧊 落雹')">🧊 落雹</button>
+<button class="weather-btn" data-weather="🟡 黃雨" onclick="toggleWeather('🟡 黃雨')">🟡 黃雨</button>
+<button class="weather-btn" data-weather="🔴 紅雨" onclick="toggleWeather('🔴 紅雨')">🔴 紅雨</button>
+<button class="weather-btn" data-weather="⚫ 黑雨" onclick="toggleWeather('⚫ 黑雨')">⚫ 黑雨</button>
+<button class="weather-btn" data-weather="🌀 3號風球" onclick="toggleWeather('🌀 3號風球')">🌀 3號</button>
+<button class="weather-btn" data-weather="🌀 8號風球" onclick="toggleWeather('🌀 8號風球')">🌀 8號</button>
+<button class="weather-btn" data-weather="🌀 10號風球" onclick="toggleWeather('🌀 10號風球')">🌀 10號</button>
+<button class="weather-btn" data-weather="🌊 水浸" onclick="toggleWeather('🌊 水浸')">🌊 水浸</button>
+<button class="weather-btn" data-weather="🌋 地震" onclick="toggleWeather('🌋 地震')">🌋 地震</button>
+</div>
+<!-- 📁 記事簿：新增/編輯時可揀資料夾（只喺記事簿顯示） -->
+<div id="editorNotebookFolderRow" style="display:none; margin: 10px 0 6px; padding: 10px 12px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface);">
+<div style="display:flex; gap:10px; align-items:center;">
+<div style="font-size: 13px; color: var(--text-light); font-weight: 800; white-space:nowrap;">放入資料夾</div>
+<select id="editorNotebookFolder" onchange="onEditorNotebookFolderChange()" style="flex:1; height: 44px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+<option value="">未分類</option>
+</select>
+<button class="icon-btn" onclick="addNotebookFolderQuick(); refreshEditorNotebookFolderSelect();" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
+</div>
+</div>
+<div class="editor-text-wrap">
+<button class="ta-expand-btn" onclick="toggleEditorFullscreen()" title="放大 / 縮細畫面">
+<i data-lucide="maximize-2" id="editorFullscreenIcon" style="width: 18px; height: 18px;"></i>
+</button> <div class="editor-rich size-md" contenteditable="true" data-placeholder="e.g. 請盡情輸入，這裏的空間會根據你的文字無限向下延伸..." id="editorRich" spellcheck="false" style="min-height: 42vh;"></div>
+<textarea aria-hidden="true" id="editorText" style="display:none" tabindex="-1"></textarea>
+</div>
+<div class="photo-gallery" id="editorGallery"></div>
+<div class="attachments-box" id="attachmentsBox" style="display:none;">
+<div class="attachments-title"><i data-lucide="paperclip" style="width:18px;"></i> 附件</div>
+<div class="attachments-list" id="attachmentList"></div>
+</div>
+<div class="editor-footer">
+<button class="btn btn-cancel" onclick="closeEditor()"><i data-lucide="arrow-left"></i> 返回</button>
+<button class="btn btn-save" onclick="saveEntry()"><i data-lucide="save"></i> 儲存記錄</button>
+</div>
+</div>
+<button class="wm-float-close" onclick="exitWritingModes()" title="關閉全畫面">
+<i data-lucide="x" style="width: 26px; height: 26px;"></i>
+</button>
+</div>
+</div>
+<div class="modal-overlay" id="moveCopyModal" onclick="backOrClose('moveCopyModal', event)">
+<div class="modal-content" style="height:auto; max-height: 70dvh;">
+<div class="modal-header">
+<div class="modal-title"><i data-lucide="shuffle" style="width: 22px;"></i> 移動 / 複製</div>
+<button class="icon-btn" onclick="backOrClose('moveCopyModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body">
+<!-- ✅ 目標：日曆 / 記事簿（統一介面） -->
+<div class="move-mode" style="margin-bottom: 10px;">
+<button class="mini-btn active" id="mcTargetCalendar" onclick="setMoveCopyTarget('calendar')"><i data-lucide="calendar" style="width:16px;"></i> 日曆</button>
+<button class="mini-btn" id="mcTargetNotebook" onclick="setMoveCopyTarget('notebook')"><i data-lucide="notebook-text" style="width:16px;"></i> 記事簿</button>
+</div>
+<div class="move-mode" id="mcCalendarModeRow">
+<button class="mini-btn active" id="mcModeSingle" onclick="setMoveCopyMode('single')">單一日期</button>
+<button class="mini-btn" id="mcModeBulk" onclick="setMoveCopyMode('bulk')">多個日期</button>
+</div>
+<div class="move-row" id="mcNotebookBox" style="display:none;">
+<label>目標資料夾（記事簿）</label>
+<select id="mcNotebookFolder" style="width:100%; height: 46px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+<option value="">(未分類)</option>
+</select>
+<div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">提示：
                         <b>移動</b> = 直接搬去記事簿（原本嗰份會改位置）；
                         <b>複製</b> = 保留原本，再喺記事簿生成一份副本。
                     </div>
-                </div>
-
-                <div class="move-row move-single" id="moveCopySingleBox">
-                    <label>目標日期</label>
-                    <input type="date" id="moveCopyTargetDate">
-                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">提示：
+</div>
+<div class="move-row move-single" id="moveCopySingleBox">
+<label>目標日期</label>
+<input id="moveCopyTargetDate" type="date"/>
+<div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">提示：
                         <b>移動</b> = 原本嗰份會搬走；
                         <b>複製</b> = 會保留原本，再複製一份到新日子。
                     </div>
-                </div>
-
-                <div class="move-row move-bulk" id="moveCopyBulkBox">
-                    <label>批量複製到多個日子</label>
-                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top:-4px;">
+</div>
+<div class="move-row move-bulk" id="moveCopyBulkBox">
+<label>批量複製到多個日子</label>
+<div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top:-4px;">
                         你可以用「日期範圍 + 星期」生成，或者直接貼上多個日期（每行一個）。
                     </div>
-
-                    <div class="range-row" style="margin-top:6px;">
-                        <div>
-                            <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-bottom:6px;">開始日</div>
-                            
-                            <input type="date" id="moveCopyStartDate">
-                        </div>
-                        <div>
-                            <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-bottom:6px;">結束日</div>
-                            <input type="date" id="moveCopyEndDate">
-                        </div>
-                    </div>
-
-                    <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-top:10px;">包括星期</div>
-                    <div class="weekday-pills">
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="0" checked>日</label>
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="1" checked>一</label>
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="2" checked>二</label>
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="3" checked>三</label>
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="4" checked>四</label>
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="5" checked>五</label>
-                        <label class="weekday-pill"><input type="checkbox" class="mcWeekday" value="6" checked>六</label>
-                    </div>
-
-                    <div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-top:10px;">或：直接貼上日期清單</div>
-                    <textarea id="moveCopyDatesTextarea" placeholder="例如：
+<div class="range-row" style="margin-top:6px;">
+<div>
+<div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-bottom:6px;">開始日</div>
+<input id="moveCopyStartDate" type="date"/>
+</div>
+<div>
+<div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-bottom:6px;">結束日</div>
+<input id="moveCopyEndDate" type="date"/>
+</div>
+</div>
+<div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-top:10px;">包括星期</div>
+<div class="weekday-pills">
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="0"/>日</label>
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="1"/>一</label>
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="2"/>二</label>
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="3"/>三</label>
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="4"/>四</label>
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="5"/>五</label>
+<label class="weekday-pill"><input checked="" class="mcWeekday" type="checkbox" value="6"/>六</label>
+</div>
+<div style="font-size: 12px; color: var(--text-light); font-weight: bold; margin-top:10px;">或：直接貼上日期清單</div>
+<textarea id="moveCopyDatesTextarea" placeholder="例如：
 2026-06-08
 2026-06-15
 2026-06-30"></textarea>
-
-                    <div class="mc-hint" id="mcImpactHint"><span class="empty">將會影響 0 個日期（尚未有目標日期）</span></div>
-                    <div class="mc-preview" id="mcPreview"><div class="empty">預覽清單會喺呢度顯示</div></div>
-
-                    <div class="mc-progress-wrap" id="mcProgressWrap">
-                        <div class="mc-progress-label" id="mcProgressLabel">複製中…</div>
-                        <div class="mc-progress"><div class="mc-progress-bar" id="mcProgressBar"></div></div>
-                    </div>
-
-                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">
+<div class="mc-hint" id="mcImpactHint"><span class="empty">將會影響 0 個日期（尚未有目標日期）</span></div>
+<div class="mc-preview" id="mcPreview"><div class="empty">預覽清單會喺呢度顯示</div></div>
+<div class="mc-progress-wrap" id="mcProgressWrap">
+<div class="mc-progress-label" id="mcProgressLabel">複製中…</div>
+<div class="mc-progress"><div class="mc-progress-bar" id="mcProgressBar"></div></div>
+</div>
+<div style="font-size: 13px; color: var(--text-light); line-height: 1.5;">
                         建議每次最多 <b>60</b> 個日子（避免太慢或太大）。
                     </div>
-                </div>
-                <div class="move-actions">
-                    <button class="btn btn-cancel" onclick="backOrClose('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
-                    <button class="btn" style="background:#2563eb; color:white;" onclick="applyMoveOrCopy('move')"><i data-lucide="move"></i> 移動</button>
-                    <button class="btn" style="background: var(--primary); color:white;" onclick="applyMoveOrCopy('copy')"><i data-lucide="copy"></i> 複製</button>
-                    <button class="btn" style="background:#111827; color:white; display:none;" id="mcUndoBtn" onclick="undoLastBulkCopy()"><i data-lucide="rotate-ccw"></i> 撤銷</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+</div>
+<div class="move-actions">
+<button class="btn btn-cancel" onclick="backOrClose('moveCopyModal')"><i data-lucide="arrow-left"></i> 取消</button>
+<button class="btn" onclick="applyMoveOrCopy('move')" style="background:#2563eb; color:white;"><i data-lucide="move"></i> 移動</button>
+<button class="btn" onclick="applyMoveOrCopy('copy')" style="background: var(--primary); color:white;"><i data-lucide="copy"></i> 複製</button>
+<button class="btn" id="mcUndoBtn" onclick="undoLastBulkCopy()" style="background:#111827; color:white; display:none;"><i data-lucide="rotate-ccw"></i> 撤銷</button>
+</div>
+</div>
+</div>
+</div>
 <div class="modal-overlay" id="toolboxModal" onclick="backOrClose('toolboxModal', event)">
-        <div class="modal-content" style="height: auto; max-height: 85dvh;">
-            <div class="modal-header" style="padding:16px 20px;">
-                <div class="modal-title"><i data-lucide="briefcase"></i> 實用工具箱</div>
-                <button class="icon-btn" onclick="backOrClose('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="section-header" onclick="toggleSection('emergency')">🚨 緊急聯絡 <i data-lucide="chevron-down"></i></div>
-                <div id="emergency" class="section-content">
-                    <a href="tel:999" class="action-btn"><i data-lucide="phone"></i> 緊急求助 (999)</a>
-                    <a href="https://www.police.gov.hk/ppp_tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="shield-alert"></i> 香港警務處（如字太細可用雙指放大）</a>
-                </div>
-
-                <div class="section-header" onclick="toggleSection('traffic')">🚗 交通消息 <i data-lucide="chevron-down"></i></div>
-                <div id="traffic" class="section-content">
-                    <a href="https://www.hkemobility.gov.hk/tc/traffic-information/live/cctv" target="_blank" rel="noopener" class="action-btn"><i data-lucide="camera"></i> 交通快拍（手機版／香港出行易）</a>
-                    <a href="https://www.mtr.com.hk/ch/customer/jp/index.php" target="_blank" rel="noopener" class="action-btn"><i data-lucide="train-front"></i> 港鐵行程指南（路綫建議）</a>
-                    <a href="https://www.td.gov.hk/tc/special_news/spnews.htm" target="_blank" rel="noopener" class="action-btn"><i data-lucide="alert-triangle"></i> 特別交通消息（運輸署）</a>
-                </div>
-
-                <div class="section-header" onclick="toggleSection('govt')">🏛️ 生活與假期 <i data-lucide="chevron-down"></i></div>
-                <div id="govt" class="section-content">
-                    <a href="https://www.hko.gov.hk/tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="cloud-sun"></i> 香港天文台</a>
-                    <a href="https://www.gov.hk/tc/about/abouthk/holiday/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="calendar"></i> 政府公眾假期</a>
-                    <a href="https://www.gov.hk/tc/" target="_blank" rel="noopener" class="action-btn"><i data-lucide="landmark"></i> GovHK 香港政府一站通（首頁）</a>
-                </div>
-
-                <div class="section-header" onclick="toggleSection('intlDays')">🌍 國際日（聯合國） <i data-lucide="chevron-down"></i></div>
-                <div id="intlDays" class="section-content">
-                    <a href="https://www.un.org/zh/observances/international-days-and-weeks" target="_blank" rel="noopener" class="action-btn"><i data-lucide="globe"></i> 國際日與國際周（按月份）</a>
-                    <a href="https://www.un.org/zh/observances/list-days-weeks" target="_blank" rel="noopener" class="action-btn"><i data-lucide="list"></i> 國際日與國際周（完整列表）</a>
-                </div>
-
-                <div class="section-header" onclick="toggleSection('private')">📝 私人備註 (僅此手機可見) <i data-lucide="chevron-down"></i></div>
-                <div id="private" class="section-content">
-                    <textarea id="privateNote" style="width:100%; height:110px; padding:12px; border-radius:10px; border:1px solid var(--outline); background: var(--bg); color: var(--text-main);" oninput="savePrivateNote()" placeholder="輸入常用公司電話或聯絡簿..."></textarea>
-                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top: 8px;">提示：呢段內容會保存在你呢部手機嘅 localStorage，不會上傳雲端。</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<div class="modal-content" style="height: auto; max-height: 85dvh;">
+<div class="modal-header" style="padding:16px 20px;">
+<div class="modal-title"><i data-lucide="briefcase"></i> 實用工具箱</div>
+<button class="icon-btn" onclick="backOrClose('toolboxModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body">
+<div class="section-header" onclick="toggleSection('emergency')">🚨 緊急聯絡 <i data-lucide="chevron-down"></i></div>
+<div class="section-content" id="emergency">
+<a class="action-btn" href="https://www.police.gov.hk/ppp_tc/" rel="noopener" target="_blank"><i data-lucide="shield-alert"></i> 香港警務處（如字太細可用雙指放大）</a>
+</div>
+<div class="section-header" onclick="toggleSection('traffic')">🚗 交通消息 <i data-lucide="chevron-down"></i></div>
+<div class="section-content" id="traffic">
+<a class="action-btn" href="https://www.hkemobility.gov.hk/tc/traffic-information/live/cctv" rel="noopener" target="_blank"><i data-lucide="camera"></i> 交通快拍（手機版／香港出行易）</a>
+<a class="action-btn" href="https://www.mtr.com.hk/ch/customer/jp/index.php" rel="noopener" target="_blank"><i data-lucide="train-front"></i> 港鐵行程指南（路綫建議）</a>
+<a class="action-btn" href="https://www.td.gov.hk/tc/special_news/spnews.htm" rel="noopener" target="_blank"><i data-lucide="alert-triangle"></i> 特別交通消息（運輸署）</a>
+</div>
+<div class="section-header" onclick="toggleSection('govt')">🏛️ 生活與假期 <i data-lucide="chevron-down"></i></div>
+<div class="section-content" id="govt">
+<a class="action-btn" href="https://www.hko.gov.hk/tc/" rel="noopener" target="_blank"><i data-lucide="cloud-sun"></i> 香港天文台</a>
+<a class="action-btn" href="https://www.gov.hk/tc/about/abouthk/holiday/" rel="noopener" target="_blank"><i data-lucide="calendar"></i> 政府公眾假期</a>
+<a class="action-btn" href="https://www.gov.hk/tc/" rel="noopener" target="_blank"><i data-lucide="landmark"></i> GovHK 香港政府一站通（首頁）</a>
+</div>
+<div class="section-header" onclick="toggleSection('intlDays')">🌍 國際日（聯合國） <i data-lucide="chevron-down"></i></div>
+<div class="section-content" id="intlDays">
+<a class="action-btn" href="https://www.un.org/zh/observances/international-days-and-weeks" rel="noopener" target="_blank"><i data-lucide="globe"></i> 國際日與國際周（按月份）</a>
+<a class="action-btn" href="https://www.un.org/zh/observances/list-days-weeks" rel="noopener" target="_blank"><i data-lucide="list"></i> 國際日與國際周（完整列表）</a>
+</div>
+<div class="section-header" onclick="toggleSection('private')">📝 私人備註 (僅此手機可見) <i data-lucide="chevron-down"></i></div>
+<div class="section-content" id="private">
+<textarea id="privateNote" oninput="savePrivateNote()" placeholder="輸入常用公司電話或聯絡簿..." style="width:100%; height:110px; padding:12px; border-radius:10px; border:1px solid var(--outline); background: var(--bg); color: var(--text-main);"></textarea>
+<div style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-top: 8px;">提示：呢段內容會保存在你呢部手機嘅 localStorage，不會上傳雲端。</div>
+</div>
+</div>
+</div>
+</div>
 <div class="modal-overlay" id="backupModal" onclick="backOrClose('backupModal', event)">
-        <div class="modal-content" style="height: auto; max-height: 90dvh;">
-            <div class="modal-header">
-                <div class="modal-title"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> 設定與備份</div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-                </div>
-            </div>
-            <div class="modal-body">
-                
-                <button class="action-btn" style="background: #f0fff4; color: #276749; border-color: var(--outline); margin-bottom:12px;" onclick="openHelpModal()">
-                    <i data-lucide="help-circle"></i> 📖 查看詳細使用教學
+<div class="modal-content" style="height: auto; max-height: 90dvh;">
+<div class="modal-header">
+<div class="modal-title"><i data-lucide="settings" style="width: 28px; height: 28px;"></i> 設定與備份</div>
+<div style="display:flex; align-items:center; gap:8px;">
+<button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="backOrClose('backupModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+</div>
+<div class="modal-body">
+<button class="action-btn" onclick="openHelpModal()" style="background: #f0fff4; color: #276749; border-color: var(--outline); margin-bottom:12px;">
+<i data-lucide="help-circle"></i> 📖 查看詳細使用教學
                 </button>
-
-                <button class="action-btn" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;" onclick="backOrClose('backupModal'); setTimeout(() => openModal('toolboxModal'), 150);">
-                    <i data-lucide="briefcase"></i> 打開工具箱
+<button class="action-btn" onclick="backOrClose('backupModal'); setTimeout(() =&gt; openModal('toolboxModal'), 150);" style="background: var(--surface); color: var(--text-main); margin-bottom:16px;">
+<i data-lucide="briefcase"></i> 打開工具箱
                 </button>
-
-                <div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
-                    <div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
-                    <div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
-                    <div style="font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 6px;">
+<div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
+<div class="tutorial-title" style="color: #4285F4;"><i data-lucide="cloud"></i> 雙軌備份：Google 雲端無縫同步</div>
+<div class="tutorial-text" style="margin-bottom: 12px; font-size: 14px;">自動將所有文字及相片加密儲存於你個人的 Google 雲端隱藏空間內，換機秒速還原！</div>
+<div style="font-size: 13px; color: var(--text-light); line-height: 1.6; margin-bottom: 6px;">
                         相關文件：
-                        <a href="privacy.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《私隱權政策》</a>
+                        <a href="privacy.html" rel="noopener" style="color:#2563eb; font-weight:bold;" target="_blank">《私隱權政策》</a>
                         ／
-                        <a href="terms.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《服務條款》</a>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
-                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
-                        <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed var(--outline); display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
-                    </div>
-
-                    <!-- ✅ 提示：雲端並非 100% 成功，失敗時請改用本機備份 -->
-                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(245,158,11,0.55); background: rgba(245,158,11,0.08);">
-                        <div style="display:flex; align-items:flex-start; gap:10px;">
-                            <i data-lucide="alert-circle" style="width:18px; height:18px; margin-top:2px; color:#b45309;"></i>
-                            <div style="font-size: 13px; color: var(--text-main); line-height: 1.6;">
-                                <strong>重要提示：</strong>雲端同步會受網絡、Google 授權、服務狀態等影響，有時可能會出現「上傳失敗／未同步」。
-                                <br>
-                                如果你見到底部顯示 <strong>「雲端上傳失敗」</strong> 或 <strong>「雲端未同步」</strong>，建議你立即用下面嘅<br><small style="color:var(--text-light);">（系統會保留最近幾個『歷史版本』，誤上傳都仲有得揀返舊版本還原。）</small>
-                                <strong>「手動下載備份檔」</strong>，將<strong>備份檔儲存到手機</strong>（Files/檔案管理 → Download），確保資料安全。
+                        <a href="terms.html" rel="noopener" style="color:#2563eb; font-weight:bold;" target="_blank">《服務條款》</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<button class="action-btn" disabled="" id="cloudBackupBtn" onclick="cloudAction('backup')" style="background: #4285F4; color: white; border: none;" title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
+<button class="action-btn" disabled="" id="cloudRestoreBtn" onclick="cloudAction('restore')" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+<button class="action-btn" id="cloudLogoutBtn" onclick="cloudAction('logout')" style="background: #fff5f5; color: #e53e3e; border: 1px dashed var(--outline); display: none;"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
+</div>
+<!-- ✅ 提示：雲端並非 100% 成功，失敗時請改用本機備份 -->
+<div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(245,158,11,0.55); background: rgba(245,158,11,0.08);">
+<div style="display:flex; align-items:flex-start; gap:10px;">
+<i data-lucide="alert-circle" style="width:18px; height:18px; margin-top:2px; color:#b45309;"></i>
+<div style="font-size: 13px; color: var(--text-main); line-height: 1.6;">
+<strong>重要提示：</strong>雲端同步會受網絡、Google 授權、服務狀態等影響，有時可能會出現「上傳失敗／未同步」。
+                                <br/>
+                                如果你見到底部顯示 <strong>「雲端上傳失敗」</strong> 或 <strong>「雲端未同步」</strong>，建議你立即用下面嘅<br/><small style="color:var(--text-light);">（系統會保留最近幾個『歷史版本』，誤上傳都仲有得揀返舊版本還原。）</small>
+<strong>「手動下載備份檔」</strong>，將<strong>備份檔儲存到手機</strong>（Files/檔案管理 → Download），確保資料安全。
                             </div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--outline); background: rgba(66,133,244,0.06);">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <div style="font-weight:bold; color:#1f4fbf; display:flex; align-items:center; gap:8px;">
-                                <i data-lucide="repeat" style="width:18px; height:18px;"></i>
+</div>
+</div>
+<div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--outline); background: rgba(66,133,244,0.06);">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+<div style="font-weight:bold; color:#1f4fbf; display:flex; align-items:center; gap:8px;">
+<i data-lucide="repeat" style="width:18px; height:18px;"></i>
                                 自動同步（每 30 秒）
                             </div>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <label class="switch" title="開/關 自動同步">
-                                    <input id="cloudAutoSyncToggle" type="checkbox" onchange="toggleCloudAutoSyncFromUI()" />
-                                    <span class="slider"></span>
-                                </label>
-                                <span id="cloudAutoSyncLabel" style="font-weight:bold; min-width: 36px; text-align:right;">關閉</span>
-                            </div>
-                        </div>
-                        <div id="cloudAutoSyncStatus" style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
+<div style="display:flex; align-items:center; gap:10px;">
+<label class="switch" title="開/關 自動同步">
+<input id="cloudAutoSyncToggle" onchange="toggleCloudAutoSyncFromUI()" type="checkbox"/>
+<span class="slider"></span>
+</label>
+<span id="cloudAutoSyncLabel" style="font-weight:bold; min-width: 36px; text-align:right;">關閉</span>
+</div>
+</div>
+<div id="cloudAutoSyncStatus" style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
                             提示：只會喺呢個網頁保持開住嗰陣自動上傳。
                         </div>
-                    </div>
-
-                    <div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--outline); background: rgba(102,126,234,0.06);">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <div style="font-weight:bold; color:var(--primary); display:flex; align-items:center; gap:8px;">
-                                <i data-lucide="link" style="width:18px; height:18px;"></i>
+</div>
+<div style="margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--outline); background: rgba(102,126,234,0.06);">
+<div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+<div style="font-weight:bold; color:var(--primary); display:flex; align-items:center; gap:8px;">
+<i data-lucide="link" style="width:18px; height:18px;"></i>
                                 自動網址預覽
                             </div>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <label class="switch" title="開/關 自動網址預覽">
-                                    <input id="autoLinkPreviewToggle" type="checkbox" onchange="toggleAutoLinkPreview()" checked />
-                                    <span class="slider"></span>
-                                </label>
-                                <span id="autoLinkPreviewLabel" style="font-weight:bold; min-width: 36px; text-align:right;">開啟</span>
-                            </div>
-                        </div>
-                        <div style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
+<div style="display:flex; align-items:center; gap:10px;">
+<label class="switch" title="開/關 自動網址預覽">
+<input checked="" id="autoLinkPreviewToggle" onchange="toggleAutoLinkPreview()" type="checkbox"/>
+<span class="slider"></span>
+</label>
+<span id="autoLinkPreviewLabel" style="font-weight:bold; min-width: 36px; text-align:right;">開啟</span>
+</div>
+</div>
+<div style="margin-top: 8px; font-size: 13px; color: var(--text-light); line-height: 1.5;">
                             提示：輸入網址後自動產生影片或網頁預覽。
                         </div>
-                    </div>
-                </div>
-                
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
-                
-                <div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
-                <div class="action-group">
-                    <button id="printBtn" class="action-btn" style="background: #fdf2f8; color: #c53030; border-color: var(--outline);" onclick="printBlankCalendar()">
-                        <i data-lucide="printer"></i> 🖨️ 列印空白月曆
+</div>
+</div>
+<hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;"/>
+<div style="font-size: 14px; color: var(--text-light); margin-bottom: 8px; font-weight: bold;">傳統手動離線操作：</div>
+<div class="action-group">
+<button class="action-btn" id="printBtn" onclick="printBlankCalendar()" style="background: #fdf2f8; color: #c53030; border-color: var(--outline);">
+<i data-lucide="printer"></i> 🖨️ 列印空白月曆
                     </button>
-                    <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="exportData()"><i data-lucide="download"></i> 手動下載備份檔 (.txt)</button>
-                    <button id="shareBtn" class="action-btn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
-                    <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="document.getElementById('importInput').click()"><i data-lucide="upload"></i> 手動上傳並還原資料</button>
-                    <input type="file" id="importInput" accept=".json, .txt, application/json, text/plain, */*" onchange="importData(event)" style="display:none" tabindex="-1" aria-hidden="true">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img id="lightboxImg" class="lightbox-img" src="data:," alt="Enlarged Image"></div></div>
-
-    <div id="toast" class="toast"></div>
-
-    <!-- 🚨 疑似資料被清除：補救指引 -->
-    <div class="modal-overlay" id="recoveryModal" onclick="backOrClose('recoveryModal', event)">
-        <div class="modal-content" style="height:auto; max-height: 90dvh;">
-            <div class="modal-header">
-                <div class="modal-title" style="color:#e53e3e;"><i data-lucide="alert-triangle" style="width: 26px; height: 26px;"></i> 似乎你嘅資料唔見咗</div>
-                <button class="icon-btn" onclick="backOrClose('recoveryModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body" style="line-height:1.6;">
-                <div style="background: rgba(229, 62, 62, 0.06); border: 1px solid rgba(229, 62, 62, 0.35); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
-                    <div style="font-weight: 700; margin-bottom: 6px; color:#c53030;">可能原因</div>
-                    <div style="font-size: 14px; color: var(--text-main);">
-                        系統偵測到你以前似乎有用過呢個 App，但而家本機資料變成空白。<br>
+<button class="action-btn" onclick="exportData()" style="background: var(--surface); color: var(--text-main);"><i data-lucide="download"></i> 手動下載備份檔 (.txt)</button>
+<button class="action-btn" id="shareBtn" onclick="nativeShareBackup()" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);"><i data-lucide="share-2"></i> 📲 一鍵分享 / 手機 App 傳送</button>
+<button class="action-btn" onclick="document.getElementById('importInput').click()" style="background: var(--surface); color: var(--text-main);"><i data-lucide="upload"></i> 手動上傳並還原資料</button>
+<input accept=".json, .txt, application/json, text/plain, */*" aria-hidden="true" id="importInput" onchange="importData(event)" style="display:none" tabindex="-1" type="file"/>
+</div>
+</div>
+</div>
+</div>
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)"><button class="lightbox-close" onclick="closeLightbox(event)"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button><div class="lightbox-img-container"><img alt="Enlarged Image" class="lightbox-img" id="lightboxImg" src="data:,"/></div></div>
+<div class="toast" id="toast"></div>
+<!-- 🚨 疑似資料被清除：補救指引 -->
+<div class="modal-overlay" id="recoveryModal" onclick="backOrClose('recoveryModal', event)">
+<div class="modal-content" style="height:auto; max-height: 90dvh;">
+<div class="modal-header">
+<div class="modal-title" style="color:#e53e3e;"><i data-lucide="alert-triangle" style="width: 26px; height: 26px;"></i> 似乎你嘅資料唔見咗</div>
+<button class="icon-btn" onclick="backOrClose('recoveryModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body" style="line-height:1.6;">
+<div style="background: rgba(229, 62, 62, 0.06); border: 1px solid rgba(229, 62, 62, 0.35); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
+<div style="font-weight: 700; margin-bottom: 6px; color:#c53030;">可能原因</div>
+<div style="font-size: 14px; color: var(--text-main);">
+                        系統偵測到你以前似乎有用過呢個 App，但而家本機資料變成空白。<br/>
                         呢種情況通常係因為你（或系統／清理工具）清除咗瀏覽器嘅「暫存／網站資料」。
                     </div>
-                </div>
-
-                <div style="font-weight: 800; margin-bottom: 8px;">你而家可以點做（跟住做就得）</div>
-
-                <div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
-                    <div class="tutorial-title"><i data-lucide="upload" style="color:#2b6cb0;"></i> A) 如果你之前有下載過備份檔：直接上傳還原</div>
-                    <div class="tutorial-text" style="font-size: 14px;">
-                        1）先去搵返你之前下載嘅備份檔（通常檔名會係 .txt 或 .json）。<br>
+</div>
+<div style="font-weight: 800; margin-bottom: 8px;">你而家可以點做（跟住做就得）</div>
+<div class="tutorial-box" style="border-color: var(--outline); background: #f8faff;">
+<div class="tutorial-title"><i data-lucide="upload" style="color:#2b6cb0;"></i> A) 如果你之前有下載過備份檔：直接上傳還原</div>
+<div class="tutorial-text" style="font-size: 14px;">
+                        1）先去搵返你之前下載嘅備份檔（通常檔名會係 .txt 或 .json）。<br/>
                         2）返嚟呢度撳下面「立即上傳備份檔」→ 揀返嗰個檔案 → 就會開始還原。
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:10px; margin-top: 10px;">
-                        <button class="action-btn" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);" onclick="backOrClose('recoveryModal'); setTimeout(() => { try { openModal('backupModal'); } catch(_) {} }, 50);">
-                            <i data-lucide="settings"></i> 打開「設定與備份」
+<div style="display:flex; flex-direction:column; gap:10px; margin-top: 10px;">
+<button class="action-btn" onclick="backOrClose('recoveryModal'); setTimeout(() =&gt; { try { openModal('backupModal'); } catch(_) {} }, 50);" style="background: #ebf8ff; color: #2b6cb0; border-color: var(--outline);">
+<i data-lucide="settings"></i> 打開「設定與備份」
                         </button>
-                        <button class="action-btn" style="background: var(--surface); color: var(--text-main);" onclick="try { document.getElementById('importInput').click(); } catch(e) { console.error(e); }">
-                            <i data-lucide="upload"></i> 立即上傳備份檔並還原
+<button class="action-btn" onclick="try { document.getElementById('importInput').click(); } catch(e) { console.error(e); }" style="background: var(--surface); color: var(--text-main);">
+<i data-lucide="upload"></i> 立即上傳備份檔並還原
                         </button>
-                    </div>
-                </div>
-
-                <div class="tutorial-box" style="border-color: var(--outline); background: #f0fff4;">
-                    <div class="tutorial-title"><i data-lucide="cloud" style="color:#276749;"></i> B) 如果你之前有用 Google 雲端同步：登入後按「從雲端還原」</div>
-                    <div class="tutorial-text" style="font-size: 14px;">
+</div>
+</div>
+<div class="tutorial-box" style="border-color: var(--outline); background: #f0fff4;">
+<div class="tutorial-title"><i data-lucide="cloud" style="color:#276749;"></i> B) 如果你之前有用 Google 雲端同步：登入後按「從雲端還原」</div>
+<div class="tutorial-text" style="font-size: 14px;">
                         你可以喺「設定與備份」入面登入 Google，然後撳「從雲端還原至本機」（可揀最新／歷史版本）。
                     </div>
-                </div>
-
-                <div class="tutorial-box" style="border-color: var(--outline); background: #fffaf0;">
-                    <div class="tutorial-title"><i data-lucide="folder-open" style="color:#b7791f;"></i> C) 唔知備份檔喺邊？（常見位置）</div>
-                    <div class="tutorial-text" style="font-size: 14px;">
-                        <strong>iPhone / iPad（Safari）</strong>：打開「檔案」App → <strong>下載項目</strong>／<strong>iCloud Drive</strong>／<strong>在我的 iPhone</strong>，再用搜尋打「備份」或揾 .txt / .json。<br>
-                        <strong>Android（Chrome）</strong>：打開「Files / 檔案管理」→ <strong>Download</strong>（下載）資料夾。<br>
-                        <strong>電腦（Chrome/Edge/Safari）</strong>：通常喺 <strong>Downloads（下載）</strong> 資料夾。<br>
-                        <strong>如果你用過「一鍵分享」</strong>：可能喺你當時揀嘅 App 入面（例如 WhatsApp/Telegram 對話、電郵附件、AirDrop 收件、雲端硬碟）。
+</div>
+<div class="tutorial-box" style="border-color: var(--outline); background: #fffaf0;">
+<div class="tutorial-title"><i data-lucide="folder-open" style="color:#b7791f;"></i> C) 唔知備份檔喺邊？（常見位置）</div>
+<div class="tutorial-text" style="font-size: 14px;">
+<strong>iPhone / iPad（Safari）</strong>：打開「檔案」App → <strong>下載項目</strong>／<strong>iCloud Drive</strong>／<strong>在我的 iPhone</strong>，再用搜尋打「備份」或揾 .txt / .json。<br/>
+<strong>Android（Chrome）</strong>：打開「Files / 檔案管理」→ <strong>Download</strong>（下載）資料夾。<br/>
+<strong>電腦（Chrome/Edge/Safari）</strong>：通常喺 <strong>Downloads（下載）</strong> 資料夾。<br/>
+<strong>如果你用過「一鍵分享」</strong>：可能喺你當時揀嘅 App 入面（例如 WhatsApp/Telegram 對話、電郵附件、AirDrop 收件、雲端硬碟）。
                     </div>
-                </div>
-
-                <div style="font-size: 13px; color: var(--text-light); margin-top: 10px;">
+</div>
+<div style="font-size: 13px; color: var(--text-light); margin-top: 10px;">
                     提示：如果你冇任何備份/雲端同步，瀏覽器清除咗本機資料後通常係無法由程式自動救返。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ 記事薄（參考你提供的 ColorNote 列表） -->
-    <div class="modal-overlay" id="notebookModal" onclick="backOrClose('notebookModal', event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title"><i data-lucide="notebook-text" style="width: 22px;"></i> 記事薄</div>
-                <div>
-                    <button class="icon-btn" id="notebookBulkToggleBtn" onclick="toggleNotebookBulkMode()" title="批量刪除" style="display:inline-flex;"><i data-lucide="list-checks" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px; flex-wrap: wrap;">
-                    <button id="notebookFolderBtn" onclick="openFolderModeModal()" style="flex:1; min-width: 180px; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none; display:flex; align-items:center; justify-content:space-between; gap:8px;" title="選擇要顯示嘅資料夾（可多選）"><span id="notebookFolderBtnText">全部資料夾</span><i data-lucide="chevrons-down" style="width:18px; height:18px; opacity:0.8;"></i></button><input type="hidden" id="notebookFolder" value="all" />
-                    <button class="icon-btn" onclick="openFolderModeModal()" title="資料夾模式"><i data-lucide="folder" style="width: 22px; height: 22px;"></i></button>
-								<button class="icon-btn" onclick="addNotebookFolderQuick()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
-                    <select id="notebookSort" onchange="renderNotebookList()" style="flex:1; min-width: 180px; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
-                        <option value="updated">依修改的時間排序</option>
-                        <option value="date">依日期排序（新 → 舊）</option>
-                        <option value="color">依標籤排序</option>
-                    </select>
-                    <button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
-								<button class="icon-btn" onclick="event.stopPropagation(); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
-                </div>
-
-                <div id="notebookBulkToolbar" class="bulk-toolbar" style="display:none;">
-                    <button class="tool-btn" onclick="notebookBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
-                    <button class="tool-btn" onclick="notebookBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
-                    <button class="tool-btn tool-btn-alarm" onclick="notebookBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="notebookBulkCount">0</span>)</button>
-                    <button class="tool-btn" onclick="exitNotebookBulkMode()"><i data-lucide="x" style="width:16px;"></i> 取消</button>
-                </div>
-
-                <div id="notebookHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：可用「資料夾」篩選；點一下打開詳情。</div>
-
-                <div class="entry-list" id="notebookList"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ 資料夾模式：一頁顯示多個資料夾，按入去睇內容 -->
-    <div class="modal-overlay" id="folderModeModal" onclick="backOrClose('folderModeModal', event)">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title"><i data-lucide="folders" style="width: 22px;"></i> 資料夾</div>
-                <div>
-                    <button class="icon-btn" onclick="toggleFolderModeManage()" title="刪除模式"><i data-lucide="trash-2" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="addFolderFromFolderMode()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="manageNotebookFolders()" title="進階管理（批次改名/整理）"><i data-lucide="settings" style="width: 22px; height: 22px;"></i></button>
-                    <button class="icon-btn" onclick="backOrClose('folderModeModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-                </div>
-            </div>
-            <div class="modal-body">
-                <div id="folderModeHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：點一下可篩選資料夾；雙擊 / 長按可直接打開單一資料夾；右上角垃圾桶可切換刪除模式。</div>
-                <div id="folderModeGrid" class="folder-grid"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="searchModal" onclick="backOrClose('searchModal', event)">
-        <!-- 🔎 搜尋視窗：縮細啲，避免得幾行都霸晒成版 -->
-        <div class="modal-content" style="height: auto; max-height: 60dvh;">
-            <div class="modal-header">
-                <div class="modal-title"><i data-lucide="search" style="width: 22px;"></i> 搜尋記事</div>
-                <button class="icon-btn" onclick="backOrClose('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
-            </div>
-            <div class="modal-body">
-                <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
-                    <input id="searchInput" type="text" placeholder="輸入關鍵字，例如：2025" 
-                           style="flex:1; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;" 
-                           oninput="debouncedSearch()" />
-                    <button class="icon-btn" onclick="clearSearch()" title="清除"><i data-lucide="eraser" style="width: 22px; height: 22px;"></i></button>
-                </div>
-
-                <div id="searchHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">
+</div>
+</div>
+</div>
+<!-- ✅ 記事薄（參考你提供的 ColorNote 列表） -->
+<div class="modal-overlay" id="notebookModal" onclick="backOrClose('notebookModal', event)">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title"><i data-lucide="notebook-text" style="width: 22px;"></i> 記事薄</div>
+<div>
+<button class="icon-btn" id="notebookBulkToggleBtn" onclick="toggleNotebookBulkMode()" style="display:inline-flex;" title="批量刪除"><i data-lucide="list-checks" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="backOrClose('notebookModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+</div>
+<div class="modal-body">
+<div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px; flex-wrap: wrap;">
+<button id="notebookFolderBtn" onclick="openFolderModeModal()" style="flex:1; min-width: 180px; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none; display:flex; align-items:center; justify-content:space-between; gap:8px;" title="選擇要顯示嘅資料夾（可多選）"><span id="notebookFolderBtnText">全部資料夾</span><i data-lucide="chevrons-down" style="width:18px; height:18px; opacity:0.8;"></i></button><input id="notebookFolder" type="hidden" value="all"/>
+<button class="icon-btn" onclick="openFolderModeModal()" title="資料夾模式"><i data-lucide="folder" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="addNotebookFolderQuick()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
+<select id="notebookSort" onchange="renderNotebookList()" style="flex:1; min-width: 180px; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;">
+<option value="updated">依修改的時間排序</option>
+<option value="date">依日期排序（新 → 舊）</option>
+<option value="color">依標籤排序</option>
+</select>
+<button class="icon-btn" onclick="openSearchModal()" title="搜尋"><i data-lucide="search" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="event.stopPropagation(); openEditorForNotebook();" title="新增記事（記事簿）"><i data-lucide="pen-line" style="width: 22px; height: 22px;"></i></button>
+</div>
+<div class="bulk-toolbar" id="notebookBulkToolbar" style="display:none;">
+<button class="tool-btn" onclick="notebookBulkSelectAll()"><i data-lucide="check-square" style="width:16px;"></i> 全選</button>
+<button class="tool-btn" onclick="notebookBulkClearSelection()"><i data-lucide="square" style="width:16px;"></i> 清除</button>
+<button class="tool-btn tool-btn-alarm" onclick="notebookBulkDeleteSelected()"><i data-lucide="trash-2" style="width:16px;"></i> 刪除 (<span id="notebookBulkCount">0</span>)</button>
+<button class="tool-btn" onclick="exitNotebookBulkMode()"><i data-lucide="x" style="width:16px;"></i> 取消</button>
+</div>
+<div id="notebookHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：可用「資料夾」篩選；點一下打開詳情。</div>
+<div class="entry-list" id="notebookList"></div>
+</div>
+</div>
+</div>
+<!-- ✅ 資料夾模式：一頁顯示多個資料夾，按入去睇內容 -->
+<div class="modal-overlay" id="folderModeModal" onclick="backOrClose('folderModeModal', event)">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title"><i data-lucide="folders" style="width: 22px;"></i> 資料夾</div>
+<div>
+<button class="icon-btn" onclick="toggleFolderModeManage()" title="刪除模式"><i data-lucide="trash-2" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="addFolderFromFolderMode()" title="新增資料夾"><i data-lucide="folder-plus" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="manageNotebookFolders()" title="進階管理（批次改名/整理）"><i data-lucide="settings" style="width: 22px; height: 22px;"></i></button>
+<button class="icon-btn" onclick="backOrClose('folderModeModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+</div>
+<div class="modal-body">
+<div id="folderModeHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">提示：點一下可篩選資料夾；雙擊 / 長按可直接打開單一資料夾；右上角垃圾桶可切換刪除模式。</div>
+<div class="folder-grid" id="folderModeGrid"></div>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="searchModal" onclick="backOrClose('searchModal', event)">
+<!-- 🔎 搜尋視窗：縮細啲，避免得幾行都霸晒成版 -->
+<div class="modal-content" style="height: auto; max-height: 60dvh;">
+<div class="modal-header">
+<div class="modal-title"><i data-lucide="search" style="width: 22px;"></i> 搜尋記事</div>
+<button class="icon-btn" onclick="backOrClose('searchModal')"><i data-lucide="x" style="width: 28px; height: 28px;"></i></button>
+</div>
+<div class="modal-body">
+<div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
+<input id="searchInput" oninput="debouncedSearch()" placeholder="輸入關鍵字，例如：2025" style="flex:1; padding: 12px 14px; border: 1px solid var(--outline); border-radius: 12px; background: var(--surface); color: var(--text-main); font-size: 16px; outline:none;" type="text"/>
+<button class="icon-btn" onclick="clearSearch()" title="清除"><i data-lucide="eraser" style="width: 22px; height: 22px;"></i></button>
+</div>
+<div id="searchHint" style="font-size: 14px; color: var(--text-light); line-height: 1.5; margin-bottom: 10px;">
                     提示：會搜尋你所有記事正文（同日期字串）。
                 </div>
-
-                <div class="entry-list" id="searchResultList"></div>
-            </div>
-        </div>
-    </div>
-
-        </div>
-    </div>
-
-    <script>
+<div class="entry-list" id="searchResultList"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
         // =========================
         // 🧩 Space 分區（提前定義，避免載入途中點擊造成 TDZ）
         // =========================
@@ -7218,73 +7113,9 @@ lucide.createIcons();
         // =============================
         // 🔧 朗讀自檢（Android 排查用）
         // =============================
+        // 已移除 UI 測試按鈕（保留函數空殼，避免舊連結/呼叫報錯）
         async function ttsSelfTestFromUI() {
-            try {
-                if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
-                    try { showToast('⚠️ 此瀏覽器不支援朗讀（speechSynthesis 不存在）', 'error'); } catch (_) {}
-                    return;
-                }
-
-                // 先清空 queue，避免「以為朗讀緊」但其實卡住
-                try { speechSynthesis.cancel(); } catch (_) {}
-
-                // 收集狀態
-                let voices = [];
-                try { voices = await __waitForVoices(2500); } catch (_) { voices = __getVoicesSafe(); }
-
-                const info = {
-                    ua: navigator.userAgent,
-                    voices: voices ? voices.length : 0,
-                    speaking: !!speechSynthesis.speaking,
-                    pending: !!speechSynthesis.pending,
-                    paused: !!speechSynthesis.paused
-                };
-                console.log('[TTS SELFTEST] info=', info);
-
-                // 連續測 2 次：一次 zh-HK，一次 zh-CN
-                const runOne = (lang, text) => new Promise((resolve) => {
-                    let started = false;
-                    const u = new SpeechSynthesisUtterance(text);
-                    u.lang = lang;
-                    u.rate = 1.0;
-                    u.pitch = 1.0;
-                    u.volume = 1.0;
-                    u.onstart = () => { started = true; console.log('[TTS SELFTEST] onstart', lang); };
-                    u.onend = () => { console.log('[TTS SELFTEST] onend', lang); resolve({ lang, started, ended: true }); };
-                    u.onerror = (e) => { console.warn('[TTS SELFTEST] onerror', lang, e); resolve({ lang, started, ended: false, error: e }); };
-
-                    try { speechSynthesis.speak(u); } catch (e) { resolve({ lang, started: false, ended: false, error: e }); return; }
-
-                    // watchdog：1.6 秒未 start → 當作無聲
-                    setTimeout(() => {
-                        try {
-                            if (!started) {
-                                console.warn('[TTS SELFTEST] no onstart within 1600ms', lang);
-                                try { speechSynthesis.cancel(); } catch (_) {}
-                                resolve({ lang, started: false, ended: false, silent: true });
-                            }
-                        } catch (_) {}
-                    }, 1600);
-                });
-
-                try { showToast('🩺 朗讀自檢：會讀兩句測試字', 'success'); } catch (_) {}
-                const r1 = await runOne('zh-HK', '自檢一：一二三四。');
-                const r2 = await runOne('zh-CN', '自檢二：一二三四。');
-
-                console.log('[TTS SELFTEST] result=', { r1, r2 });
-
-                // 結果提示
-                if ((r1 && r1.started) || (r2 && r2.started)) {
-                    try { showToast('✅ 自檢：裝置有出聲能力（詳情見 Console）', 'success'); } catch (_) {}
-                } else {
-                    // 兩個都無 start：幾肯定係 Android 系統 TTS 當刻死咗/被禁
-                    try { showToast('❌ 自檢：兩句都無聲（多數係 Android 系統 TTS / Google 語音服務當刻失效）\n→ 試：換 Chrome 開 / 重開瀏覽器 / 設定-文字轉語音揀 Speech Services by Google', 'error'); } catch (_) {}
-                }
-
-            } catch (e) {
-                console.error(e);
-                try { showToast('⚠️ 自檢失敗：' + (e && e.message ? e.message : '未知錯誤'), 'error'); } catch (_) {}
-            }
+            try { console.warn('TTS self-test disabled'); } catch (_) {}
         }
 
 
@@ -10022,6 +9853,13 @@ function handleImageUpload(event) {
             const shareBtn = document.getElementById('shareBtn');
             const originalHTML = shareBtn.innerHTML;
 
+            // Web Share API（特別係「分享檔案」）多數需要 HTTPS / 已安裝的 PWA。
+            // 如果用 file:// 直接開本機 HTML，Edge/Android/iOS 都可能直接唔俾 share。
+            if (location.protocol === 'file:') {
+                alert('⚠️ 你而家係用「本機檔案 (file://)」方式開啟，所以系統分享通常會失效。\n\n建議：\n1) 用 Edge 安裝成 App（或用 https/localhost 開啟）\n2) 或改用「下載備份檔案」功能。');
+                return;
+            }
+
             try {
                 shareBtn.innerHTML = '<i data-lucide="loader"></i> 準備檔案中...';
                 lucide.createIcons();
@@ -10043,7 +9881,10 @@ function handleImageUpload(event) {
                         files: [file]
                     });
                 } else {
-                    alert('⚠️ 系統偵測到你的瀏覽器唔支援直接分享檔案。\n\n請使用上方的「下載備份檔案」功能！');
+                    // 後備：不少桌面瀏覽器/部分 iOS 版本唔支援「分享檔案」
+                    // 直接幫你走「下載備份檔案」流程，避免睇到提示都唔知點做。
+                    alert('⚠️ 你而家嘅瀏覽器唔支援「直接分享檔案」。\n\n我會改為自動下載備份檔案，之後你可以用 WhatsApp/Telegram/電郵/雲端硬碟 手動傳送。');
+                    await exportData();
                 }
             } catch (error) {
                 shareBtn.innerHTML = originalHTML;
@@ -10281,9 +10122,8 @@ function handleImageUpload(event) {
             try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
         };
     </script>
-
-    <!-- ✅ Split View controller：大屏兩欄（左月曆＋右側記事 Panel），窄視窗自動回到垂直 -->
-    <script>
+<!-- ✅ Split View controller：大屏兩欄（左月曆＋右側記事 Panel），窄視窗自動回到垂直 -->
+<script>
     (function splitViewController(){
         const SPLIT_MQ = window.matchMedia('(min-width: 1100px)');
         const PANEL_IDS = ['dayModal','readModal','editorModal'];
@@ -10330,7 +10170,6 @@ function handleImageUpload(event) {
         }
     })();
     </script>
-
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script crossorigin="anonymous" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' defer="" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447"></script>
 </body>
 </html>
