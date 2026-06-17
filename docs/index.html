@@ -7001,6 +7001,22 @@ lucide.createIcons();
                 console.log('[TTS] contentLen=', content.length, 'voices=', v.length, 'lang=', (__TTS.lang||''));
             } catch (_) {}
 
+            // ✅ iOS / 部份 WebView：需要先「解鎖」音訊輸出，否則會出現「已排隊但冇聲」
+            // 做法：喺用家點擊之後先播一個極短/空白 utterance，再 cancel。
+            try {
+                const unlock = new SpeechSynthesisUtterance(' ');
+                unlock.lang = __TTS.lang;
+                speechSynthesis.cancel();
+                speechSynthesis.speak(unlock);
+                // 立即 cancel，目的只係解鎖 audio
+                // ⚠️ 但唔可以影響真正朗讀：如果已經進入 active，就唔再 cancel
+                setTimeout(() => {
+                    try { if (!__TTS.active) speechSynthesis.cancel(); } catch (_) {}
+                }, 60);
+            } catch (e) {
+                // ignore
+            }
+
             // iOS/某些瀏覽器：voices 係異步 ready
             const applyVoiceAndStart = () => {
                 __TTS.voice = pickBestCantoneseVoice();
