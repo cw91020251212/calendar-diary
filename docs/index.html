@@ -985,6 +985,18 @@
         .weather-btn { flex-shrink: 0; background: var(--surface); border: 1px solid var(--outline); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .weather-btn.selected-weather { background: var(--primary) !important; color: white !important; border-color: var(--outline) !important; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
 
+        /* ✅ 電腦端：工具列可用滑鼠滾輪/拖拽橫向捲動（避免按鈕被遮住） */
+        @media (hover: hover) and (pointer: fine) {
+            .editor-toolbar, .weather-toolbar { cursor: grab; }
+            .editor-toolbar.dragging, .weather-toolbar.dragging { cursor: grabbing; user-select: none; }
+            /* 顯示細 scrollbar（手機仍然隱藏） */
+            .editor-toolbar::-webkit-scrollbar, .weather-toolbar::-webkit-scrollbar { display: block !important; height: 8px; }
+            .editor-toolbar::-webkit-scrollbar-thumb, .weather-toolbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 999px; }
+            body.theme-dark .editor-toolbar::-webkit-scrollbar-thumb, body.theme-dark .weather-toolbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); }
+            .editor-toolbar { scrollbar-width: thin; }
+            .weather-toolbar { scrollbar-width: thin; }
+        }
+
         /* 🌤️ 編輯模式：天氣工具列同樣縮細（同上面工具列一致） */
         #editorModal .weather-toolbar { gap: 6px; margin-bottom: 8px; padding-bottom: 4px; }
         #editorModal .weather-toolbar .weather-btn {
@@ -9728,6 +9740,71 @@ function handleImageUpload(event) {
         } else {
             observePanelActive(); applySplitView();
         }
+    })();
+    </script>
+
+    <!-- ✅ 電腦端：令工具列可用滑鼠左右移動（滾輪/拖拽） -->
+    <script>
+    (function enableDesktopHorizontalToolbars(){
+        function attach(el){
+            if (!el || el.dataset.desktopScrollAttached === '1') return;
+            el.dataset.desktopScrollAttached = '1';
+
+            // 1) 滾輪：用垂直滾輪推動橫向（trackpad/滑鼠都得）
+            el.addEventListener('wheel', (e) => {
+                const absX = Math.abs(e.deltaX || 0);
+                const absY = Math.abs(e.deltaY || 0);
+                const wantsHorizontal = e.shiftKey || absY > absX;
+                if (!wantsHorizontal) return;
+
+                const delta = e.shiftKey ? (e.deltaY || e.deltaX) : (e.deltaY || 0);
+                if (!delta) return;
+                el.scrollLeft += delta;
+                e.preventDefault();
+            }, { passive: false });
+
+            // 2) 拖拽：按住左鍵拖動
+            let isDown = false;
+            let startX = 0;
+            let startLeft = 0;
+
+            el.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                isDown = true;
+                el.classList.add('dragging');
+                startX = e.pageX;
+                startLeft = el.scrollLeft;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (!isDown) return;
+                isDown = false;
+                el.classList.remove('dragging');
+            }, { passive: true });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const walk = (e.pageX - startX);
+                el.scrollLeft = startLeft - walk;
+            }, { passive: false });
+        }
+
+        function apply(){
+            const isDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+            if (!isDesktopPointer) return;
+            document.querySelectorAll('.editor-toolbar, .weather-toolbar').forEach(attach);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', apply);
+        } else {
+            apply();
+        }
+
+        // 若工具列之後動態重建（某些情況會重新 render），再掃一次
+        window.addEventListener('focus', apply, { passive: true });
+        window.addEventListener('resize', apply, { passive: true });
     })();
     </script>
 
