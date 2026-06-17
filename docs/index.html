@@ -9553,7 +9553,7 @@ function handleImageUpload(event) {
                 } catch (_) {}
 
                 if (!('caches' in window)) return;
-                const cache = await caches.open('diary-share-cache-v3');
+                const cache = await caches.open('diary-share-cache-v4');
 
                 // 同時兼容不同部署路徑：嘗試用相對 key
 

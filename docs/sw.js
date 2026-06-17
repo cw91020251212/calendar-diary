@@ -7,7 +7,17 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    // ✅ 清理舊版本 share cache，避免頁面讀錯版本而以為「收唔到分享」
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys
+        .filter(k => k.startsWith('diary-share-cache-') && k !== SHARE_CACHE)
+        .map(k => caches.delete(k)));
+    } catch (_) {}
+
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('message', (event) => {
