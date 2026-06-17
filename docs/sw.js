@@ -5,6 +5,7 @@ const ASSETS = [
   './index.html',
   './manifest.json',
   './manifest.webmanifest',
+  './receive.html',
   './share-target.html',
   './icon-192.png',
   './icon-512.png',
@@ -33,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  if (req.method === 'POST' && (url.pathname.endsWith('/share-target') || url.pathname.endsWith('/share-target.html'))) {
+  if (req.method === 'POST' && (url.pathname.endsWith('/share-target') || url.pathname.endsWith('/share-target.html') || url.pathname.endsWith('/receive.html'))) {
     event.respondWith(handleShareTarget(event));
     return;
   }
@@ -78,5 +79,5 @@ async function handleShareTarget(event) {
     }));
   }
 
-  return Response.redirect(`./index.html?share_key=${encodeURIComponent(key)}`, 303);
+  return Response.redirect(`./receive.html?share_key=${encodeURIComponent(key)}`, 303);
 }

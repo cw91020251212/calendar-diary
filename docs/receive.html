@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#22c55e"/>
+  <title>接收分享｜日曆記事本</title>
+  <style>
+    :root{--bg:#0b1220;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.12);--text:#fff;--muted:rgba(255,255,255,.75);--ok:#22c55e}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:860px;margin:0 auto;padding:16px 14px 24px}
+    .card{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:14px}
+    h1{margin:8px 0 10px;font-size:18px;font-weight:900}
+    .sub{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.5}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid var(--line);background:transparent;color:var(--text);padding:10px 12px;border-radius:12px;font-weight:900;cursor:pointer}
+    .btn.primary{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.14)}
+    .btn:active{transform:scale(.99)}
+    .kv{display:grid;grid-template-columns:110px 1fr;gap:8px 10px;margin-top:10px}
+    .k{color:var(--muted);font-size:13px;font-weight:800}
+    .v{font-size:14px;word-break:break-word}
+    .preview{margin-top:12px;border:1px dashed rgba(255,255,255,.22);border-radius:14px;padding:12px}
+    img{max-width:100%;height:auto;border-radius:12px;display:block}
+    pre{white-space:pre-wrap;word-break:break-word;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12.5px;color:rgba(255,255,255,.9)}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid rgba(34,197,94,.55);background:rgba(34,197,94,.14);color:#d7ffe7;font-weight:900;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="badge" id="status">接收中…</div>
+      <h1>接收分享</h1>
+      <p class="sub">呢頁係獨立接收流程：收到檔案後你可以預覽、保存，然後再返回主頁。</p>
+
+      <div class="kv" id="metaBox" style="display:none"></div>
+
+      <div class="preview" id="previewBox" style="display:none"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnSave" disabled>保存檔案</button>
+        <button class="btn" id="btnHome">返回主頁</button>
+      </div>
+
+      <p class="sub" id="hint" style="margin-top:12px">提示：如果你每次都跳咗去呢頁但冇內容，多數係未重新安裝／舊 Service Worker cache 未更新。</p>
+    </div>
+  </div>
+
+<script>
+(async function(){
+  const statusEl = document.getElementById('status');
+  const metaBox = document.getElementById('metaBox');
+  const previewBox = document.getElementById('previewBox');
+  const btnSave = document.getElementById('btnSave');
+  const btnHome = document.getElementById('btnHome');
+
+  btnHome.addEventListener('click', () => {
+    location.href = './index.html';
+  });
+
+  const qs = new URLSearchParams(location.search);
+  const key = qs.get('share_key');
+  if (!key) {
+    statusEl.textContent = '冇收到分享內容';
+    return;
+  }
+
+  let meta = null;
+  let blob = null;
+
+  try {
+    const metaRes = await fetch(`./__share/meta/${encodeURIComponent(key)}.json`, { cache: 'no-store' });
+    if (metaRes.ok) meta = await metaRes.json();
+  } catch(e) {}
+
+  try {
+    const fileRes = await fetch(`./__share/file/${encodeURIComponent(key)}`, { cache: 'no-store' });
+    if (fileRes.ok) blob = await fileRes.blob();
+  } catch(e) {}
+
+  if (!meta && !blob) {
+    statusEl.textContent = '冇收到分享內容';
+    return;
+  }
+
+  statusEl.textContent = '已接收';
+
+  // render meta
+  if (meta) {
+    metaBox.style.display = 'grid';
+    const fileName = meta.files && meta.files[0] && meta.files[0].name ? meta.files[0].name : '';
+    const fileType = meta.files && meta.files[0] && meta.files[0].type ? meta.files[0].type : (blob ? blob.type : '');
+    const fileSize = meta.files && meta.files[0] && meta.files[0].size ? meta.files[0].size : (blob ? blob.size : '');
+
+    metaBox.innerHTML = [
+      ['標題', meta.title || '—'],
+      ['文字', meta.text || '—'],
+      ['URL', meta.url || '—'],
+      ['檔名', fileName || '—'],
+      ['類型', fileType || '—'],
+      ['大小', fileSize ? (Math.round(fileSize/1024) + ' KB') : '—']
+    ].map(([k,v]) => `
+      <div class="k">${escapeHtml(k)}</div>
+      <div class="v">${linkify(escapeHtml(String(v)))}</div>
+    `).join('');
+  }
+
+  // preview
+  if (blob) {
+    previewBox.style.display = 'block';
+
+    const type = blob.type || '';
+    const name = (meta && meta.files && meta.files[0] && meta.files[0].name) ? meta.files[0].name : 'shared-file';
+
+    const url = URL.createObjectURL(blob);
+
+    if (type.startsWith('image/')) {
+      previewBox.innerHTML = `<div class="k" style="margin-bottom:8px">預覽</div><img alt="preview" src="${url}">`;
+    } else if (type.startsWith('text/') || name.toLowerCase().endsWith('.txt') || name.toLowerCase().endsWith('.md') || name.toLowerCase().endsWith('.json') ) {
+      const text = await blob.text();
+      previewBox.innerHTML = `<div class="k" style="margin-bottom:8px">預覽</div><pre>${escapeHtml(text.slice(0, 20000))}${text.length>20000?'\n\n…(已截斷)':''}</pre>`;
+    } else if (type === 'application/pdf' || name.toLowerCase().endsWith('.pdf')) {
+      previewBox.innerHTML = `<div class="k" style="margin-bottom:8px">預覽</div><div class="sub">PDF 預覽需要瀏覽器支援；如睇唔到請直接保存。</div><iframe title="pdf" src="${url}" style="width:100%;height:65vh;border:0;border-radius:12px;background:#fff"></iframe>`;
+    } else {
+      previewBox.innerHTML = `<div class="k" style="margin-bottom:8px">預覽</div><div class="sub">呢種檔案暫時唔做內嵌預覽，你可以直接保存。</div>`;
+    }
+
+    btnSave.disabled = false;
+    btnSave.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // keep URL for possible re-download; revoke later
+      setTimeout(() => URL.revokeObjectURL(url), 8000);
+
+      statusEl.textContent = '已保存（已觸發下載）';
+    }, { once: true });
+  }
+
+  // clean URL (so refresh won't duplicate)
+  try {
+    qs.delete('share_key');
+    const newQs = qs.toString();
+    history.replaceState(null, '', location.pathname + (newQs ? ('?' + newQs) : '') + location.hash);
+  } catch(e) {}
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"]+/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]||c));
+  }
+  function linkify(s){
+    return s.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#9ae6b4">$1</a>');
+  }
+})();
+</script>
+</body>
+</html>
