@@ -6913,8 +6913,11 @@ lucide.createIcons();
 
             try {
                 speechSynthesis.speak(u);
+                // ✅ iOS/部份瀏覽器偶爾會「已排隊但唔出聲」：輕推一下 resume
+                setTimeout(() => { try { speechSynthesis.resume(); } catch (_) {} }, 60);
             } catch (e) {
                 console.error(e);
+                try { showToast('⚠️ 朗讀失敗：' + (e && e.message ? e.message : '未知錯誤'), 'error'); } catch (_) {}
                 stopReadSpeak(true);
             }
         }
@@ -6922,14 +6925,16 @@ lucide.createIcons();
         function startReadSpeak() {
             const content = buildSpeakableFromCurrentEntry();
             if (!content) {
-                try { showToast('⚠️ 無可朗讀內容', 'error'); } catch (_) {}
+                try { showToast('⚠️ 無可朗讀內容', 'error'); } catch (_) { alert('無可朗讀內容'); }
                 return;
             }
 
             if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
-                try { showToast('⚠️ 此瀏覽器不支援朗讀', 'error'); } catch (_) {}
+                try { showToast('⚠️ 此瀏覽器不支援朗讀', 'error'); } catch (_) { alert('此瀏覽器不支援朗讀'); }
                 return;
             }
+
+            try { showToast('🔊 準備朗讀…', 'success'); } catch (_) {}
 
             // iOS/某些瀏覽器：voices 係異步 ready
             const applyVoiceAndStart = () => {
@@ -6966,7 +6971,11 @@ lucide.createIcons();
         }
 
         function toggleReadSpeak() {
-            if (!window.speechSynthesis) { startReadSpeak(); return; }
+            // ✅ 如果瀏覽器唔支援，就即時提示（避免「冇反應」）
+            if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+                try { showToast('⚠️ 呢個瀏覽器/模式唔支援朗讀', 'error'); } catch (_) { alert('此瀏覽器不支援朗讀'); }
+                return;
+            }
 
             if (!__TTS.active) {
                 startReadSpeak();
@@ -6979,13 +6988,16 @@ lucide.createIcons();
                     speechSynthesis.resume();
                     __TTS.paused = false;
                     __setSpeakUiState(true, false);
+                    try { showToast('▶️ 繼續朗讀', 'success'); } catch (_) {}
                 } else {
                     speechSynthesis.pause();
                     __TTS.paused = true;
                     __setSpeakUiState(true, true);
+                    try { showToast('⏸️ 已暫停', 'success'); } catch (_) {}
                 }
             } catch (e) {
                 console.error(e);
+                try { showToast('⚠️ 朗讀控制失敗（請再試）', 'error'); } catch (_) {}
             }
         }
 
