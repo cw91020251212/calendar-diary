@@ -5324,26 +5324,6 @@ function initColorPickerUI() {
             return `${y}-${m}-${d}`;
         }
 
-        // ✅ 建立時間顯示：日期 + 星期 + 時間（避免只得「上午08:23」）
-        function formatTimeHM(ts) {
-            if (!ts) return '';
-            try { return new Date(ts).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' }); } catch (_) { return ''; }
-        }
-        function formatEntryCreatedLabel(entry, fallbackDateStr) {
-            const e = entry || {};
-            const ts = e.updatedAt || e.timestamp || e.createdAt || 0;
-            const t = formatTimeHM(ts);
-
-            let dateStr = (e.date ? String(e.date) : '') || (fallbackDateStr ? String(fallbackDateStr) : '');
-            if (!dateStr && ts) {
-                try { dateStr = getISODateFromDateObj(new Date(ts)); } catch (_) { dateStr = ''; }
-            }
-
-            const d = dateStr ? formatDateDisplayWithWeekday(dateStr) : '';
-            if (d && t) return `${d} ${t}`;
-            return d || t || '';
-        }
-
 
         // ✅ 日曆格仔：以細小正方形色塊顯示事件
         function buildDotsHtml(dayEntries) {
@@ -5916,8 +5896,8 @@ function initColorPickerUI() {
             list.innerHTML = hits.map(e => {
                 const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                 const tagName = tagNames[e.color] || '標籤';
-                const timeText = formatEntryCreatedLabel(e);
-                const dateText = ''; // 已合併到 timeText（日期+星期+時間）
+                const timeText = e.timestamp ? new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'}) : '';
+                const dateText = e.date ? formatDateDisplayWithWeekday(e.date) : '';
                 const snippet = String(e.text ?? '').trim();
                 const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
                 const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
@@ -5925,7 +5905,7 @@ function initColorPickerUI() {
 	                return `<div class="entry-card" style="--card-color: ${colorHex}" onclick="backOrClose('searchModal'); openReadView('${entryJson}')">
 	                    <div class="entry-card-header">
 	                        <span class="entry-card-tag">${escapeHtml(tagName)}</span>
-	                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(timeText)}</span>
+	                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
 	                    </div>
 	                    <div class="entry-card-text" style="-webkit-line-clamp: 4;">${highlightHtml(preview, qRaw)}</div>
 	                </div>`;
@@ -6048,7 +6028,7 @@ function initColorPickerUI() {
                             <span class="entry-card-tag">${escapeHtml(tagName)}</span>
                             ${folderBadge}${attachmentBadge}
                         </span>
-                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(timeText)}</span>
+                        <span class="entry-card-time">${renderStarButton(e)}${escapeHtml(dateText)} ${escapeHtml(timeText)}</span>
                     </div>
                     <div class="entry-card-text" style="-webkit-line-clamp: 2; font-weight: 900;">${escapeHtml(title)}</div>
                     ${preview ? `<div class="entry-card-text" style="-webkit-line-clamp: 2; font-size: 14px; color: var(--text-light); margin-top: 6px;">${escapeHtml(preview)}</div>` : ''}
@@ -6103,7 +6083,7 @@ lucide.createIcons();
                     if (e && e.__shortcutTo) {
                         const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
                         const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
-                        const timeText = formatEntryCreatedLabel(e, dateStr);
+                        const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
                         const idStr = String(e.id);
                         const title = escapeHtml(String(e.__shortcutTitle || '').trim() || (String(e.text || '').split('\n').find(Boolean) || '（捷徑）'));
                         const preview = escapeHtml(String(e.__shortcutPreview || '').trim() || (String(e.text || '').split('\n').slice(1).join('\n').trim()));
@@ -6114,7 +6094,7 @@ lucide.createIcons();
                     const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                     const tagName = tagNames[e.color] || '標籤';
                     const attachmentBadge = renderAttachmentBadge(e);
-                    const timeText = formatEntryCreatedLabel(e, dateStr);
+                    const timeText = new Date(e.timestamp).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
                     const w = e.weather;
                     const wArr = Array.isArray(w) ? w : (w ? [w] : []);
                     const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
