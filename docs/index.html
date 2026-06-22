@@ -6033,7 +6033,7 @@ lucide.createIcons();
             // ✅ 記低當日 entries（俾批量模式重繪用）
             try { window.__lastDayEntries = Array.isArray(entries) ? entries : []; } catch (_) {}
 
-            editingDateStr = dateStr; const parts = dateStr.split('-'); document.getElementById('dayModalTitle').textContent = `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+            editingDateStr = dateStr; const parts = dateStr.split('-'); const y = parseInt(parts[0]); const m = parseInt(parts[1]); const d = parseInt(parts[2]); const wkMap = ['日','一','二','三','四','五','六']; const wk = wkMap[new Date(y, m - 1, d).getDay()]; document.getElementById('dayModalTitle').textContent = `${y}年${m}月${d}日 (${wk})`;
             renderDayStatusUI();
             const listEl = document.getElementById('dayEntryList');
             // ✅ 批量模式：記低可見 id（排除公眾假期 + 排除「捷徑」避免左右撥導航入到捷徑本體）
