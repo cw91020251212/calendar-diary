@@ -5300,6 +5300,31 @@ function initColorPickerUI() {
         function resetToToday() { currentDate = new Date(); renderCalendar(); }
         function formatDate(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
 
+        // ✅ 日期顯示：加上（星期X）
+        function getWeekdayZhFromYMD(y, m, d) {
+            const wkMap = ['日','一','二','三','四','五','六'];
+            const dt = new Date(Number(y), Number(m) - 1, Number(d));
+            const idx = dt.getDay();
+            return wkMap[idx] || '';
+        }
+        function formatDateDisplayWithWeekday(dateStr) {
+            // dateStr: 'YYYY-MM-DD'
+            if (!dateStr) return '';
+            const parts = String(dateStr).split('-');
+            if (parts.length !== 3) return String(dateStr).replace(/-/g, '/');
+            const [y, m, d] = parts;
+            const wk = getWeekdayZhFromYMD(y, m, d);
+            const base = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+            return wk ? `${base}（${wk}）` : base;
+        }
+        function getISODateFromDateObj(dt) {
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const d = String(dt.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+
         // ✅ 日曆格仔：以細小正方形色塊顯示事件
         function buildDotsHtml(dayEntries) {
             return (dayEntries || []).map(e => {
@@ -5872,7 +5897,7 @@ function initColorPickerUI() {
                 const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                 const tagName = tagNames[e.color] || '標籤';
                 const timeText = e.timestamp ? new Date(e.timestamp).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'}) : '';
-                const dateText = e.date ? e.date.replace(/-/g, '/') : '';
+                const dateText = e.date ? formatDateDisplayWithWeekday(e.date) : '';
                 const snippet = String(e.text ?? '').trim();
                 const preview = snippet.length > 80 ? snippet.slice(0, 80) + '…' : snippet;
                 const entryJson = encodeURIComponent(JSON.stringify(e)).replace(/'/g, '%27');
@@ -5979,7 +6004,7 @@ function initColorPickerUI() {
             list.innerHTML = rows.map(e => {
                 const colorHex = APP_COLORS.find(c => c.id === e.color)?.hex || '#667eea';
                 const tagName = tagNames[e.color] || '標籤';
-                const dateText = e.date ? e.date.replace(/-/g, '/') : '';
+                const dateText = e.date ? formatDateDisplayWithWeekday(e.date) : '';
 
                 const ts = e.updatedAt || e.timestamp || 0;
                 const timeText = ts ? new Date(ts).toLocaleTimeString('zh-Hant', {hour: '2-digit', minute:'2-digit'}) : '';
@@ -6462,7 +6487,10 @@ lucide.createIcons();
             // ✅ 保留 dayModal 於 history stack 內，只係視覺上先收起
             try { document.getElementById('dayModal').classList.remove('active'); } catch (_) {}
             const dateObj = new Date(currentEntryData.timestamp); 
-            document.getElementById('readTimeStr').textContent = `寫於 ${dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'})}`;
+            const dateIso = currentEntryData.date ? String(currentEntryData.date) : getISODateFromDateObj(dateObj);
+            const dateDisp = formatDateDisplayWithWeekday(dateIso);
+            const timeDisp = dateObj.toLocaleTimeString('zh-Hant', {hour:'2-digit', minute:'2-digit'});
+            document.getElementById('readTimeStr').textContent = `寫於 ${dateDisp} ${timeDisp}`;
             {
                 const w = currentEntryData.weather;
                 const arr = Array.isArray(w) ? w : (w ? [w] : []);
