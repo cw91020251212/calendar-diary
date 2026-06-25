@@ -12,7 +12,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="日曆記事本">
-    <link rel="apple-touch-icon" href="icon.png?v=20260616v6">
+    <link rel="icon" href="icon-1024b.png">
+    <link rel="apple-touch-icon" href="icon-1024b.png">
     <script>
       window.__gapiLoadedFlag = false;
       window.__gisLoadedFlag = false;
@@ -1418,7 +1419,8 @@
                 <div class="tutorial-box"><div class="tutorial-title"><i data-lucide="pen-line" style="color: #805ad5;"></i> 4. 編輯器：常用工具列</div>
                     <div class="tutorial-text">
                         <strong>字體</strong>：切換細/中/大字。<br>
-                        <strong>加圖</strong>：加入相片（可多張）。<br>
+                        <strong>即影</strong>：即刻開相機影相加入（唔使預先存相）。<br>
+                        <strong>加圖</strong>：由相簿/檔案揀相加入（可多張）。<br>
                         <strong>加檔</strong>：加入附件（PDF/文件/錄音/任何檔案）。<br>
                         <strong>提提我</strong>：生成日曆檔，加到手機行事曆提醒。<br>
                         <strong>移動/複製</strong>：搬去第二日，或複製多份到其他日子。
@@ -1711,11 +1713,13 @@
                     <button class="tool-btn" onclick="toggleUnderline()" title="底線"><i data-lucide="underline"></i> 底線</button>
                     <button class="tool-btn" onclick="insertUnderlineBlank()" title="插入可填寫底線空格"><i data-lucide="minus"></i> 空格底線</button>
                     
-                    
-                    <button class="tool-btn" onclick="document.getElementById('fileInput').click()"><i data-lucide="image-plus"></i> 加圖</button>
+                    <!-- ✅ 即影即用：獨立相機輸入（iOS 對 multiple 常常唔出相機） -->
+                    <button class="tool-btn" onclick="document.getElementById('cameraInput').click()" title="即刻影相加入記事"><i data-lucide="camera"></i> 即影</button>
+                    <button class="tool-btn" onclick="document.getElementById('fileInput').click()" title="由相簿/檔案揀相加入記事"><i data-lucide="image-plus"></i> 加圖</button>
                     <button class="tool-btn tool-btn-alarm" onclick="addToNativeCalendar()"><i data-lucide="bell-ring"></i> 提提我</button>
                     <button class="tool-btn" onclick="openMoveCopyModal()"><i data-lucide="shuffle"></i> 移動/複製</button>
                     <button class="tool-btn" onclick="document.getElementById('attachInput').click()"><i data-lucide="paperclip"></i> 加檔</button>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleImageUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
                     <input type="file" id="fileInput" accept="image/*" multiple onchange="handleImageUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
                     <input type="file" id="attachInput" multiple onchange="handleAttachmentUpload(event)" style="display:none" tabindex="-1" aria-hidden="true">
                 </div>
