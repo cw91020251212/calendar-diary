@@ -1267,7 +1267,30 @@
         body.kbd-focus .fab-group.expanded { right: 18px; }
 
 
-    </style>
+    
+        /* 修復窄螢幕手機頂部按鈕出界問題 */
+        @media (max-width: 400px) {
+            header { padding: 0 4px; }
+            .month-selector { gap: 2px; }
+            .current-month { min-width: 75px; font-size: calc(17px * var(--ui-font-scale)); }
+            .header-title { font-size: calc(18px * var(--ui-font-scale)); min-width: auto; }
+            .icon-btn { min-width: 32px; min-height: 32px; padding: 4px; }
+            .modal-header { padding: 4px 6px; }
+            .modal-header > div:last-child { gap: 4px; }
+        }
+
+
+        /* 修復窄螢幕手機底部浮動按鈕（FAB）出界問題 */
+        @media (max-width: 380px) {
+            .fab-group { gap: 6px; }
+            .fab-group.expanded { right: 10px; }
+            .fab, .fab-mini { width: 40px; height: 40px; }
+            .fab svg, .fab-mini svg { width: 20px !important; height: 20px !important; }
+            .fab-mini-font .font-a { font-size: 16px; }
+            .fab-mini-font .font-pm { font-size: 12px; }
+        }
+
+</style>
 </head>
 <body>
 
