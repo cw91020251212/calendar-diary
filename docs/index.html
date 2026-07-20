@@ -502,6 +502,9 @@
         .fab, .fab-mini {
             width: 46px;
             height: 46px;
+            min-width: 46px;
+            min-height: 46px;
+            flex: 0 0 46px;
             border-radius: 999px;
             border: 1px solid var(--outline);
             cursor: pointer;
@@ -1277,8 +1280,8 @@
 
         /* A 版本外觀：窄螢幕仍保持較大的浮動功能掣 */
         @media (max-width: 380px) {
-            .fab-group { gap: 10px; }
-            .fab-group.expanded { right: 18px; }
+            .fab-group { gap: 6px; }
+            .fab-group.expanded { right: 10px; }
             .fab, .fab-mini { width: 46px; height: 46px; }
             .fab svg, .fab-mini svg { width: 22px !important; height: 22px !important; }
             .fab-mini-font .font-a { font-size: 18px; }
