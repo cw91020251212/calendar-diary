@@ -9884,5 +9884,81 @@ function handleImageUpload(event) {
     </script>
 
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+
+/* 圖片強制置頂設定 */
+.entry-card {
+    display: flex !important;
+    flex-direction: column !important;
+}
+.entry-card-img-preview {
+    order: -1 !important; /* 強制將圖片排在第一位 */
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+}
+
+<script>
+(function() {
+    // 防止重複綁定 (升級版 v2)
+    if (window.__autoSaveOnExitBoundV2) return;
+    window.__autoSaveOnExitBoundV2 = true;
+
+    let isSavingOnClose = false;
+    
+    // 核心：強制執行儲存邏輯
+    async function forceSaveBeforeClose() {
+        if (isSavingOnClose) return;
+        
+        const editorEl = document.getElementById('editorModal');
+        if (!editorEl || !editorEl.classList.contains('active')) return;
+
+        isSavingOnClose = true;
+        try {
+            // 優先使用靜默儲存，否則使用預設儲存
+            if (typeof window.silentAutoSave === 'function') {
+                await window.silentAutoSave();
+            } else if (typeof window.saveEntry === 'function') {
+                await window.saveEntry();
+            }
+        } catch (e) {
+            console.error('關閉視窗自動儲存失敗:', e);
+        } finally {
+            isSavingOnClose = false;
+        }
+    }
+
+    // 1. 攔截介面上的「關閉/返回」按鈕
+    const originalCloseEditor = window.closeEditor;
+    if (originalCloseEditor) {
+        window.closeEditor = async function(...args) {
+            await forceSaveBeforeClose();
+            return originalCloseEditor.apply(this, args);
+        };
+    }
+
+    // 2. 攔截「手機實體返回鍵」觸發的關閉 (原代碼中對應 popstate 的函數)
+    const originalCloseEditorNoHistory = window.closeEditorNoHistory;
+    if (originalCloseEditorNoHistory) {
+        window.closeEditorNoHistory = async function(...args) {
+            await forceSaveBeforeClose();
+            return originalCloseEditorNoHistory.apply(this, args);
+        };
+    }
+
+    // 3. 雙重保險：直接監聽手機實體返回鍵 (popstate)
+    window.addEventListener('popstate', () => {
+        forceSaveBeforeClose();
+    });
+
+    // 4. 攔截「離開/切換 App 或瀏覽器分頁」的系統事件
+    function handleAppExit() {
+        forceSaveBeforeClose();
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') handleAppExit();
+    });
+    window.addEventListener('pagehide', handleAppExit);
+    window.addEventListener('beforeunload', handleAppExit);
+})();
+</script>
 </body>
 </html>
