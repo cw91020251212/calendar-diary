@@ -27,13 +27,9 @@
         if (typeof window.__googleInitHook === 'function') window.__googleInitHook();
       };
     </script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
-    <!-- ✅ Markdown 預覽（記事薄用） -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
+    <!-- ✅ Markdown 預覽（記事薄用）：需要時先載入 -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -1279,15 +1275,14 @@
             .modal-header > div:last-child { gap: 4px; }
         }
 
-
-        /* 修復窄螢幕手機底部浮動按鈕（FAB）出界問題 */
+        /* A 版本外觀：窄螢幕仍保持較大的浮動功能掣 */
         @media (max-width: 380px) {
-            .fab-group { gap: 6px; }
-            .fab-group.expanded { right: 10px; }
-            .fab, .fab-mini { width: 40px; height: 40px; }
-            .fab svg, .fab-mini svg { width: 20px !important; height: 20px !important; }
-            .fab-mini-font .font-a { font-size: 16px; }
-            .fab-mini-font .font-pm { font-size: 12px; }
+            .fab-group { gap: 10px; }
+            .fab-group.expanded { right: 18px; }
+            .fab, .fab-mini { width: 46px; height: 46px; }
+            .fab svg, .fab-mini svg { width: 22px !important; height: 22px !important; }
+            .fab-mini-font .font-a { font-size: 18px; }
+            .fab-mini-font .font-pm { font-size: 14px; }
         }
 
 </style>
@@ -2198,8 +2193,6 @@
         const SPACE_CALENDAR = 'calendar';
         const SPACE_NOTEBOOK = 'notebook';
         let currentSpaceContext = SPACE_CALENDAR;
-
-        lucide.createIcons();
 
         // =========================
         // 📱 Keyboard Avoidance（自動上推，避免遮住「確定 / 儲存」）
@@ -3198,45 +3191,63 @@
         const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; 
         let tokenClient;
 
-        // ✅ 修復：避免 gapi / gsi script onload 早過本段 JS 定義
-        // 由 head 先定義 gapiLoaded/gisLoaded，然後喺兩個都 ready 之後再一次過 init。
-        let __googleInited = false;
-        window.__googleInitHook = async function () {
-            if (__googleInited) return;
-            if (!window.__gapiLoadedFlag || !window.__gisLoadedFlag) return;
-            if (!window.gapi || !window.google) return;
-
-            __googleInited = true;
-
-            // 1) 初始化 gapi client (Drive API via discovery doc)
-            await new Promise(resolve => gapi.load('client', resolve));
-            await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
-
-            // 2) 初始化 GIS token client（callback 之後會喺 cloudAction 內覆寫）
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: () => {}
+        // Google Drive 只喺用家真正按雲端備份時先載入，避免拖慢開機。
+        let __googleApiLoadPromise = null;
+        function loadExternalScriptOnce(src, ready) {
+            if (ready()) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const existing = document.querySelector(`script[data-lazy-src="${src}"]`);
+                if (existing) {
+                    existing.addEventListener('load', resolve, { once: true });
+                    existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.dataset.lazySrc = src;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
             });
-
-            // 3) 解除雲端按鈕禁用狀態（如果 UI 已經存在）
-            const b1 = document.getElementById('cloudBackupBtn');
-            const b2 = document.getElementById('cloudRestoreBtn');
-            if (b1) b1.disabled = false;
-            if (b2) b2.disabled = false;
-        };
-        // 如果兩個外部 script 早已載入完成，立即嘗試初始化一次
-        try { window.__googleInitHook(); } catch (e) {}
+        }
+        async function ensureGoogleApis() {
+            if (window.gapi && window.google && gapi.client && gapi.client.drive && tokenClient) return;
+            if (!__googleApiLoadPromise) {
+                __googleApiLoadPromise = (async () => {
+                    await Promise.all([
+                        loadExternalScriptOnce('https://apis.google.com/js/api.js', () => !!window.gapi),
+                        loadExternalScriptOnce('https://accounts.google.com/gsi/client', () => !!window.google)
+                    ]);
+                    await new Promise(resolve => gapi.load('client', resolve));
+                    await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
+                    tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: CLIENT_ID,
+                        scope: SCOPES,
+                        callback: () => {}
+                    });
+                    const b1 = document.getElementById('cloudBackupBtn');
+                    const b2 = document.getElementById('cloudRestoreBtn');
+                    if (b1) b1.disabled = false;
+                    if (b2) b2.disabled = false;
+                })().catch(error => {
+                    __googleApiLoadPromise = null;
+                    throw error;
+                });
+            }
+            await __googleApiLoadPromise;
+        }
 
         async function cloudAction(action) {
-            // Google API / GIS 未完成初始化（例如網絡慢、script 未載入、或前面初始化失敗）
-            if (!window.gapi || !gapi.client || !tokenClient) {
-                showToast('Google 服務初始化中…請等 2-3 秒再試', 'error');
+            try {
+                await ensureGoogleApis();
+            } catch (e) {
+                console.error(e);
+                showToast('Google 服務暫時未能載入，請檢查網絡後再試。', 'error');
                 return;
             }
-            // Drive discovery doc 未就緒
-            if (!gapi.client.drive) {
-                showToast('Google Drive 服務仍在準備中…', 'error');
+            if (!window.gapi || !gapi.client || !gapi.client.drive || !tokenClient) {
+                showToast('Google 服務仍在準備中，請稍後再試。', 'error');
                 return;
             }
             if (action === 'logout') {
@@ -4509,23 +4520,25 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             const savedThemeId = localStorage.getItem('diary_theme_github') || 'light';
             currentThemeIdx = THEMES.findIndex(t => t.id === savedThemeId) >= 0 ? THEMES.findIndex(t => t.id === savedThemeId) : 0;
             applyTheme(THEMES[currentThemeIdx]);
-            initColorPickerUI(); try { await db.init(); } catch (e) { console.error(e); }
-            // 🚨 開機檢查：如果曾經有資料但而家變空，提示用家按備份/雲端補救
-            try { await checkPossibleDataLossAndGuide(); } catch (e) { console.error(e); }
+            initColorPickerUI();
+            try { await db.init(); } catch (e) { console.error(e); }
+            try { lucide.createIcons(); } catch (e) { console.error(e); }
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
             await renderCalendar(); initSwipe();
             const pn = document.getElementById('privateNote');
-            if (pn) pn.value = localStorage.getItem('user_private_note') || ''; 
+            if (pn) pn.value = localStorage.getItem('user_private_note') || '';
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
-            if (!hasWelcomed) { document.getElementById('welcomeModal').classList.add('active'); } else { checkTodayBriefing(); }
+            if (!hasWelcomed) document.getElementById('welcomeModal').classList.add('active');
 
-            // 🟩 初始化 base history（Android 返回鍵用）
             try { ensureBaseHistoryState(); } catch (e) { console.error(e); }
 
-            // ☁️ 如果你之前開咗自動同步，返嚟會自動再開（但仍然只喺頁面開住時有效）
-            try { initCloudAutoSyncFromStorage(); } catch (e) { console.error(e); }
+            // 非必要檢查放到首屏完成後，避免開機時連續讀取資料庫。
+            setTimeout(() => {
+                checkPossibleDataLossAndGuide().catch(e => console.error(e));
+                if (hasWelcomed) checkTodayBriefing().catch(e => console.error(e));
+                try { initCloudAutoSyncFromStorage(); } catch (e) { console.error(e); }
+            }, 0);
 
-            // 🔗 初始化自動預覽開關 UI
             try {
                 const autoPreviewEnabled = isAutoLinkPreviewEnabled();
                 const previewToggle = document.getElementById('autoLinkPreviewToggle');
@@ -4534,7 +4547,6 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 if (previewLabel) previewLabel.textContent = autoPreviewEnabled ? '開啟' : '關閉';
             } catch (e) { console.error(e); }
 
-            // ✅ 閱讀頁：雙擊/長按即可進入編輯
             try { bindReadEditGestures(); } catch (e) { console.error(e); }
         }
 
@@ -6147,7 +6159,7 @@ lucide.createIcons();
                     const weatherDisplay = wArr.length ? `<span style="color:var(--text-main);">${wArr.join(' ')}</span> ` : '';
                     const idStr = String(e.id);
                     const hlAttr = encodeURIComponent(JSON.stringify(Array.isArray(e.highlights) ? e.highlights : []));
-                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, '${idStr}', '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">${tagName}</span>${attachmentBadge}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}</div>`
+                    return `<div class="entry-card ${__dayBulkMode ? 'bulk-mode' : ''} ${__dayBulkSelected.has(idStr) ? 'selected' : ''}" data-entry-id="${e.id}" data-highlights="${hlAttr}" style="--card-color: ${colorHex}" onclick="handleDayCardClick(event, '${idStr}', '${entryJson}')">${__dayBulkMode ? `<div class=\"bulk-check\">${__dayBulkSelected.has(idStr) ? `<i data-lucide=\"check\"></i>` : ''}</div>` : ''}${e.images && e.images.length > 0 ? `<img src="${e.images[0]}" class="entry-card-img-preview" onclick="event.stopPropagation(); openLightbox('${e.images[0]}')">` : ''}<div class="entry-card-header"><span class="entry-badges-inline"><span class="entry-card-tag">${tagName}</span>${attachmentBadge}</span><span class="entry-card-time">${renderStarButton(e)}${weatherDisplay}${timeText}</span></div>${e.text ? `<div class="entry-card-text">${escapeHtml(e.text)}</div>` : ''}${renderLinkPreviewThumb(e)}</div>`
                 }).join(''); 
                 // ✅ 日列表（卡片預覽）亦要顯示熒光筆
                 try { applyHighlightsToEntryCardPreviews(listEl); } catch (_) {}
@@ -6711,6 +6723,21 @@ lucide.createIcons();
             });
         }
 
+        let __markdownLoadPromise = null;
+        async function ensureMarkdownLibraries() {
+            if (window.marked && window.DOMPurify) return;
+            if (!__markdownLoadPromise) {
+                __markdownLoadPromise = Promise.all([
+                    loadExternalScriptOnce('https://cdn.jsdelivr.net/npm/marked/marked.min.js', () => !!window.marked),
+                    loadExternalScriptOnce('https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js', () => !!window.DOMPurify)
+                ]).catch(error => {
+                    __markdownLoadPromise = null;
+                    throw error;
+                });
+            }
+            await __markdownLoadPromise;
+        }
+
         function renderReadTextWithMarkdownIfNeeded() {
             const el = document.getElementById('readText');
             if (!el) return;
@@ -6763,6 +6790,12 @@ lucide.createIcons();
             // ✅ 無熒光筆：如開咗預覽 + 套件存在，就轉 Markdown；否則顯示純文字
             const enabled = isNotebookMarkdownPreviewEnabled();
             const canMd = (typeof window.marked !== 'undefined') && (typeof window.DOMPurify !== 'undefined');
+
+            if (enabled && !canMd) {
+                el.textContent = txt;
+                ensureMarkdownLibraries().then(() => renderReadTextWithMarkdownIfNeeded()).catch(() => {});
+                return;
+            }
 
             if (enabled && canMd) {
                 try {
@@ -9763,9 +9796,12 @@ function handleImageUpload(event) {
 
         window.onload = async () => {
             try { loadUIFontScale(); } catch (e) { console.error(e); }
-            try { await registerServiceWorker(); } catch (e) { console.error(e); }
             try { await initApp(); } catch (e) { console.error(e); }
-            try { await tryConsumeSharedPayload(); } catch (e) { console.error(e); }
+            // Service Worker 更新與分享接收放到首屏之後，唔阻住開機畫面。
+            setTimeout(() => {
+                registerServiceWorker().catch(e => console.error(e));
+                tryConsumeSharedPayload().catch(e => console.error(e));
+            }, 0);
         };
     </script>
 
@@ -9885,17 +9921,6 @@ function handleImageUpload(event) {
 
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 
-/* 圖片強制置頂設定 */
-.entry-card {
-    display: flex !important;
-    flex-direction: column !important;
-}
-.entry-card-img-preview {
-    order: -1 !important; /* 強制將圖片排在第一位 */
-    margin-top: 0 !important;
-    margin-bottom: 8px !important;
-}
-
 <script>
 (function() {
     // 防止重複綁定 (升級版 v2)
@@ -9960,5 +9985,6 @@ function handleImageUpload(event) {
     window.addEventListener('beforeunload', handleAppExit);
 })();
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"f7a3268ea56841db8cf028773ac41ab7","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
