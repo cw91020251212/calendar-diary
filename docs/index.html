@@ -1297,21 +1297,28 @@
 
             <div class="app-container">
         <header>
-            <div class="header-title"><span>月曆</span></div>
-            <div class="month-selector">
-                <div id="cloudMiniStatus" style="display:none;"></div>
-                <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
-                <div class="current-month-wrapper" title="點擊選擇日期">
-                    <div class="current-month" id="currentMonthStr"></div>
-                    <input type="date" id="quickDatePicker" class="quick-date-picker" onchange="handleQuickDateSelect(event)">
-                </div>
-                <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
-                
-                
-                <button class="icon-btn" onclick="openNotebookModal()" title="記事簿"><i data-lucide="notebook-text" style="width: 26px; height: 26px;"></i></button>
-					<button class="icon-btn" onclick="openBackupModal()" title="功能選單"><i data-lucide="menu" style="width: 26px; height: 26px;"></i></button>
-            </div>
-        </header>
+    <!-- 左側：標題 (設定 flex: 1 佔用等比例空間) -->
+    <div class="header-title" style="flex: 1; display: flex; justify-content: flex-start;">
+        <span>月曆</span>
+    </div>
+    
+    <!-- 中間：月份切換 (居中顯示) -->
+    <div class="month-selector" style="flex: 0 0 auto; justify-content: center;">
+        <div id="cloudMiniStatus" style="display:none;"></div>
+        <button class="icon-btn" onclick="changeMonth(-1)"><i data-lucide="chevron-left" style="width: 28px; height: 28px;"></i></button>
+        <div class="current-month-wrapper" title="點擊選擇日期">
+            <div class="current-month" id="currentMonthStr"></div>
+            <input type="date" id="quickDatePicker" class="quick-date-picker" onchange="handleQuickDateSelect(event)">
+        </div>
+        <button class="icon-btn" onclick="changeMonth(1)"><i data-lucide="chevron-right" style="width: 28px; height: 28px;"></i></button>
+    </div>
+    
+    <!-- 右側：功能鍵 (設定 flex: 1 佔用等比例空間，向右對齊) -->
+    <div class="header-actions" style="flex: 1; display: flex; justify-content: flex-end; gap: 4px;">
+        <button class="icon-btn" onclick="openNotebookModal()" title="記事簿"><i data-lucide="notebook-text" style="width: 26px; height: 26px;"></i></button>
+        <button class="icon-btn" onclick="openBackupModal()" title="功能選單"><i data-lucide="menu" style="width: 26px; height: 26px;"></i></button>
+    </div>
+</header>
 
         <div class="calendar-main" id="calendarMainArea">
             <div class="calendar-viewport" id="calendarViewport">
