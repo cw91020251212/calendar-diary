@@ -1977,8 +1977,8 @@
                         <a href="terms.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《服務條款》</a>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
-                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" onclick="cloudAction('restore')" disabled title="Google 服務初始化中..."><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+                        <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" title="按下後會載入 Google 服務並開始同步"><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
+                        <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" onclick="cloudAction('restore')" title="按下後會載入 Google 服務並開始還原"><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
                         <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed var(--outline); display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
                     </div>
 
@@ -3221,8 +3221,45 @@
                 document.head.appendChild(script);
             });
         }
+        function setCloudButtonsReady(ready, title) {
+            const b1 = document.getElementById('cloudBackupBtn');
+            const b2 = document.getElementById('cloudRestoreBtn');
+            [b1, b2].forEach(btn => {
+                if (!btn) return;
+                btn.disabled = !ready;
+                if (title) btn.title = title;
+            });
+        }
+
+        const STARTUP_SETTLE_MS = 8000;
+        let __appStartedAt = Date.now();
+        let __startupGoogleWarmupTimer = null;
+
+        function isStartupSettling() {
+            return (Date.now() - __appStartedAt) < STARTUP_SETTLE_MS;
+        }
+
+        function afterStartupSettled(fn) {
+            const left = Math.max(0, STARTUP_SETTLE_MS - (Date.now() - __appStartedAt));
+            return setTimeout(fn, left);
+        }
+
+        function runWhenBrowserIdle(fn, delay = 0) {
+            const run = () => {
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(fn, { timeout: 5000 });
+                } else {
+                    setTimeout(fn, 0);
+                }
+            };
+            return setTimeout(run, delay);
+        }
+
         async function ensureGoogleApis() {
-            if (window.gapi && window.google && gapi.client && gapi.client.drive && tokenClient) return;
+            if (window.gapi && window.google && gapi.client && gapi.client.drive && tokenClient) {
+                setCloudButtonsReady(true, 'Google 服務已準備好');
+                return;
+            }
             if (!__googleApiLoadPromise) {
                 __googleApiLoadPromise = (async () => {
                     await Promise.all([
@@ -3236,10 +3273,7 @@
                         scope: SCOPES,
                         callback: () => {}
                     });
-                    const b1 = document.getElementById('cloudBackupBtn');
-                    const b2 = document.getElementById('cloudRestoreBtn');
-                    if (b1) b1.disabled = false;
-                    if (b2) b2.disabled = false;
+                    setCloudButtonsReady(true, 'Google 服務已準備好');
                 })().catch(error => {
                     __googleApiLoadPromise = null;
                     throw error;
@@ -3250,9 +3284,14 @@
 
         async function cloudAction(action) {
             try {
+                // 如果用家主動撳同步，就優先處理；背景預載計時器可取消，避免重覆載入。
+                try { if (__startupGoogleWarmupTimer) clearTimeout(__startupGoogleWarmupTimer); } catch (_) {}
+                setCloudButtonsReady(false, 'Google 服務載入中...');
                 await ensureGoogleApis();
+                setCloudButtonsReady(true, 'Google 服務已準備好');
             } catch (e) {
                 console.error(e);
+                setCloudButtonsReady(true, 'Google 服務載入失敗，按下可重試');
                 showToast('Google 服務暫時未能載入，請檢查網絡後再試。', 'error');
                 return;
             }
@@ -3281,14 +3320,15 @@
                                 try { tokenClient.requestAccessToken({ prompt: 'consent' }); } catch (e2) { console.error(e2); alert('無法開啟 Google 授權視窗。'); }
                                 return;
                             }
+                            setCloudButtonsReady(true, 'Google 授權失敗，按下可重試');
                             alert('Google 授權失敗：' + resp.error);
                             return;
                         }
                         // ✅ 把 GIS token 設到 gapi client
                         gapi.client.setToken(resp);
                         document.getElementById('cloudLogoutBtn').style.display = 'flex';
-                        if (action === 'backup') doCloudBackup();
-                        if (action === 'restore') doCloudRestore();
+                        if (action === 'backup') await doCloudBackup();
+                        if (action === 'restore') await doCloudRestore();
                     };
                     try {
                         tokenClient.requestAccessToken({ prompt: '' });
@@ -3302,8 +3342,8 @@
                 }
             } else {
                 document.getElementById('cloudLogoutBtn').style.display = 'flex';
-                if (action === 'backup') doCloudBackup();
-                if (action === 'restore') doCloudRestore();
+                if (action === 'backup') await doCloudBackup();
+                if (action === 'restore') await doCloudRestore();
             }
         }
 
@@ -3430,6 +3470,22 @@ async function cloudConfirmDangerousOverwrite(result, localSummary, cloudSummary
     const typed = prompt(msg, '');
     return String(typed || '').trim() === '清空';
 }
+
+        function warmupGoogleApis() {
+            // ✅ 開機唔好即刻搶資源：等首屏、資料庫、日曆、SW 等完成一輪先背景預載 Google。
+            // 目標：避免一開 App 就同時做太多嘢令手機變慢；同時保留「第一次撳同步」可正常授權。
+            if (window.__googleWarmupStarted) return;
+            window.__googleWarmupStarted = true;
+            setCloudButtonsReady(false, 'App 啟動中，稍後會準備 Google 同步');
+            __startupGoogleWarmupTimer = afterStartupSettled(() => {
+                runWhenBrowserIdle(() => {
+                    ensureGoogleApis().catch(e => {
+                        console.warn('Google API warmup failed:', e);
+                        setCloudButtonsReady(true, 'Google 服務未載入，按下可重試');
+                    });
+                });
+            });
+        }
 
         async function doCloudBackup() {
             const btn = document.getElementById('cloudBackupBtn'); const orig = btn.innerHTML;
@@ -4178,9 +4234,13 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             stopCloudAutoSync();
             localStorage.setItem(CLOUD_AUTOSYNC_KEY, 'true');
             setCloudAutoSyncUI(true);
-            setCloudAutoSyncStatus('✅ 已開啟：只要頁面開住，就會每 30 秒自動上傳一次。');
-            // 立即跑一次，之後每 30 秒一次
-            runCloudAutoSyncOnce();
+            setCloudAutoSyncStatus('✅ 已開啟：App 開機後會先穩定一陣，之後先自動上傳；頁面開住時會定期同步。');
+            const firstRun = () => runCloudAutoSyncOnce();
+            if (isStartupSettling()) {
+                afterStartupSettled(() => runWhenBrowserIdle(firstRun));
+            } else {
+                runWhenBrowserIdle(firstRun);
+            }
             cloudAutoSyncInterval = setInterval(runCloudAutoSyncOnce, CLOUD_AUTOSYNC_MS);
         }
 
@@ -4535,6 +4595,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             try { lucide.createIcons(); } catch (e) { console.error(e); }
             document.getElementById('quickDatePicker').value = formatDate(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
             await renderCalendar(); initSwipe();
+            try { setCloudAutoSyncStatus('啟動中：請等 App 完全開好，之後先使用雲端同步。'); } catch (_) {}
             const pn = document.getElementById('privateNote');
             if (pn) pn.value = localStorage.getItem('user_private_note') || '';
             const hasWelcomed = localStorage.getItem('diary_welcomed_v5');
@@ -4546,6 +4607,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             setTimeout(() => {
                 checkPossibleDataLossAndGuide().catch(e => console.error(e));
                 if (hasWelcomed) checkTodayBriefing().catch(e => console.error(e));
+                try { warmupGoogleApis(); } catch (e) { console.error(e); }
                 try { initCloudAutoSyncFromStorage(); } catch (e) { console.error(e); }
             }, 0);
 
