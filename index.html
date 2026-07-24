@@ -3353,6 +3353,22 @@
 const CLOUD_MAIN_BACKUP_NAME = 'diary_sync_backup.json';
 const CLOUD_HISTORY_PREFIX = 'diary_sync_backup__'; // e.g. diary_sync_backup__2026-06-14_21-05-33.json
 const CLOUD_HISTORY_KEEP = 10;
+const CLOUD_SYNC_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const CLOUD_DIRTY_KEY = 'diary_cloud_dirty_v1';
+
+function markCloudDirty() {
+    try { localStorage.setItem(CLOUD_DIRTY_KEY, String(Date.now())); } catch (_) {}
+}
+
+function cloudNeedsSync() {
+    try { return !!localStorage.getItem(CLOUD_DIRTY_KEY) || !Number(localStorage.getItem(LAST_CLOUD_SYNC_KEY) || 0); } catch (_) { return true; }
+}
+
+function clearCloudDirtyIfUnchanged(token) {
+    try {
+        if (localStorage.getItem(CLOUD_DIRTY_KEY) === token) localStorage.removeItem(CLOUD_DIRTY_KEY);
+    } catch (_) {}
+}
 
 function __cloudNowStamp() {
     const d = new Date();
@@ -3489,6 +3505,8 @@ async function cloudConfirmDangerousOverwrite(result, localSummary, cloudSummary
         }
 
         async function doCloudBackup() {
+            const dirtyToken = (() => { try { return localStorage.getItem(CLOUD_DIRTY_KEY) || ''; } catch (_) { return ''; } })();
+            if (window.__cloudSilentMode && !cloudNeedsSync()) return;
             const btn = document.getElementById('cloudBackupBtn'); const orig = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
             try {
@@ -3564,6 +3582,11 @@ try {
                 const fileMetadata = existingFile
                     ? { name: CLOUD_MAIN_BACKUP_NAME }
                     : { name: CLOUD_MAIN_BACKUP_NAME, parents: ['appDataFolder'] };
+                const previousSize = existingFile ? Number(existingFile.size || 0) : 0;
+                const nextSize = new Blob([fileContent]).size;
+                if (existingFile && previousSize > 0 && nextSize < previousSize * 0.25 && backupData.entries.length > 0) {
+                    throw new Error('拒絕上傳：備份檔體積突然大幅縮小，避免覆蓋雲端資料');
+                }
                 const boundary = '-------314159265358979323846'; const delimiter = "\r\n--" + boundary + "\r\n"; const close_delim = "\r\n--" + boundary + "--";
                 const multipartRequestBody = delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(fileMetadata) + delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + fileContent + close_delim;
                 let requestParams = { 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary="' + boundary + '"'}, 'body': multipartRequestBody };
@@ -3580,6 +3603,7 @@ try {
                 // 📌 記錄「上次雲端同步」時間並刷新底欄
                 try {
                     localStorage.setItem(LAST_CLOUD_SYNC_KEY, String(Date.now()));
+                    clearCloudDirtyIfUnchanged(dirtyToken);
                     // 成功就清走「上次失敗」記錄
                     try { localStorage.removeItem(LAST_CLOUD_FAIL_KEY); } catch (_) {}
                     refreshStatusBar('ok');
@@ -3887,9 +3911,9 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
         }
 
         // =========================
-        // ☁️ 自動雲端同步（每 30 秒）
+        // ☁️ 自動雲端同步（每 5 分鐘；只在有變更時上傳）
         // =========================
-        const CLOUD_AUTOSYNC_MS = 30000;
+        const CLOUD_AUTOSYNC_MS = 5 * 60 * 1000;
         const CLOUD_AUTOSYNC_KEY = 'diary_cloud_autosync_enabled_v1';
         let cloudAutoSyncInterval = null;
         let cloudAutoSyncBusy = false;
@@ -4208,10 +4232,12 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
         }
 
         async function runCloudAutoSyncOnce() {
-            if (cloudAutoSyncBusy) return;
+            if (cloudAutoSyncBusy || !cloudNeedsSync()) return;
+            const last = Number(localStorage.getItem(LAST_CLOUD_SYNC_KEY) || 0);
+            if (last && Date.now() - last < CLOUD_SYNC_MIN_INTERVAL_MS) return;
             cloudAutoSyncBusy = true;
             try {
-                setCloudAutoSyncStatus('⏳ 自動同步中...（每 30 秒）');
+                setCloudAutoSyncStatus('⏳ 自動同步中...（有變更先上傳；每 5 分鐘檢查）');
                 // ✅ 自動同步：全程靜默（唔會彈出遮住畫面嘅提示）
                 window.__cloudSilentMode = true;
                 // 用 backup 行為：如未登入會自動引導授權
@@ -4221,7 +4247,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 const hh = String(now.getHours()).padStart(2, '0');
                 const mm = String(now.getMinutes()).padStart(2, '0');
                 const ss = String(now.getSeconds()).padStart(2, '0');
-                setCloudAutoSyncStatus(`✅ 自動同步完成：${hh}:${mm}:${ss}（每 30 秒）`);
+                setCloudAutoSyncStatus(`✅ 自動同步完成：${hh}:${mm}:${ss}（有變更先上傳，每 5 分鐘檢查）`);
             } catch (e) {
                 console.error(e);
                 setCloudAutoSyncStatus('❌ 自動同步失敗（可能未授權／網絡限制）。你可以按一次「同步上傳」重新授權。', true);
@@ -4339,6 +4365,8 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 });
             },
             async save(entry) {
+                markCloudDirty();
+                entry = entry && typeof entry === 'object' ? { ...entry, updatedAt: Date.now() } : entry;
                 // ✅ 兼容模式：IndexedDB 不可用時改用 localStorage
                 if (this.disabled || !this.dbInstance) {
                     try {
@@ -4371,6 +4399,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 });
             },
             async delete(id) {
+                markCloudDirty();
                 if (this.disabled || !this.dbInstance) {
                     try {
                         this.__warnFallbackOnce();
@@ -4386,6 +4415,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 });
             },
             async clearAll() {
+                markCloudDirty();
                 if (this.disabled || !this.dbInstance) {
                     try {
                         this.__warnFallbackOnce();
@@ -4400,6 +4430,8 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             },
             // 📎 附件 blob 儲存
             async saveFile(fileObj) {
+                markCloudDirty();
+                fileObj = fileObj && typeof fileObj === 'object' ? { ...fileObj, updatedAt: Date.now() } : fileObj;
                 if (this.disabled || !this.dbInstance) {
                     this.__warnFallbackOnce();
                     // 兼容模式：唔儲存 blob（避免 localStorage 爆 quota）
@@ -4421,6 +4453,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 });
             },
             async deleteFile(id) {
+                markCloudDirty();
                 if (this.disabled || !this.dbInstance) {
                     this.__warnFallbackOnce();
                     return;
@@ -4441,6 +4474,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 });
             },
             async clearAllFiles() {
+                markCloudDirty();
                 if (this.disabled || !this.dbInstance) {
                     this.__warnFallbackOnce();
                     return;
@@ -10059,5 +10093,6 @@ function handleImageUpload(event) {
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"f7a3268ea56841db8cf028773ac41ab7","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"f7a3268ea56841db8cf028773ac41ab7"}' crossorigin="anonymous"></script>
 </body>
 </html>
