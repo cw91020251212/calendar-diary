@@ -245,6 +245,7 @@
 
         header { height: var(--header-h); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; transition: background-color 0.3s; }
         .header-title { display: flex; align-items: center; gap: 8px; font-size: calc(22px * var(--ui-font-scale)); font-weight: bold; flex-shrink: 1; overflow: hidden; white-space: nowrap; min-width: 64px; }
+        .app-version-label { font-size: calc(12px * var(--ui-font-scale)); font-weight: 800; color: var(--text-light); padding: 2px 7px; border: 1px solid var(--border); border-radius: 999px; background: rgba(102,126,234,0.08); line-height: 1.2; }
         .month-selector { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         
         .icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; min-width: 40px; min-height: 40px; }
@@ -1299,7 +1300,7 @@
         <header>
     <!-- 左側：標題 (設定 flex: 1 佔用等比例空間) -->
     <div class="header-title" style="flex: 1; display: flex; justify-content: flex-start;">
-        <span>月曆</span>
+        <span>月曆</span><span class="app-version-label">V1.0</span>
     </div>
     
     <!-- 中間：月份切換 (居中顯示) -->
