@@ -3,36 +3,30 @@
   "short_name": "月曆 V1.0",
   "description": "日曆記事本 - 記錄每一天的美好時刻",
   "lang": "zh-Hant",
-  "id": "./?app=calendar-diary-v1",
-  "start_url": "./index.html?app=calendar-diary-v1",
+  "id": "./?app=calendar-diary-v2",
+  "start_url": "./index.html?app=calendar-diary-v2",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#667eea",
   "icons": [
     {
-      "src": "./icon-v1-192.png",
+      "src": "./icon-v2-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "./icon-v1-512.png",
+      "src": "./icon-v2-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "./icon-v1-1024.png",
+      "src": "./icon-v2-1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-v1-maskable-1024.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "share_target": {
