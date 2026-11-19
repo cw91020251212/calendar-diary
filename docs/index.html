@@ -1711,8 +1711,11 @@
                 <label for="calendarReminderTimeInput" style="display:block; font-weight:800; margin-bottom:8px;">提醒時間（手機當地時間）</label>
                 <input id="calendarReminderTimeInput" type="time" value="09:00" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:18px;">
                 <div style="font-size:13px; color:var(--text-light); line-height:1.6; margin-top:12px;">
-                    iPhone／iPad 請先用 Safari「加入主畫面」，再從主畫面開啟 App 並允許通知。設定及取消背景提醒需要網絡；收通知亦受網絡、省電和勿擾影響，不保證準時。服務只接收隨機提醒 ID、時間及推播訂閱資料，不會傳送記事內容或標題；日期等資料留在本機。下載日曆檔則會包含記事內容。
+                    iPhone／iPad 請先用 Safari「加入主畫面」，再從主畫面開啟 App 並允許通知。全天通知在記事儲存後自動排程，指定時間響一次仍是下面另一個功能。服務會接收通知標題、文章首段摘要、日期時間及推播訂閱資料並存於 Cloudflare D1；請勿把敏感內容放入通知。通知可能在鎖定畫面顯示。設定及取消需要網絡；省電、勿擾、瀏覽器和作業系統限制均可能令通知延誤、消失或無法於午夜自動清除。
                 </div>
+                <label for="calendarNotificationTitle" style="display:block; font-weight:800; margin:14px 0 6px;">通知標題（可改成「備忘」保護私隱）</label>
+                <input id="calendarNotificationTitle" type="text" maxlength="80" placeholder="日曆記事" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text-main);">
+                <button id="enableAllDayPushBtn" class="action-btn" style="width:100%; margin-top:12px;" onclick="enableAllDayNotifications()">啟用／同步全天手機通知</button>
                 <div id="reminderPushStatus" role="status" aria-live="polite" style="font-size:13px; line-height:1.6; margin-top:12px;"></div>
                 <div id="reminderCancelList" style="font-size:13px; line-height:1.6; margin-top:12px;"></div>
                 <div style="display:flex; gap:12px; margin-top:18px;">
@@ -8730,6 +8733,9 @@ function toggleHighlighter() {
         const PUSH_DEVICE_TOKEN_KEY = 'diary_push_device_token_v1';
         const PUSH_ENABLED_KEY = 'diary_push_enabled_v1';
         const REMINDER_ID_MAP_KEY = 'diary_reminder_id_map_v1';
+        const PUSH_TITLE_KEY = 'diary_push_notification_title_v1';
+        const ALL_DAY_REQUEST_CLOCK_KEY = 'diary_push_all_day_request_clock_v1';
+        let allDayReminderSyncPromise = null;
         let reminderPushReady = null;
         let reminderPreparePromise = null;
         let reminderActionBusy = false;
@@ -8937,6 +8943,147 @@ function toggleHighlighter() {
             localStorage.removeItem(PUSH_ENABLED_KEY);
         }
 
+        function getNotificationTitle() {
+            const input = document.getElementById('calendarNotificationTitle');
+            const value = String(input ? input.value : localStorage.getItem(PUSH_TITLE_KEY) || '').trim().slice(0, 80);
+            return value || '日曆記事';
+        }
+
+        async function ensurePushSubscriptionFromClick() {
+            if (!reminderPushReady) {
+                await prepareReminderPush();
+                if (!reminderPushReady) throw new Error('推播服務尚未準備好，請稍後再按一次。');
+            }
+            if (Notification.permission !== 'granted') throw new Error('尚未允許通知。');
+            // 直接由按鈕手勢呼叫 subscribe；不在此之前 await getSubscription。
+            const subscription = await reminderPushReady.registration.pushManager.subscribe({
+                userVisibleOnly: true, applicationServerKey: reminderPushReady.key
+            });
+            await pushApi('/v1/subscribe', { method: 'POST', body: { subscription: subscription.toJSON() } });
+            localStorage.setItem(PUSH_ENABLED_KEY, '1');
+            return subscription;
+        }
+
+        async function enableAllDayNotifications() {
+            try {
+                const input = document.getElementById('calendarNotificationTitle');
+                if (input) localStorage.setItem(PUSH_TITLE_KEY, String(input.value || '').trim().slice(0, 80));
+                if (!('Notification' in window)) throw new Error('此瀏覽器不支援手機推播通知。');
+                if (Notification.permission === 'denied') throw new Error('通知權限已被拒絕，請先到瀏覽器／裝置設定允許。');
+                if (Notification.permission === 'default') {
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') throw new Error('通知未獲允許；可在裝置設定中開啟後再試。');
+                    setReminderStatus('通知已允許。請再按一次「啟用／同步全天手機通知」完成訂閱。');
+                    return;
+                }
+                await ensurePushSubscriptionFromClick();
+                setReminderStatus('推播已啟用，正在同步今天及未來的日曆記事…');
+                const result = await syncAllDayReminders();
+                setReminderStatus(result && result.failed
+                    ? `已同步部分全天通知；${result.failed} 項未完成，請稍後重按同步。`
+                    : '全天手機通知已完成同步。新記事儲存後會自動排程。');
+            } catch (err) {
+                setReminderStatus('未能啟用／同步全天通知：' + (err.message || err));
+                alert('未能啟用／同步全天通知：' + (err.message || err));
+            }
+        }
+
+        function allDayDueAndClear(dateStr) {
+            const parts = dateStr.split('-').map(Number);
+            const eventDay = new Date(parts[0], parts[1] - 1, parts[2]);
+            const clearAt = new Date(parts[0], parts[1] - 1, parts[2] + 1).getTime();
+            const today = new Date();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            if (!Number.isFinite(clearAt) || clearAt <= Date.now()) return null;
+            const dueAt = eventDay.getTime() <= todayStart.getTime()
+                ? Date.now() + 5000
+                : new Date(parts[0], parts[1] - 1, parts[2], 9, 0, 0, 0).getTime();
+            return { dueAt: Math.max(Date.now() + 1000, dueAt), clearAt };
+        }
+
+        async function paceAllDayRequest() {
+            const previous = Number(localStorage.getItem(ALL_DAY_REQUEST_CLOCK_KEY) || 0);
+            const waitMs = 2200 - (Date.now() - previous);
+            if (waitMs > 0) await new Promise(resolve => setTimeout(resolve, waitMs));
+            localStorage.setItem(ALL_DAY_REQUEST_CLOCK_KEY, String(Date.now()));
+        }
+
+        async function stableAllDayReminderId(entryId) {
+            const bytes = new Uint8Array(await crypto.subtle.digest(
+                'SHA-256', new TextEncoder().encode(`calendar-diary/all-day/v1/${entryId}`)
+            )).slice(0, 16);
+            bytes[6] = (bytes[6] & 0x0f) | 0x50;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+            return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+        }
+
+        async function syncAllDayReminderForEntry(entry) {
+            if (localStorage.getItem(PUSH_ENABLED_KEY) !== '1' || Notification.permission !== 'granted' || !entry || entry.id == null) return;
+            return withReminderLock(async () => {
+            if (localStorage.getItem(PUSH_ENABLED_KEY) !== '1' || Notification.permission !== 'granted') return;
+            const entryId = String(entry.id);
+            const calendarEntry = (entry.space || SPACE_CALENDAR) === SPACE_CALENDAR
+                && /^\d{4}-\d{2}-\d{2}$/.test(String(entry.date || ''));
+            const times = calendarEntry ? allDayDueAndClear(entry.date) : null;
+            const map = loadReminderMap();
+            const found = Object.entries(map).find(([, info]) => info && info.kind === 'all_day' && String(info.entryId) === entryId);
+            if (!times) {
+                if (found) {
+                    await paceAllDayRequest();
+                    await pushApi('/v1/reminders/cancel', { method: 'POST', body: { id: found[0] }, requireExistingToken: true });
+                    delete map[found[0]]; saveReminderMap(map); updatePushReminderList(found[0], null);
+                }
+                return;
+            }
+            const id = found ? found[0] : await stableAllDayReminderId(entryId);
+            const title = String(localStorage.getItem(PUSH_TITLE_KEY) || '日曆記事').trim().slice(0, 80) || '日曆記事';
+            const text = String(entry.text || '').replace(/\s+/g, ' ').trim();
+            const body = (text || (entry.images && entry.images.length ? '今日有一篇附有圖片的日曆記事。' : '今日有一篇日曆記事。')).slice(0, 180);
+            const previous = found ? found[1] : null;
+            if (previous && previous.date === entry.date && previous.clearAt === times.clearAt
+                && previous.title === title && previous.body === body && !previous.pending) return;
+            map[id] = { ...(previous || {}), kind: 'all_day', entryId, date: entry.date, time: '09:00', title, body, dueAt: times.dueAt, clearAt: times.clearAt, pending: true };
+            saveReminderMap(map);
+            await paceAllDayRequest();
+            await pushApi('/v1/reminders', { method: 'POST', body: { id, dueAt: times.dueAt, mode: 'all_day', clearAt: times.clearAt, title, body }, requireExistingToken: true });
+            const latest = loadReminderMap();
+            if (!latest[id]) return;
+            latest[id] = { ...latest[id], pending: false, createdAt: latest[id].createdAt || Date.now() };
+            saveReminderMap(latest);
+            updatePushReminderList(id, latest[id]);
+            });
+        }
+
+        async function syncAllDayReminders() {
+            if (allDayReminderSyncPromise) return allDayReminderSyncPromise;
+            allDayReminderSyncPromise = (async () => {
+                if (localStorage.getItem(PUSH_ENABLED_KEY) !== '1' || Notification.permission !== 'granted') return { failed: 0 };
+                const registration = await navigator.serviceWorker.ready;
+                if (!await registration.pushManager.getSubscription()) return { failed: 0 };
+                const entries = (await db.getAll()).filter(entry => entry && (entry.space || SPACE_CALENDAR) === SPACE_CALENDAR);
+                const validIds = new Set(entries.map(entry => String(entry.id)));
+                let failed = 0;
+                for (const entry of entries) {
+                    try { await syncAllDayReminderForEntry(entry); }
+                    catch (err) { failed++; console.warn('全天通知同步失敗:', entry.id, err); }
+                }
+                const map = loadReminderMap();
+                for (const [id, info] of Object.entries(map)) {
+                    if (!info || info.kind !== 'all_day' || validIds.has(String(info.entryId))) continue;
+                    try { await withReminderLock(async () => {
+                        const latest = loadReminderMap();
+                        if (!latest[id] || latest[id].kind !== 'all_day') return;
+                        await paceAllDayRequest();
+                        await pushApi('/v1/reminders/cancel', { method: 'POST', body: { id }, requireExistingToken: true });
+                        delete latest[id]; saveReminderMap(latest); updatePushReminderList(id, null);
+                    }); } catch (err) { failed++; console.warn('移除已刪記事通知失敗:', id, err); }
+                }
+                return { failed };
+            })().finally(() => { allDayReminderSyncPromise = null; });
+            return allDayReminderSyncPromise;
+        }
+
         function confirmCalendarReminder() {
             if (reminderActionBusy) return;
             const dateStr = String(document.getElementById('calendarReminderDate').textContent || '');
@@ -8997,7 +9144,8 @@ function toggleHighlighter() {
             const entryId = String(currentEntryData.id);
             const text = getEditorPlainText().trim() || '日曆事項';
             const tagName = tagNames[selectedColor] || '事項';
-            const title = `【${tagName}】${(text.split('\n').map(s => s.trim()).find(Boolean) || '提醒').slice(0, 80)}`.slice(0, 18);
+            const title = getNotificationTitle();
+            const body = (text.split('\n').map(s => s.trim()).find(Boolean) || '指定時間提醒').slice(0, 180);
             const dueAt = startAt.getTime();
             setReminderBusy(true);
             setReminderStatus('正在設定背景提醒，請稍候…');
@@ -9030,7 +9178,7 @@ function toggleHighlighter() {
                 await pushApi('/v1/subscribe', { method: 'POST', body: { subscription: subscription.toJSON() }, requireExistingToken: true });
                 localStorage.setItem(PUSH_ENABLED_KEY, '1');
                 requestStarted = true;
-                await pushApi('/v1/reminders', { method: 'POST', body: { id, dueAt }, requireExistingToken: true });
+                await pushApi('/v1/reminders', { method: 'POST', body: { id, dueAt, mode: 'timed', title, body }, requireExistingToken: true });
                 const latest = loadReminderMap();
                 if (!latest[id]) throw new Error('本機提醒記錄已變更，請重新核對');
                 const confirmed = { ...latest[id], date: dateStr, time, title, entryId, dueAt };
@@ -9920,6 +10068,9 @@ function handleImageUpload(event) {
             } catch (_) {}
 
             await db.save(currentEntryData);
+            if (currentSpaceContext !== SPACE_NOTEBOOK && localStorage.getItem(PUSH_ENABLED_KEY) === '1') {
+                syncAllDayReminderForEntry(currentEntryData).catch(err => console.warn('記事全天通知排程失敗:', err));
+            }
             autoSaveLastFingerprint = draftFingerprint;
 
             // 📌 記錄「上次儲存」時間（本機）並刷新底欄
@@ -10282,7 +10433,7 @@ function handleImageUpload(event) {
             } catch (_) {}
             if ('serviceWorker' in navigator) {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js?v=20261119v2', { scope: './' });
+                    const registration = await navigator.serviceWorker.register('sw.js?v=20261120v3', { scope: './' });
                     try { await registration.update(); } catch (_) {}
                     try {
                         // 如果有 waiting SW，要求佢立即生效
@@ -10515,7 +10666,15 @@ function handleImageUpload(event) {
         window.onload = async () => {
             try { loadUIFontScale(); } catch (e) { console.error(e); }
             try { await initApp(); } catch (e) { console.error(e); }
+            try {
+                const titleInput = document.getElementById('calendarNotificationTitle');
+                if (titleInput) titleInput.value = localStorage.getItem(PUSH_TITLE_KEY) || '日曆記事';
+                if (titleInput) titleInput.addEventListener('change', () => localStorage.setItem(PUSH_TITLE_KEY, String(titleInput.value || '').trim().slice(0, 80)));
+            } catch (_) {}
             reminderAppReady = true;
+            if (localStorage.getItem(PUSH_ENABLED_KEY) === '1' && 'Notification' in window && Notification.permission === 'granted') {
+                setTimeout(() => syncAllDayReminders().catch(err => console.warn('啟動時全天通知同步失敗:', err)), 500);
+            }
             while (pendingReminderClicks.length) await openReminderDate(pendingReminderClicks.shift());
             // Service Worker 更新與分享接收放到首屏之後，唔阻住開機畫面。
             setTimeout(() => {

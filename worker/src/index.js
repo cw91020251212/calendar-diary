@@ -173,11 +173,11 @@ function subscriptionFromRow(row) {
 // non-STRICT INTEGER affinity permits this without a schema change. updated_at
 // likewise holds time:UUID for new subscriptions; legacy integer times work too.
 // The numeric lease_until still governs recovery of abandoned claims.
-const CLAIM_WHERE = "id = ? AND device_hash = ? AND status = 'sending' AND lease_until = ? AND next_attempt_at = ? AND attempts = ? AND due_at = ? AND expires_at = ? AND created_at = ?";
+const CLAIM_WHERE = "id = ? AND device_hash = ? AND status = 'sending' AND lease_until = ? AND next_attempt_at = ? AND attempts = ? AND due_at = ? AND expires_at = ? AND created_at = ? AND stage = ?";
 
 function claimArgs(reminder) {
   return [reminder.id, reminder.device_hash, reminder.lease_until, reminder.next_attempt_at,
-    reminder.attempts, reminder.due_at, reminder.expires_at, reminder.created_at];
+    reminder.attempts, reminder.due_at, reminder.expires_at, reminder.created_at, reminder.stage];
 }
 
 async function retryClaim(env, reminder, delayMs) {
@@ -212,7 +212,8 @@ export async function processDueReminders(env, sendPush = sendPushNotification) 
         WHERE id = ? AND due_at <= ? AND attempts < ?
           AND ((status = 'pending' AND next_attempt_at <= ?)
             OR (status = 'sending' AND lease_until <= ?))
-        RETURNING id, device_hash, due_at, expires_at, attempts, lease_until, next_attempt_at, created_at`,
+        RETURNING id, device_hash, due_at, expires_at, attempts, lease_until, next_attempt_at, created_at,
+          title, body, clear_at, stage`,
     ).bind(claimNow + LEASE_MS, generation, selectedRow.id, claimNow, MAX_ATTEMPTS, claimNow, claimNow).first();
     if (!reminder) {
       // A crashed final attempt must not leave a permanently claimable row.
@@ -226,6 +227,16 @@ export async function processDueReminders(env, sendPush = sendPushNotification) 
     }
 
     if (reminder.expires_at <= Date.now()) {
+      const deleted = await env.DB.prepare(`DELETE FROM reminders WHERE ${CLAIM_WHERE}`)
+        .bind(...claimArgs(reminder)).run();
+      deliveredOrExpired += deleted.meta?.changes || 0;
+      continue;
+    }
+
+    // Do not show a delayed all-day notification after its local-day window.
+    // A close-stage row is already handled by the normal due-time path below.
+    if (reminder.stage === "show" && Number(reminder.clear_at) > 0
+        && Number(reminder.clear_at) <= Date.now()) {
       const deleted = await env.DB.prepare(`DELETE FROM reminders WHERE ${CLAIM_WHERE}`)
         .bind(...claimArgs(reminder)).run();
       deliveredOrExpired += deleted.meta?.changes || 0;
@@ -254,8 +265,9 @@ export async function processDueReminders(env, sendPush = sendPushNotification) 
       continue;
     }
     const payload = {
-      title: "日記提醒",
-      body: "有一個記事提醒到時間了。按一下開啟日記。",
+      action: reminder.stage === "close" ? "close" : "show",
+      title: reminder.title || "日記提醒",
+      body: reminder.body || "有一個記事提醒到時間了。按一下開啟日記。",
       tag: `diary-reminder-${reminder.id}`,
       url: `${APP_URL}?reminder=${encodeURIComponent(reminder.id)}`,
       reminderId: reminder.id,
@@ -293,10 +305,20 @@ export async function processDueReminders(env, sendPush = sendPushNotification) 
       }
     }
     if (accepted) {
-      // Push service 接受不等同手機已顯示；網路／OS 通知設定仍會影響實際到達。
-      const deleted = await env.DB.prepare(`DELETE FROM reminders WHERE ${CLAIM_WHERE}`)
-        .bind(...claimArgs(reminder)).run();
-      deliveredOrExpired += deleted.meta?.changes || 0;
+      // Push service 接受不等同手機已顯示；網絡／OS 通知設定仍會影響實際到達。
+      if (reminder.stage === "show" && Number(reminder.clear_at) > 0) {
+        const clearAt = Number(reminder.clear_at);
+        const advanced = await env.DB.prepare(
+          `UPDATE reminders SET stage = 'close', due_at = ?, next_attempt_at = ?,
+             expires_at = ?, attempts = 0, status = 'pending', lease_until = NULL
+           WHERE ${CLAIM_WHERE}`,
+        ).bind(clearAt, clearAt, clearAt + MAX_LATE_DISPLAY_MS, ...claimArgs(reminder)).run();
+        deliveredOrExpired += advanced.meta?.changes || 0;
+      } else {
+        const deleted = await env.DB.prepare(`DELETE FROM reminders WHERE ${CLAIM_WHERE}`)
+          .bind(...claimArgs(reminder)).run();
+        deliveredOrExpired += deleted.meta?.changes || 0;
+      }
     } else if (Date.now() - Number.parseInt(subscriptionRow.updated_at, 10) < FRESH_SUBSCRIPTION_MS) {
       // A newly uploaded subscription can briefly return 404/410 while registering.
       await retryClaim(env, reminder, 15_000);
@@ -379,18 +401,26 @@ export default {
       const body = await readJson(request);
       const id = String(body?.id || "");
       const dueAt = Number(body?.dueAt);
+      const mode = body?.mode === "all_day" ? "all_day" : "timed";
+      const rawTitle = typeof body?.title === "string" ? body.title : "日記提醒";
+      const rawBody = typeof body?.body === "string" ? body.body : "有一個記事提醒到時間了。按一下開啟日記。";
+      const title = rawTitle.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 80) || "日記提醒";
+      const notificationBody = rawBody.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 180) || "請開啟日記查看。";
+      const clearAt = mode === "all_day" ? Number(body?.clearAt) : null;
       const now = Date.now();
       if (!/^[a-f0-9-]{36}$/i.test(id) || !Number.isSafeInteger(dueAt)
-          || dueAt <= now || dueAt > now + MAX_FUTURE_MS) {
+          || dueAt <= now || dueAt > now + MAX_FUTURE_MS
+          || (mode === "all_day" && (!Number.isSafeInteger(clearAt) || clearAt <= dueAt || clearAt > dueAt + 48 * 60 * 60 * 1000))) {
         return json(request, { error: "invalid_reminder" }, 400);
       }
-      const expiresAt = dueAt + MAX_LATE_DISPLAY_MS;
+      const expiresAt = (clearAt || dueAt) + MAX_LATE_DISPLAY_MS;
       // Each check and the write are one SQLite statement, including updates
       // from failed to pending and the global cap on all stored statuses.
       const result = await env.DB.prepare(
         `INSERT INTO reminders
-           (id, device_hash, due_at, next_attempt_at, expires_at, attempts, status, created_at, lease_until)
-         SELECT ?, ?, ?, ?, ?, 0, 'pending', ?, NULL
+           (id, device_hash, due_at, next_attempt_at, expires_at, attempts, status, created_at, lease_until,
+            title, body, clear_at, stage)
+         SELECT ?, ?, ?, ?, ?, 0, 'pending', ?, NULL, ?, ?, ?, 'show'
           WHERE EXISTS (SELECT 1 FROM subscriptions WHERE device_hash = ?)
             AND (EXISTS (SELECT 1 FROM reminders WHERE id = ? AND device_hash = ? AND status IN ('pending', 'sending'))
               OR (SELECT COUNT(*) FROM reminders WHERE device_hash = ? AND status IN ('pending', 'sending')) < ?)
@@ -403,9 +433,13 @@ export default {
            attempts = 0,
            status = 'pending',
            created_at = excluded.created_at,
-           lease_until = NULL
+           lease_until = NULL,
+           title = excluded.title,
+           body = excluded.body,
+           clear_at = excluded.clear_at,
+           stage = 'show'
          WHERE reminders.device_hash = excluded.device_hash`,
-      ).bind(id, deviceHash, dueAt, dueAt, expiresAt, now, deviceHash,
+      ).bind(id, deviceHash, dueAt, dueAt, expiresAt, now, title, notificationBody, clearAt, deviceHash,
         id, deviceHash, deviceHash, MAX_PENDING_PER_DEVICE, id, deviceHash, MAX_STORED_REMINDERS).run();
       if (!result.meta?.changes) {
         const existing = await env.DB.prepare("SELECT device_hash FROM reminders WHERE id = ?").bind(id).first();
@@ -414,7 +448,7 @@ export default {
         if (!subscription) return json(request, { error: "push_not_enabled" }, 409);
         return json(request, { error: "too_many_reminders" }, 429);
       }
-      return json(request, { ok: true, id, dueAt });
+      return json(request, { ok: true, id, dueAt, mode, clearAt });
     }
 
     if (url.pathname === "/v1/reminders/cancel") {

@@ -27,7 +27,9 @@ const subscription = {
 
 function makeDb() {
   const sqlite = new DatabaseSync(":memory:");
-  sqlite.exec(readFileSync(new URL("../migrations/0001_init.sql", import.meta.url), "utf8"));
+  for (const file of ["0001_init.sql", "0002_all_day_notification_content.sql"]) {
+    sqlite.exec(readFileSync(new URL(`../migrations/${file}`, import.meta.url), "utf8"));
+  }
   const DB = {
     async batch(statements) {
       sqlite.exec("BEGIN");
@@ -81,7 +83,9 @@ function addReminder(sqlite, hash, options = {}) {
   const now = Date.now();
   const { id = crypto.randomUUID(), due = now - 1000, expires = now + 3_600_000,
     attempts = 0, status = "pending", next = due, lease = null, created = now } = options;
-  sqlite.prepare("INSERT INTO reminders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+  sqlite.prepare(`INSERT INTO reminders
+    (id, device_hash, due_at, next_attempt_at, expires_at, attempts, status, created_at, lease_until)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, hash, due, next, expires, attempts, status, created, lease);
   return id;
 }
@@ -190,6 +194,124 @@ test("atomic reminder caps include failed rows and permit existing active update
   assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM reminders").get().n, 1000);
   assert.equal((await post(env, "/v1/reminders", { id: active, dueAt })).status, 200);
   assert.equal((await post(env, "/v1/reminders", { id: active, dueAt }, otherToken)).status, 404);
+});
+
+test("incremental migration preserves legacy reminders with generic notification defaults", () => {
+  const sqlite = new DatabaseSync(":memory:");
+  sqlite.exec(readFileSync(new URL("../migrations/0001_init.sql", import.meta.url), "utf8"));
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  sqlite.prepare(`INSERT INTO reminders
+    (id, device_hash, due_at, next_attempt_at, expires_at, attempts, status, created_at, lease_until)
+    VALUES (?, ?, ?, ?, ?, 0, 'pending', ?, NULL)`)
+    .run(id, "legacy-device", now + 60_000, now + 60_000, now + 3_600_000, now);
+  sqlite.exec(readFileSync(new URL("../migrations/0002_all_day_notification_content.sql", import.meta.url), "utf8"));
+  const reminder = row(sqlite, id);
+  assert.ok(reminder);
+  assert.equal(reminder.title, "日記提醒");
+  assert.equal(reminder.body, "有一個記事提醒到時間了。按一下開啟日記。");
+  assert.equal(reminder.clear_at, null);
+  assert.equal(reminder.stage, "show");
+});
+
+test("all-day reminder sends saved title and excerpt, then sends same-tag close stage", async () => {
+  const { sqlite, DB } = makeDb();
+  const env = makeEnv(DB);
+  const hash = await deviceHash(token);
+  addSubscription(sqlite, hash);
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  const dueAt = now - 1000;
+  const clearAt = now + 86_400_000;
+  const response = await post(env, "/v1/reminders", {
+    id, dueAt: now + 120_000, mode: "all_day", clearAt,
+    title: "私隱標題", body: "記事摘要內容",
+  });
+  assert.equal(response.status, 200);
+  const stored = row(sqlite, id);
+  assert.equal(stored.title, "私隱標題");
+  assert.equal(stored.body, "記事摘要內容");
+  assert.equal(stored.stage, "show");
+  sqlite.prepare("UPDATE reminders SET due_at = ?, next_attempt_at = ?, expires_at = ? WHERE id = ?")
+    .run(dueAt, dueAt, clearAt + 7_200_000, id);
+  const sent = [];
+  await processDueReminders(env, async (_sub, payload) => { sent.push(payload); return true; });
+  assert.equal(sent[0].action, "show");
+  assert.equal(sent[0].title, "私隱標題");
+  assert.equal(sent[0].body, "記事摘要內容");
+  assert.equal(row(sqlite, id).stage, "close");
+  assert.equal(row(sqlite, id).due_at, clearAt);
+  sqlite.prepare("UPDATE reminders SET due_at = ?, next_attempt_at = ? WHERE id = ?").run(Date.now() - 1, Date.now() - 1, id);
+  await processDueReminders(env, async (_sub, payload) => { sent.push(payload); return true; });
+  assert.equal(sent[1].action, "close");
+  assert.equal(sent[1].tag, sent[0].tag);
+  assert.equal(row(sqlite, id), undefined);
+});
+
+test("all-day request validates clear time and truncates untrusted notification text", async () => {
+  const { sqlite, DB } = makeDb();
+  const env = makeEnv(DB);
+  const hash = await deviceHash(token);
+  addSubscription(sqlite, hash);
+  const dueAt = Date.now() + 120_000;
+  const id = crypto.randomUUID();
+  assert.equal((await post(env, "/v1/reminders", { id, dueAt, mode: "all_day", clearAt: dueAt - 1 })).status, 400);
+  const longTitle = "標題".repeat(100);
+  const response = await post(env, "/v1/reminders", { id, dueAt, mode: "all_day", clearAt: dueAt + 86_400_000, title: longTitle, body: "摘要\n".repeat(100) });
+  assert.equal(response.status, 200);
+  assert.equal(Array.from(row(sqlite, id).title).length, 80);
+  assert.ok(Array.from(row(sqlite, id).body).length <= 180);
+  assert.ok(!/[\u0000-\u001f\u007f]/.test(row(sqlite, id).body));
+});
+
+test("a delayed all-day show stage past local midnight is discarded without a stale push", async () => {
+  const { sqlite, DB } = makeDb();
+  const env = makeEnv(DB);
+  const hash = await deviceHash(token);
+  addSubscription(sqlite, hash);
+  const now = Date.now();
+  const id = crypto.randomUUID();
+  sqlite.prepare(`INSERT INTO reminders
+    (id, device_hash, due_at, next_attempt_at, expires_at, attempts, status, created_at, lease_until,
+     title, body, clear_at, stage)
+    VALUES (?, ?, ?, ?, ?, 0, 'pending', ?, NULL, ?, ?, ?, 'show')`)
+    .run(id, hash, now - 60_000, now - 60_000, now + 7_200_000, now - 90_000,
+      "已過期記事", "不應顯示", now - 1000);
+  let sendCount = 0;
+  await processDueReminders(env, async () => { sendCount++; return true; });
+  assert.equal(sendCount, 0);
+  assert.equal(row(sqlite, id), undefined);
+});
+
+test("an accepted all-day show that crosses midnight still queues an immediate close stage", async () => {
+  const { sqlite, DB } = makeDb();
+  const env = makeEnv(DB);
+  const hash = await deviceHash(token);
+  const realNow = Date.now;
+  let now = realNow();
+  Date.now = () => now;
+  try {
+    addSubscription(sqlite, hash);
+    const id = crypto.randomUUID();
+    const clearAt = now + 1000;
+    sqlite.prepare(`INSERT INTO reminders
+      (id, device_hash, due_at, next_attempt_at, expires_at, attempts, status, created_at, lease_until,
+       title, body, clear_at, stage)
+      VALUES (?, ?, ?, ?, ?, 0, 'pending', ?, NULL, ?, ?, ?, 'show')`)
+      .run(id, hash, now - 1000, now - 1000, clearAt + 7_200_000, now - 500,
+        "記事通知", "摘要", clearAt);
+    const sent = [];
+    await processDueReminders(env, async (_sub, payload) => {
+      sent.push(payload.action);
+      if (payload.action === "show") now += 2000;
+      return true;
+    });
+    assert.equal(row(sqlite, id).stage, "close");
+    assert.equal(row(sqlite, id).due_at, clearAt);
+    await processDueReminders(env, async (_sub, payload) => { sent.push(payload.action); return true; });
+    assert.deepEqual(sent, ["show", "close"]);
+    assert.equal(row(sqlite, id), undefined);
+  } finally { Date.now = realNow; }
 });
 
 test("unsubscribe deletes both tables atomically", async () => {

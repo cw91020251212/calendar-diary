@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diary-app-v20261119v2';
+const CACHE_NAME = 'diary-app-v20261120v3';
 const SHARE_CACHE_NAME = 'diary-share-cache-v4';
 
 // 需要快取的靜態資源
@@ -115,17 +115,25 @@ self.addEventListener('push', (event) => {
     // Show the generic notification even if the payload is missing or invalid.
   }
 
-  // Expired pushes must still produce a visible notification, without opening the stale reminder.
+  // A second same-tag push requests dismissal at local day end; OS/browser support varies.
+  const reminderId = typeof data.reminderId === 'string' && /^[a-f0-9-]{36}$/i.test(data.reminderId) ? data.reminderId : null;
+  const tag = `diary-reminder-${reminderId || 'generic'}`;
+  if (data.action === 'close' && reminderId) {
+    event.waitUntil(self.registration.getNotifications({ tag }).then(notifications => notifications.forEach(notification => notification.close())));
+    return;
+  }
   const expiresAt = Number(data.expiresAt);
   if (data.expiresAt != null && Number.isFinite(expiresAt) && Date.now() >= expiresAt) data = {};
-  const reminderId = typeof data.reminderId === 'string' ? data.reminderId : null;
-
-  event.waitUntil(self.registration.showNotification('日記提醒', {
-    body: '請開啟日記查看。',
+  const safeTitle = typeof data.title === 'string' ? data.title.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80) : '';
+  const safeBody = typeof data.body === 'string' ? data.body.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 180) : '';
+  const targetUrl = typeof data.url === 'string' ? data.url : './';
+  event.waitUntil(self.registration.showNotification(safeTitle || '日記提醒', {
+    body: safeBody || '請開啟日記查看。',
     icon: './icon-v2-192.png',
     badge: './icon-v2-192.png',
-    tag: `diary-reminder-${reminderId || 'generic'}`,
-    data: { url: typeof data.url === 'string' ? data.url : './', reminderId },
+    tag,
+    requireInteraction: true,
+    data: { url: targetUrl, reminderId },
     renotify: true,
   }));
 });
