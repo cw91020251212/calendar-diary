@@ -1451,7 +1451,7 @@
                         <strong>即影</strong>：即刻開相機影相加入（唔使預先存相）。<br>
                         <strong>加圖</strong>：由相簿/檔案揀相加入（可多張）。<br>
                         <strong>加檔</strong>：加入附件（PDF/文件/錄音/任何檔案）。<br>
-                        <strong>提提我</strong>：生成日曆檔，加到手機行事曆提醒。<br>
+                        <strong>提提我</strong>：選擇提醒時刻、下載日曆檔，再加入手機行事曆；通知由手機行事曆負責。<br>
                         <strong>移動/複製</strong>：搬去第二日，或複製多份到其他日子。
                     </div>
                 </div>
@@ -1695,6 +1695,26 @@
                 <div style="display:flex; gap:12px; margin-top:16px;">
                     <button class="action-btn" style="flex:1;" onclick="backOrClose('pickDateModal')">取消</button>
                     <button class="action-btn primary" style="flex:1;" onclick="confirmPickDate()">確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="reminderTimeModal" onclick="backOrClose('reminderTimeModal', event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">設定手機行事曆提醒</div>
+                <button class="icon-btn" onclick="backOrClose('reminderTimeModal')" title="關閉"><i data-lucide="x" style="width:28px;height:28px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size:14px; color:var(--text-light); margin-bottom:12px;">提醒日期：<strong id="calendarReminderDate"></strong></div>
+                <label for="calendarReminderTimeInput" style="display:block; font-weight:800; margin-bottom:8px;">提醒時間（手機當地時間）</label>
+                <input id="calendarReminderTimeInput" type="time" value="09:00" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:18px;">
+                <div style="font-size:13px; color:var(--text-light); line-height:1.6; margin-top:12px;">
+                    會下載一個行事曆檔，請在手機行事曆中確認「加入」。加入後由手機行事曆於指定時間提醒；App 關閉亦可運作，不需伺服器或付費服務。通知仍受手機行事曆的通知權限和設定影響。
+                </div>
+                <div style="display:flex; gap:12px; margin-top:18px;">
+                    <button class="action-btn" style="flex:1;" onclick="backOrClose('reminderTimeModal')">取消</button>
+                    <button class="action-btn primary" style="flex:1;" onclick="confirmCalendarReminder()">下載日曆檔</button>
                 </div>
             </div>
         </div>
@@ -3000,10 +3020,13 @@
         })();
         let currentImages = [];
         let selectedWeatherBadges = [];
-        let isAnimating = false; 
+        let isAnimating = false;
 
         // 🟢 全新變數：自動儲存計時器
         let autoSaveInterval = null;
+        let autoSaveDebounce = null;
+        let autoSaveInFlight = null;
+        let autoSaveLastFingerprint = null;
 
         // 🟩 Android 返回鍵處理：用 History API 令「返回」先關編輯器並儲存
         let __editorHistoryPushed = false;
@@ -3941,6 +3964,7 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
         // 📌 記錄「上次雲端上傳失敗」時間（用嚟提示用家改做本機備份）
         const LAST_CLOUD_FAIL_KEY = 'diary_last_cloud_fail_ts_v1';
         const LOCAL_REMINDERS_KEY = 'diary_local_reminders_v1';
+        const LOCAL_REMINDER_DEFAULT_TIME_KEY = 'diary_calendar_reminder_default_time_v1';
 
         function fmtHHMM(ts) {
             if (!ts) return '--:--';
@@ -3967,14 +3991,15 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             try { localStorage.setItem(LOCAL_REMINDERS_KEY, JSON.stringify(Array.isArray(arr) ? arr : [])); } catch (_) {}
         }
 
-        function rememberLocalReminder(dateStr, title) {
+        function rememberLocalReminder(dateStr, title, time = '') {
             try {
                 const t = String(title || '').trim();
+                const reminderTime = String(time || '').trim();
                 if (!dateStr || !t) return;
                 const list = loadLocalReminders();
-                // 同一日同一標題就唔重覆寫入
-                const exists = list.some(r => r && r.date === dateStr && r.title === t);
-                if (!exists) list.push({ date: dateStr, title: t, createdAt: Date.now() });
+                // 同一日、同一標題、同一時間就唔重覆寫入
+                const exists = list.some(r => r && r.date === dateStr && r.title === t && String(r.time || '') === reminderTime);
+                if (!exists) list.push({ date: dateStr, title: t, time: reminderTime, createdAt: Date.now() });
                 saveLocalReminders(list);
             } catch (_) {}
         }
@@ -4043,7 +4068,8 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             const todayStr = getTodayStr();
             const rs = loadLocalReminders().filter(r => r && r.date === todayStr);
             const rTitle = rs.length ? String(rs[0].title || '').trim() : '';
-            const remindPart = rTitle ? `｜今日提醒：${rTitle}` : '';
+            const rTime = rs.length ? String(rs[0].time || '').trim() : '';
+            const remindPart = rTitle ? `｜今日提醒檔${rTime ? ` ${rTime}` : ''}：${rTitle}` : '';
 
             const base = `${localPart}${cloudPart}${remindPart}`;
 
@@ -4096,8 +4122,8 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                     <div class="statusrow-value">${navigator.onLine ? '在線' : '離線'}</div>
                 </div>
                 <div class="statusrow">
-                    <div class="statusrow-title">今日提醒</div>
-                    <div class="statusrow-value">${todayReminders.length ? escapeHtml(todayReminders[0].title || '') : '（無）'}</div>
+                    <div class="statusrow-title">今日行事曆提醒檔</div>
+                    <div class="statusrow-value">${todayReminders.length ? `${todayReminders[0].time ? escapeHtml(todayReminders[0].time) + ' · ' : ''}${escapeHtml(todayReminders[0].title || '')}` : '（無）'}</div>
                 </div>
 
                 ${cloudAdvice ? (`
@@ -7232,8 +7258,10 @@ renderEditorImages(); renderAttachments();
                 textarea.onscroll = () => { /* no-op */ };
             } catch (_) {}
             updateEditorNotebookFolderRow();
-            document.getElementById('editorModal').classList.add('active'); 
-            setTimeout(() => { try { (rich || textarea).focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400); 
+            document.getElementById('editorModal').classList.add('active');
+            bindEditorAutoSaveEvents();
+            startAutoSave();
+            setTimeout(() => { try { (rich || textarea).focus(); } catch(_){}; try { autoGrowEditorTextarea(false); } catch(_){}; }, 400);
 
             // 🟩 Android 返回鍵：開啟編輯器時 push 一個 history state
             ensureBaseHistoryState();
@@ -7244,9 +7272,6 @@ renderEditorImages(); renderAttachments();
                 }
             } catch (e) { console.error(e); }
             
-            // 🟢 開啟編輯器時，啟動定時自動儲存
-            // ✅ 只按「儲存記錄」先寫入資料（取消自動儲存）
-            // startAutoSave();
         }
 
         function selectColor(colorId) {
@@ -8648,24 +8673,122 @@ function toggleHighlighter() {
         }
 
         function addToNativeCalendar() {
+            const dateLabel = document.getElementById('calendarReminderDate');
+            const timeInput = document.getElementById('calendarReminderTimeInput');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(editingDateStr || ''))) {
+                alert('未能確認記事日期，請關閉後重新打開記事再試。');
+                return;
+            }
+            if (dateLabel) dateLabel.textContent = editingDateStr;
+            try {
+                const savedTime = localStorage.getItem(LOCAL_REMINDER_DEFAULT_TIME_KEY);
+                if (timeInput) timeInput.value = /^\d{2}:\d{2}$/.test(savedTime || '') ? savedTime : '09:00';
+            } catch (_) { if (timeInput) timeInput.value = '09:00'; }
+            openModal('reminderTimeModal');
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        function escapeIcsText(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/\r\n|\r|\n/g, '\\n')
+                .replace(/([;,])/g, '\\$1');
+        }
+
+        function foldIcsLine(line) {
+            const encoder = new TextEncoder();
+            let output = '';
+            let current = '';
+            let octets = 0;
+            for (const character of String(line)) {
+                const size = encoder.encode(character).length;
+                if (octets + size > 75) {
+                    output += current + '\r\n ';
+                    current = character;
+                    octets = 1 + size;
+                } else {
+                    current += character;
+                    octets += size;
+                }
+            }
+            return output + current;
+        }
+
+        function toIcsUtcDateTime(date) {
+            return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+        }
+
+        function confirmCalendarReminder() {
+            const dateStr = String(editingDateStr || '');
+            const timeInput = document.getElementById('calendarReminderTimeInput');
+            const time = String(timeInput && timeInput.value || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{2}:\d{2}$/.test(time)) {
+                alert('請選擇有效的日期和提醒時間。');
+                return;
+            }
+
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const [hour, minute] = time.split(':').map(Number);
+            const startAt = new Date(year, month - 1, day, hour, minute, 0, 0);
+            if (hour > 23 || minute > 59 || startAt.getFullYear() !== year || startAt.getMonth() !== month - 1 || startAt.getDate() !== day || startAt.getHours() !== hour || startAt.getMinutes() !== minute) {
+                alert('這個日期或時間無效，請重新選擇。');
+                return;
+            }
+            if (startAt.getTime() <= Date.now()) {
+                alert('所選的提醒時間已經過去，請選擇未來的時間。');
+                return;
+            }
+
+            const endAt = new Date(startAt.getTime() + 15 * 60 * 1000);
             const text = getEditorPlainText().trim() || '日曆事項';
             const tagName = tagNames[selectedColor] || '事項';
-            const dateParts = editingDateStr.split('-');
-            const startStr = `${dateParts[0]}${dateParts[1]}${dateParts[2]}`;
-            const d = new Date(parseInt(dateParts[0]), parseInt(dateParts[1])-1, parseInt(dateParts[2]));
-            d.setDate(d.getDate() + 1);
-            const endStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${startStr}\nDTEND;VALUE=DATE:${endStr}\nSUMMARY:【${tagName}】\nDESCRIPTION:${text}\nEND:VEVENT\nEND:VCALENDAR`;
-            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `reminder_${startStr}.ics`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            const firstLine = (text.split('\n').map(s => s.trim()).find(Boolean) || '提醒').slice(0, 80);
+            const summary = `【${tagName}】${firstLine}`;
+            const description = text;
+            const uidPart = window.crypto && typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            const lines = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Calendar Diary//ZH-Hant//',
+                'CALSCALE:GREGORIAN',
+                'BEGIN:VEVENT',
+                `UID:${uidPart}@calendar-diary.local`,
+                `DTSTAMP:${toIcsUtcDateTime(new Date())}`,
+                `DTSTART:${toIcsUtcDateTime(startAt)}`,
+                `DTEND:${toIcsUtcDateTime(endAt)}`,
+                `SUMMARY:${escapeIcsText(summary)}`,
+                `DESCRIPTION:${escapeIcsText(description)}`,
+                'TRANSP:TRANSPARENT',
+                'BEGIN:VALARM',
+                'ACTION:DISPLAY',
+                `DESCRIPTION:${escapeIcsText(`提醒：${summary}`)}`,
+                'TRIGGER:-PT0M',
+                'END:VALARM',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ];
+            const icsContent = lines.map(foldIcsLine).join('\r\n') + '\r\n';
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `reminder_${dateStr.replace(/-/g, '')}_${time.replace(':', '')}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
 
-            // 📌 另外存一份「到咗當日先顯示」嘅本機提醒（用底部資訊欄提示你）
+            // 只記錄已產生日曆檔；是否成功加入由手機行事曆，App 無法代為確認。
             try {
-                const firstLine = (text.split('\n').map(s => s.trim()).filter(Boolean)[0] || '提醒').slice(0, 18);
-                rememberLocalReminder(editingDateStr, `【${tagName}】${firstLine}`);
+                localStorage.setItem(LOCAL_REMINDER_DEFAULT_TIME_KEY, time);
+                rememberLocalReminder(dateStr, `【${tagName}】${firstLine.slice(0, 18)}`, time);
                 refreshStatusBar(null);
             } catch (_) {}
 
-            setTimeout(() => { alert("⏰ 已經為你製作好日曆檔案！\n\n如果系統彈出提示，請選擇「加入日曆」，就可以享用手機自帶嘅響鬧功能啦！"); }, 500);
+            backOrClose('reminderTimeModal');
+            setTimeout(() => { alert('⏰ 日曆提醒檔已下載。請在手機行事曆選擇「加入」，並確認行事曆通知已開啟；加入後由手機行事曆於指定時間提醒。'); }, 500);
         }
 
         function formatBytes(bytes) {
@@ -9321,11 +9444,85 @@ function handleImageUpload(event) {
         function renderEditorImages() { document.getElementById('editorGallery').innerHTML = currentImages.map((src, idx) => `<div class="photo-item"><img src="${src}" onclick="openLightbox('${src}')"><button class="delete-photo-btn" onclick="removeImage(${idx})"><i data-lucide="x" style="width:20px;height:20px;"></i></button></div>`).join(''); lucide.createIcons(); }
         function removeImage(idx) { currentImages.splice(idx, 1); renderEditorImages(); }
 
-        // 🟢 全新邏輯：靜默自動儲存 (唔會閂視窗)
+        function getEditorDraftFingerprint() {
+            const rich = document.getElementById('editorRich');
+            const folderSelect = document.getElementById('editorNotebookFolder');
+            return JSON.stringify({
+                date: editingDateStr || '',
+                space: currentSpaceContext || '',
+                text: getEditorPlainText().trim(),
+                textHtml: rich ? getEditorRichHtmlForStorage() : '',
+                highlights: rich ? serializeHighlightsFromEditor() : [],
+                color: selectedColor || '',
+                textSize: currentTextSizeIdx,
+                images: Array.isArray(currentImages) ? currentImages : [],
+                attachments: (Array.isArray(currentAttachments) ? currentAttachments : []).map(a => ({
+                    id: a && a.id || '', name: a && a.name || '', type: a && a.type || '',
+                    size: a && a.size || 0, lastModified: a && a.lastModified || 0
+                })),
+                weather: Array.isArray(selectedWeatherBadges) ? selectedWeatherBadges : [],
+                folderId: currentSpaceContext === SPACE_NOTEBOOK
+                    ? String(folderSelect ? folderSelect.value || '' : getNotebookLastWriteFolderId() || '')
+                    : ''
+            });
+        }
+
+        function hasEditorDraftContent() {
+            return !!getEditorPlainText().trim()
+                || (Array.isArray(currentImages) && currentImages.length > 0)
+                || (Array.isArray(currentAttachments) && currentAttachments.length > 0)
+                || (Array.isArray(selectedWeatherBadges) && selectedWeatherBadges.length > 0);
+        }
+
+        function bindEditorAutoSaveEvents() {
+            const modal = document.getElementById('editorModal');
+            if (!modal || modal.__autoSaveEventsBound) return;
+            modal.__autoSaveEventsBound = true;
+            ['input', 'change', 'compositionend'].forEach(type => {
+                modal.addEventListener(type, scheduleAutoSave, true);
+            });
+            modal.addEventListener('click', (event) => {
+                const target = event.target instanceof Element ? event.target : event.target && event.target.parentElement;
+                if (target && target.closest('button, select, input, [contenteditable="true"]')) scheduleAutoSave();
+            });
+        }
+
+        function scheduleAutoSave() {
+            const modal = document.getElementById('editorModal');
+            if (!modal || !modal.classList.contains('active')) return;
+            if (autoSaveDebounce) clearTimeout(autoSaveDebounce);
+            autoSaveDebounce = setTimeout(() => {
+                autoSaveDebounce = null;
+                silentAutoSave().catch(e => console.error('自動儲存失敗:', e));
+            }, 1200);
+        }
+
+        // 🟢 靜默自動儲存：有變更時即時保存，並避免重複寫入
         async function silentAutoSave() {
+            if (!hasEditorDraftContent()) return false;
+            if (autoSaveInFlight) {
+                await autoSaveInFlight;
+                return silentAutoSave();
+            }
+            const draftFingerprint = getEditorDraftFingerprint();
+            if (draftFingerprint === autoSaveLastFingerprint) return false;
+            const saveTask = performSilentAutoSave(draftFingerprint);
+            autoSaveInFlight = saveTask;
+            try {
+                return await saveTask;
+            } catch (e) {
+                try { showToast('自動儲存失敗，請按儲存重試。', 'error'); } catch (_) {}
+                throw e;
+            } finally {
+                if (autoSaveInFlight === saveTask) autoSaveInFlight = null;
+            }
+        }
+
+        // 🟢 全新邏輯：靜默自動儲存 (唔會閂視窗)
+        async function performSilentAutoSave(draftFingerprint) {
             const text = getEditorPlainText().trim(); 
             // 避免新建一份完全空白的無效記錄
-            if (!text && currentImages.length === 0 && currentAttachments.length === 0 && (!selectedWeatherBadges || selectedWeatherBadges.length===0) && !currentEntryData) return; 
+            if (!hasEditorDraftContent()) return false;
 
             // ✅ 防呆：就算 currentEntryData 被其他地方意外變成空 object，都保證有 id/timestamp
             const entryId = (currentEntryData && currentEntryData.id) ? currentEntryData.id : Date.now();
@@ -9390,6 +9587,7 @@ function handleImageUpload(event) {
             } catch (_) {}
 
             await db.save(currentEntryData);
+            autoSaveLastFingerprint = draftFingerprint;
 
             // 📌 記錄「上次儲存」時間（本機）並刷新底欄
             try {
@@ -9403,17 +9601,35 @@ function handleImageUpload(event) {
                 indicator.style.opacity = '1';
                 setTimeout(() => { indicator.style.opacity = '0'; }, 2500);
             }
+            return true;
         }
 
         // 🟢 啟動/停止自動儲存定時器
-        function startAutoSave() { /* 已停用：只按儲存鍵先寫入 */ }
+        function startAutoSave() {
+            stopAutoSave();
+            // 已存在的記事以目前內容作基線；新記事待有內容後才第一次保存。
+            autoSaveLastFingerprint = currentEntryData && currentEntryData.id
+                ? getEditorDraftFingerprint()
+                : null;
+            autoSaveInterval = setInterval(() => {
+                const modal = document.getElementById('editorModal');
+                if (modal && modal.classList.contains('active')) {
+                    silentAutoSave().catch(e => console.error('定時自動儲存失敗:', e));
+                }
+            }, 15000);
+        }
 
-        function stopAutoSave() { /* 已停用 */ }
+        function stopAutoSave() {
+            if (autoSaveInterval) clearInterval(autoSaveInterval);
+            if (autoSaveDebounce) clearTimeout(autoSaveDebounce);
+            autoSaveInterval = null;
+            autoSaveDebounce = null;
+        }
 
         // 🟢 取代原有取消按鈕：安全關閉編輯器
         // ✅ 不帶 history 操作嘅關閉（畀 popstate 用，避免循環）
         async function closeEditorNoHistory() {
-            // await silentAutoSave(); // 已停用 // 離開前強制儲存一次
+            await silentAutoSave();
             stopAutoSave();
             closeModal('editorModal');
 
@@ -9709,12 +9925,12 @@ function handleImageUpload(event) {
         // 🟢 防彈出機制：當你切換 App (visibilitychange) 或離開網頁 (pagehide) 時強制儲存
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && document.getElementById('editorModal').classList.contains('active')) {
-                silentAutoSave();
+                silentAutoSave().catch(e => console.error('離開頁面前自動儲存失敗:', e));
             }
         });
         window.addEventListener('pagehide', () => {
             if (document.getElementById('editorModal').classList.contains('active')) {
-                silentAutoSave();
+                silentAutoSave().catch(e => console.error('離開頁面前自動儲存失敗:', e));
             }
         });
 
