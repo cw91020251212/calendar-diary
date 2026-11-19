@@ -576,6 +576,7 @@
         #editorModal.modal-overlay { z-index: 620; }
         #readModal.modal-overlay { z-index: 625; }
         #moveCopyModal.modal-overlay, #moveCopyBulkModal.modal-overlay { z-index: 630; }
+        #reminderTimeModal.modal-overlay { z-index: 635; }
         #pickFolderModal.modal-overlay, #pickDateModal.modal-overlay, #shareDateModal.modal-overlay { z-index: 635; }
         #statusPanelOverlay.modal-overlay { z-index: 640; }
         .modal-overlay.active { display: flex; opacity: 1; }
@@ -1709,13 +1710,15 @@
                 <div style="font-size:14px; color:var(--text-light); margin-bottom:12px;">提醒日期：<strong id="calendarReminderDate"></strong></div>
                 <label for="calendarReminderTimeInput" style="display:block; font-weight:800; margin-bottom:8px;">提醒時間（手機當地時間）</label>
                 <input id="calendarReminderTimeInput" type="time" value="09:00" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:18px;">
-                <div id="reminderPushStatus" style="font-size:13px; color:var(--text-light); line-height:1.6; margin-top:12px;">
-                    背景提醒會在指定時間由系統通知推送（需開啟通知權限）；App 關閉亦可運作。通知受網絡、省電、勿擾等設定影響，不保證精確到秒。
+                <div style="font-size:13px; color:var(--text-light); line-height:1.6; margin-top:12px;">
+                    iPhone／iPad 請先用 Safari「加入主畫面」，再從主畫面開啟 App 並允許通知。設定及取消背景提醒需要網絡；收通知亦受網絡、省電和勿擾影響，不保證準時。服務只接收隨機提醒 ID、時間及推播訂閱資料，不會傳送記事內容或標題；日期等資料留在本機。下載日曆檔則會包含記事內容。
                 </div>
+                <div id="reminderPushStatus" role="status" aria-live="polite" style="font-size:13px; line-height:1.6; margin-top:12px;"></div>
+                <div id="reminderCancelList" style="font-size:13px; line-height:1.6; margin-top:12px;"></div>
                 <div style="display:flex; gap:12px; margin-top:18px;">
                     <button class="action-btn" style="flex:1;" onclick="backOrClose('reminderTimeModal')">取消</button>
                     <button class="action-btn" style="flex:1;" onclick="downloadIcsFile()">下載日曆檔</button>
-                    <button class="action-btn primary" style="flex:1;" onclick="confirmCalendarReminder()">設定提醒</button>
+                    <button id="reminderConfirmBtn" class="action-btn primary" style="flex:1;" onclick="confirmCalendarReminder()">設定提醒</button>
                 </div>
             </div>
         </div>
@@ -8686,6 +8689,9 @@ function toggleHighlighter() {
                 if (timeInput) timeInput.value = /^\d{2}:\d{2}$/.test(savedTime || '') ? savedTime : '09:00';
             } catch (_) { if (timeInput) timeInput.value = '09:00'; }
             openModal('reminderTimeModal');
+            renderReminderCancelList();
+            prepareReminderPush();
+            prepareReminderEntry(editingDateStr);
             try { lucide.createIcons(); } catch (_) {}
         }
 
@@ -8723,6 +8729,13 @@ function toggleHighlighter() {
         const PUSH_API_BASE = 'https://calendar-diary-reminders.buspulse-hk.workers.dev';
         const PUSH_DEVICE_TOKEN_KEY = 'diary_push_device_token_v1';
         const PUSH_ENABLED_KEY = 'diary_push_enabled_v1';
+        const REMINDER_ID_MAP_KEY = 'diary_reminder_id_map_v1';
+        let reminderPushReady = null;
+        let reminderPreparePromise = null;
+        let reminderActionBusy = false;
+        let reminderPermissionRequested = false;
+        let reminderEntryReady = null;
+        let reminderEntryCheckPromise = null;
 
         function bytesToBase64Url(bytes) {
             let binary = '';
@@ -8746,11 +8759,13 @@ function toggleHighlighter() {
             return token;
         }
 
-        async function pushApi(path, { method = 'GET', body } = {}) {
+        async function pushApi(path, { method = 'GET', body, requireExistingToken = false } = {}) {
             const headers = new Headers({ 'Accept': 'application/json' });
             if (method !== 'GET') {
+                const token = requireExistingToken ? localStorage.getItem(PUSH_DEVICE_TOKEN_KEY) : getPushDeviceToken();
+                if (!token) throw new Error('本機裝置憑證遺失，無法取消原有提醒；請勿清除網站資料。');
                 headers.set('Content-Type', 'application/json');
-                headers.set('Authorization', `Bearer ${getPushDeviceToken()}`);
+                headers.set('Authorization', `Bearer ${token}`);
             }
             const response = await fetch(`${PUSH_API_BASE}${path}`, {
                 method, headers,
@@ -8762,71 +8777,174 @@ function toggleHighlighter() {
             return result;
         }
 
-        async function ensurePushPermission() {
-            if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-                throw new Error('這個瀏覽器不支援背景推播；請用支援通知的瀏覽器以 HTTPS 開啟。');
-            }
-            let permission = Notification.permission;
-            if (permission === 'default') permission = await Notification.requestPermission();
-            if (permission !== 'granted') throw new Error('尚未允許顯示通知。');
-            return navigator.serviceWorker.ready;
+        function setReminderStatus(text) {
+            const el = document.getElementById('reminderPushStatus');
+            if (el) el.textContent = text;
         }
 
-        async function enableReminderPush() {
-            const registration = await ensurePushPermission();
-            const { vapidPublicKey } = await pushApi('/v1/config');
-            if (!vapidPublicKey) throw new Error('背景提醒服務尚未完成設定。');
-            const applicationServerKey = base64UrlToBytes(vapidPublicKey);
-            let subscription = await registration.pushManager.getSubscription();
-            if (!subscription) {
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey,
+        function prepareReminderEntry(dateStr) {
+            if (reminderEntryCheckPromise) return reminderEntryCheckPromise;
+            reminderEntryReady = null;
+            reminderEntryCheckPromise = (async () => {
+                // 使用既有自動儲存流程，並確認記錄已落庫，才用其 ID 識別提醒。
+                if (!currentEntryData || currentEntryData.id == null) await silentAutoSave();
+                const id = currentEntryData && currentEntryData.id != null ? String(currentEntryData.id) : '';
+                if (!id) return;
+                const entries = await db.getAll();
+                if (editingDateStr === dateStr && currentEntryData && String(currentEntryData.id) === id &&
+                    entries.some(entry => entry && String(entry.id) === id)) {
+                    reminderEntryReady = { id, date: dateStr };
+                }
+            })().catch(err => {
+                console.error('準備記事提醒失敗:', err);
+                setReminderStatus('記事未能確認已儲存；請先儲存記事，再設定背景提醒。');
+            }).finally(() => { reminderEntryCheckPromise = null; });
+            return reminderEntryCheckPromise;
+        }
+
+        function loadReminderMap() {
+            const raw = localStorage.getItem(REMINDER_ID_MAP_KEY);
+            const map = raw ? JSON.parse(raw) : {};
+            if (!map || typeof map !== 'object' || Array.isArray(map)) throw new Error('本機提醒記錄格式有誤，未有更改原資料。');
+            return map;
+        }
+
+        function saveReminderMap(map) {
+            localStorage.setItem(REMINDER_ID_MAP_KEY, JSON.stringify(map));
+        }
+
+        function updatePushReminderList(id, info) {
+            const raw = localStorage.getItem(LOCAL_REMINDERS_KEY);
+            const list = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(list)) throw new Error('本機提醒列表格式有誤，未有更改原資料。');
+            const next = list.filter(item => !item || item.reminderId !== id);
+            if (info) next.push({ reminderId: id, date: info.date, time: info.time, title: info.title, createdAt: info.createdAt });
+            localStorage.setItem(LOCAL_REMINDERS_KEY, JSON.stringify(next));
+        }
+
+        function newReminderId() {
+            if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+            const bytes = crypto.getRandomValues(new Uint8Array(16));
+            bytes[6] = (bytes[6] & 15) | 64;
+            bytes[8] = (bytes[8] & 63) | 128;
+            const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+            return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+        }
+
+        function withReminderLock(fn) {
+            // 支援 Web Locks 的瀏覽器可防止同一裝置多個分頁同時提交。
+            return navigator.locks ? navigator.locks.request('diary-reminder-actions-v1', fn) : fn();
+        }
+
+        function setReminderBusy(busy) {
+            reminderActionBusy = busy;
+            const btn = document.getElementById('reminderConfirmBtn');
+            if (btn) btn.disabled = busy;
+            document.querySelectorAll('#reminderCancelList button').forEach(button => { button.disabled = busy; });
+        }
+
+        function prepareReminderPush() {
+            if (reminderPushReady || reminderPreparePromise) return reminderPreparePromise;
+            if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+                setReminderStatus('此開啟方式不支援背景通知；可改用「下載日曆檔」。');
+                return null;
+            }
+            setReminderStatus('正在準備提醒服務，請稍候…');
+            let timer;
+            reminderPreparePromise = Promise.race([
+                Promise.all([navigator.serviceWorker.ready, pushApi('/v1/config')]),
+                new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('準備逾時，請檢查網絡')), 12000); })
+            ]).then(([registration, config]) => {
+                if (!config.vapidPublicKey) throw new Error('提醒服務尚未完成設定');
+                const key = base64UrlToBytes(config.vapidPublicKey);
+                if (!key.length || !registration.pushManager) throw new Error('提醒服務設定無效');
+                reminderPushReady = { registration, key };
+                setReminderStatus('提醒服務已準備好。按「設定提醒」開始。');
+            }).catch(err => {
+                setReminderStatus('未能準備提醒服務：' + (err.message || err) + '。請檢查網絡，再按「設定提醒」重試。');
+            }).finally(() => { clearTimeout(timer); reminderPreparePromise = null; });
+            return reminderPreparePromise;
+        }
+
+        function renderReminderCancelList() {
+            const container = document.getElementById('reminderCancelList');
+            if (!container) return;
+            container.textContent = '';
+            try {
+                const date = document.getElementById('calendarReminderDate').textContent;
+                const entryId = currentEntryData && currentEntryData.id != null ? String(currentEntryData.id) : '';
+                const records = Object.entries(loadReminderMap()).filter(([, info]) => info && info.date === date);
+                if (!records.length) return;
+                const heading = document.createElement('div');
+                heading.textContent = '本機同日背景提醒記錄（舊記錄可能已到期，請核對後取消）：';
+                container.appendChild(heading);
+                records.forEach(([id, info]) => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex; align-items:center; gap:8px; margin-top:8px;';
+                    const label = document.createElement('span');
+                    label.style.flex = '1';
+                    const own = entryId && String(info.entryId || '') === entryId;
+                    label.textContent = `${own ? '此記事' : '同日其他／舊版'}：${info.time || '時間不詳'} ${info.title || ''}${info.pending ? '（狀態待確認，嘗試時間 ' + info.pending.time + '）' : ''}`;
+                    const button = document.createElement('button');
+                    button.className = 'action-btn';
+                    button.textContent = '取消此提醒';
+                    button.disabled = reminderActionBusy;
+                    button.onclick = () => cancelCalendarReminder(id);
+                    row.append(label, button);
+                    container.appendChild(row);
                 });
+            } catch (err) {
+                container.textContent = '無法讀取本機提醒記錄：' + (err.message || err);
             }
-            await pushApi('/v1/subscribe', {
-                method: 'POST',
-                body: { subscription: subscription.toJSON() },
-            });
-            localStorage.setItem(PUSH_ENABLED_KEY, '1');
-            return { enabled: true };
         }
 
-        async function scheduleReminderPush(id, dueAt) {
-            await enableReminderPush();
-            return pushApi('/v1/reminders', {
-                method: 'POST',
-                body: { id, dueAt: Number(dueAt) },
-            });
-        }
-
-        async function cancelReminderPush(id) {
-            return pushApi('/v1/reminders/cancel', {
-                method: 'POST',
-                body: { id },
-            });
+        async function cancelCalendarReminder(id) {
+            if (reminderActionBusy || !confirm('確定取消此背景提醒？不會刪除記事或日曆檔。')) return;
+            setReminderBusy(true);
+            setReminderStatus('正在取消提醒，請稍候…');
+            let remoteCancelled = false;
+            try {
+                await withReminderLock(async () => {
+                    const map = loadReminderMap();
+                    if (!Object.prototype.hasOwnProperty.call(map, id)) throw new Error('本機找不到此提醒記錄');
+                    await pushApi('/v1/reminders/cancel', { method: 'POST', body: { id }, requireExistingToken: true });
+                    remoteCancelled = true;
+                    // 只移除帶相同 ID 的推播記錄；舊記錄和 .ics 記錄不動。
+                    updatePushReminderList(id, null);
+                    const latest = loadReminderMap();
+                    delete latest[id];
+                    saveReminderMap(latest);
+                });
+                try { refreshStatusBar(null); } catch (_) {}
+                setReminderStatus('取消要求已完成。');
+                alert('已取消此背景提醒；記事和日曆檔不受影響。');
+            } catch (err) {
+                const message = remoteCancelled ? '服務已接受取消，但本機記錄未能更新；請再試取消。' : '取消失敗，已保留本機記錄及裝置憑證。';
+                setReminderStatus(message);
+                alert(message + '\n' + (err.message || err));
+            } finally {
+                setReminderBusy(false);
+                renderReminderCancelList();
+            }
         }
 
         async function disableReminderPush() {
-            try {
-                await pushApi('/v1/unsubscribe', { method: 'POST', body: {} });
-            } catch (_) {}
+            await pushApi('/v1/unsubscribe', { method: 'POST', body: {}, requireExistingToken: true });
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
-            if (subscription) await subscription.unsubscribe();
-            localStorage.removeItem(PUSH_DEVICE_TOKEN_KEY);
+            if (subscription && !(await subscription.unsubscribe())) throw new Error('瀏覽器未能取消推播訂閱。');
+            // 保留憑證，避免遺失對其他裝置記錄的存取。
             localStorage.removeItem(PUSH_ENABLED_KEY);
         }
 
         function confirmCalendarReminder() {
-            const dateStr = String(editingDateStr || '');
-            const timeInput = document.getElementById('calendarReminderTimeInput');
-            const time = String(timeInput && timeInput.value || '').trim();
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{2}:\d{2}$/.test(time)) {
-                alert('請選擇有效的日期和提醒時間。');
+            if (reminderActionBusy) return;
+            const dateStr = String(document.getElementById('calendarReminderDate').textContent || '');
+            const time = String(document.getElementById('calendarReminderTimeInput').value || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{2}:\d{2}$/.test(time) || editingDateStr !== dateStr) {
+                alert('請重新打開記事，選擇有效的日期和提醒時間。');
                 return;
             }
-
             const [year, month, day] = dateStr.split('-').map(Number);
             const [hour, minute] = time.split(':').map(Number);
             const startAt = new Date(year, month - 1, day, hour, minute, 0, 0);
@@ -8838,36 +8956,99 @@ function toggleHighlighter() {
                 alert('所選的提醒時間已經過去，請選擇未來的時間。');
                 return;
             }
+            if (!currentEntryData || currentEntryData.id == null || !reminderEntryReady ||
+                reminderEntryReady.id !== String(currentEntryData.id) || reminderEntryReady.date !== dateStr) {
+                prepareReminderEntry(dateStr);
+                alert('請先輸入並儲存記事（或等自動儲存及確認完成），再按「設定提醒」。');
+                return;
+            }
+            if (!reminderPushReady) {
+                prepareReminderPush();
+                alert('提醒服務尚未準備好。請檢查上方狀態，準備好後再按「設定提醒」。');
+                return;
+            }
+            if (Notification.permission === 'denied') {
+                alert('通知權限已被拒絕，請到瀏覽器或裝置設定允許通知後再試。');
+                return;
+            }
+            if (Notification.permission === 'default') {
+                if (reminderPermissionRequested) {
+                    alert('通知尚未獲允許。請在瀏覽器或裝置設定開啟；如剛關閉提示，可重開 App 再試。');
+                    return;
+                }
+                reminderPermissionRequested = true;
+                setReminderBusy(true);
+                try {
+                    // 權限提示可能消耗手勢：不在此回調中訂閱，必須再按一次。
+                    Promise.resolve(Notification.requestPermission()).then(permission => {
+                        const msg = permission === 'granted' ? '通知已獲允許，請再按一次「設定提醒」完成設定。' : '通知未獲允許；請在瀏覽器或裝置設定允許後再試。';
+                        setReminderStatus(msg);
+                        alert(msg);
+                    }).catch(err => { setReminderStatus('無法取得通知權限：' + (err.message || err)); })
+                        .finally(() => setReminderBusy(false));
+                } catch (err) {
+                    setReminderBusy(false);
+                    alert('無法取得通知權限：' + (err.message || err));
+                }
+                return;
+            }
+            if (Notification.permission !== 'granted') { alert('尚未允許通知。'); return; }
 
-            const dueAt = startAt.getTime();
+            const entryId = String(currentEntryData.id);
             const text = getEditorPlainText().trim() || '日曆事項';
             const tagName = tagNames[selectedColor] || '事項';
-            const firstLine = (text.split('\n').map(s => s.trim()).find(Boolean) || '提醒').slice(0, 80);
-            const summary = `【${tagName}】${firstLine}`;
-            const reminderId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-                ? window.crypto.randomUUID()
-                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-            const statusEl = document.getElementById('reminderPushStatus');
-            const originalText = statusEl ? statusEl.textContent : '';
-            if (statusEl) statusEl.textContent = '正在設定背景提醒，請稍候…';
-
-            scheduleReminderPush(reminderId, dueAt).then(() => {
-                try {
-                    localStorage.setItem(LOCAL_REMINDER_DEFAULT_TIME_KEY, time);
-                    rememberLocalReminder(dateStr, summary.slice(0, 18), time);
-                    const reminderMap = JSON.parse(localStorage.getItem('diary_reminder_id_map_v1') || '{}');
-                    reminderMap[reminderId] = { date: dateStr, time, title: summary.slice(0, 18), createdAt: Date.now() };
-                    localStorage.setItem('diary_reminder_id_map_v1', JSON.stringify(reminderMap));
-                    refreshStatusBar(null);
-                } catch (_) {}
-                backOrClose('reminderTimeModal');
-                if (statusEl) statusEl.textContent = originalText;
-                setTimeout(() => { alert('⏰ 背景提醒已設定！到時間會由系統通知推送。\n\n注意：通知受網絡、省電、勿擾等設定影響，不保證精確到秒。'); }, 300);
-            }).catch((err) => {
-                if (statusEl) statusEl.textContent = originalText;
-                alert('背景提醒設定失敗：' + (err.message || err) + '\n\n你可以改用「下載日曆檔」方式提醒。');
-            });
+            const title = `【${tagName}】${(text.split('\n').map(s => s.trim()).find(Boolean) || '提醒').slice(0, 80)}`.slice(0, 18);
+            const dueAt = startAt.getTime();
+            setReminderBusy(true);
+            setReminderStatus('正在設定背景提醒，請稍候…');
+            let subscribePromise;
+            try {
+                // 必須在這次按鈕手勢的同步呼叫堆疊中呼叫，之前不可 await 網絡或 getSubscription。
+                subscribePromise = reminderPushReady.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: reminderPushReady.key });
+            } catch (err) {
+                setReminderBusy(false);
+                setReminderStatus('無法訂閱通知：' + (err.message || err));
+                alert('無法訂閱通知：' + (err.message || err));
+                return;
+            }
+            let requestStarted = false;
+            Promise.resolve(subscribePromise).then(subscription => withReminderLock(async () => {
+                const map = loadReminderMap();
+                const matches = Object.entries(map).filter(([, info]) => info && info.date === dateStr && info.entryId != null && String(info.entryId) === entryId);
+                if (matches.length > 1) throw new Error('此記事有多個本機提醒記錄，請先核對並取消多餘提醒');
+                if (!localStorage.getItem(PUSH_DEVICE_TOKEN_KEY) && Object.keys(map).length) throw new Error('本機裝置憑證遺失，無法安全重用舊提醒');
+                getPushDeviceToken(); // 先確保憑證已持久儲存。
+                const id = matches.length ? matches[0][0] : newReminderId();
+                const previous = matches.length ? matches[0][1] : { date: dateStr, time, title, entryId, createdAt: Date.now() };
+                const earlierDueTimes = [previous.dueAt, previous.pending && previous.pending.dueAt].map(Number).filter(n => n > 0);
+                if (earlierDueTimes.some(n => n <= Date.now() + 60000)) {
+                    throw new Error('原提醒已到期或即將發送；請先取消該記錄，再重新設定（原通知仍可能送達）。');
+                }
+                map[id] = { ...previous, entryId, pending: { time, title, dueAt } };
+                saveReminderMap(map); // 在任何 POST 之前保存 ID，即使回應遺失也可安全重試。
+                localStorage.setItem(LOCAL_REMINDER_DEFAULT_TIME_KEY, time);
+                await pushApi('/v1/subscribe', { method: 'POST', body: { subscription: subscription.toJSON() }, requireExistingToken: true });
+                localStorage.setItem(PUSH_ENABLED_KEY, '1');
+                requestStarted = true;
+                await pushApi('/v1/reminders', { method: 'POST', body: { id, dueAt }, requireExistingToken: true });
+                const latest = loadReminderMap();
+                if (!latest[id]) throw new Error('本機提醒記錄已變更，請重新核對');
+                const confirmed = { ...latest[id], date: dateStr, time, title, entryId, dueAt };
+                delete confirmed.pending;
+                latest[id] = confirmed;
+                saveReminderMap(latest);
+                updatePushReminderList(id, confirmed);
+            })).then(() => {
+                try { refreshStatusBar(null); } catch (_) {}
+                setReminderStatus('背景提醒已設定。');
+                renderReminderCancelList();
+                alert('背景提醒已設定。通知時間受網絡、省電和勿擾影響。');
+            }).catch(err => {
+                const message = requestStarted ? '設定結果未能確認，提醒可能已生效。請用同一記事重試或取消，避免重複。' : '未能完成背景提醒設定；如有待確認記錄，請重試或取消。';
+                setReminderStatus(message);
+                renderReminderCancelList();
+                alert(message + '\n' + (err.message || err) + '\n可改用「下載日曆檔」。');
+            }).finally(() => setReminderBusy(false));
         }
 
         function downloadIcsFile() {
@@ -10101,7 +10282,7 @@ function handleImageUpload(event) {
             } catch (_) {}
             if ('serviceWorker' in navigator) {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js?v=20261119v1', { scope: './' });
+                    const registration = await navigator.serviceWorker.register('sw.js?v=20261119v2', { scope: './' });
                     try { await registration.update(); } catch (_) {}
                     try {
                         // 如果有 waiting SW，要求佢立即生效
@@ -10116,23 +10297,66 @@ function handleImageUpload(event) {
             }
         }
 
-        async function handleReminderDeepLink() {
+        let reminderAppReady = false;
+        const pendingReminderClicks = [];
+
+        async function openReminderDate(reminderId) {
             try {
-                const url = new URL(window.location.href);
-                const reminderId = url.searchParams.get('reminder');
-                if (!reminderId) return;
-                // 從本機映射找日期
-                const reminderMap = JSON.parse(localStorage.getItem('diary_reminder_id_map_v1') || '{}');
-                const info = reminderMap[reminderId];
-                if (info && info.date) {
-                    // 開啟對應日期的記事
-                    editingDateStr = info.date;
-                    openDayEntry(info.date);
+                const map = loadReminderMap();
+                const info = Object.prototype.hasOwnProperty.call(map, reminderId) ? map[reminderId] : null;
+                if (!info || !/^\d{4}-\d{2}-\d{2}$/.test(String(info.date || ''))) {
+                    alert('找不到此提醒的本機日期記錄，請在日曆中查看。');
+                    return;
                 }
-                // 清除 URL 參數
-                url.searchParams.delete('reminder');
-                window.history.replaceState({}, document.title, url.toString());
-            } catch (e) { console.error('handleReminderDeepLink error:', e); }
+                const dateStr = info.date;
+                const editorOpen = () => document.getElementById('editorModal').classList.contains('active');
+                if (editorOpen()) {
+                    alert('提醒日期：' + dateStr + '。編輯器正在開啟，請先完成編輯後自行查看該日期。');
+                    return;
+                }
+                const all = await db.getAll();
+                // 讀取資料期間用家可能打開了編輯器；不可覆蓋 editingDateStr。
+                if (editorOpen()) {
+                    alert('提醒日期：' + dateStr + '。編輯器正在開啟，請先完成編輯後自行查看該日期。');
+                    return;
+                }
+                all.forEach(normalizeEntrySpace);
+                const target = info.entryId == null ? null : all.find(e => e && String(e.id) === String(info.entryId));
+                if (target && target.space === SPACE_NOTEBOOK) {
+                    currentSpaceContext = SPACE_NOTEBOOK;
+                    editingDateStr = /^\d{4}-\d{2}-\d{2}$/.test(String(target.date || '')) ? target.date : dateStr;
+                    window.__readNav = { ids: [String(target.id)], idx: 0, returnTo: 'notebook' };
+                    openReadView(encodeURIComponent(JSON.stringify(target)));
+                    return;
+                }
+                currentSpaceContext = SPACE_CALENDAR;
+                const entries = all.filter(e => e.date === dateStr && (e.space || SPACE_CALENDAR) === SPACE_CALENDAR);
+                const holiday = getHKHolidayName(dateStr);
+                if (holiday) entries.unshift({ id: `__hkHoliday:${dateStr}`, text: holiday, color: '__holiday__', __isHoliday: true });
+                openDayView(dateStr, entries);
+            } catch (err) {
+                console.error('openReminderDate error:', err);
+                alert('無法開啟提醒日期，請在日曆中查看。');
+            }
+        }
+
+        async function handleReminderDeepLink() {
+            const url = new URL(window.location.href);
+            const reminderId = url.searchParams.get('reminder');
+            if (!reminderId) return;
+            // 保留分享參數、hash 和原有 modal history state。
+            url.searchParams.delete('reminder');
+            window.history.replaceState(history.state, document.title, url.toString());
+            await openReminderDate(reminderId);
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', event => {
+                const data = event.data;
+                if (!data || data.type !== 'DIARY_REMINDER_CLICK' || typeof data.reminderId !== 'string' || !data.reminderId) return;
+                if (!reminderAppReady) pendingReminderClicks.push(data.reminderId);
+                else openReminderDate(data.reminderId);
+            });
         }
 
         async function tryConsumeSharedPayload() {
@@ -10291,6 +10515,8 @@ function handleImageUpload(event) {
         window.onload = async () => {
             try { loadUIFontScale(); } catch (e) { console.error(e); }
             try { await initApp(); } catch (e) { console.error(e); }
+            reminderAppReady = true;
+            while (pendingReminderClicks.length) await openReminderDate(pendingReminderClicks.shift());
             // Service Worker 更新與分享接收放到首屏之後，唔阻住開機畫面。
             setTimeout(() => {
                 registerServiceWorker().catch(e => console.error(e));

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'diary-app-v20261119v1';
+const CACHE_NAME = 'diary-app-v20261119v2';
 const SHARE_CACHE_NAME = 'diary-share-cache-v4';
 
 // 需要快取的靜態資源
@@ -24,7 +24,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME && key !== SHARE_CACHE_NAME)
+        keys.filter((key) => key.startsWith('diary-app-') && key !== CACHE_NAME && key !== SHARE_CACHE_NAME)
             .map((key) => caches.delete(key))
       );
     })
@@ -84,6 +84,15 @@ self.addEventListener('fetch', (event) => {
   // 標準快取策略：網絡優先，失敗則使用快取
   event.respondWith(
     fetch(event.request).catch(() => {
+      const scope = new URL(self.registration.scope);
+      if (event.request.mode === 'navigate' && url.origin === scope.origin
+          && url.pathname.startsWith(scope.pathname)) {
+        return caches.open(CACHE_NAME).then(async (cache) => {
+          return await cache.match(new URL('index.html', scope).href)
+            || await cache.match(scope.href)
+            || caches.match(event.request);
+        });
+      }
       return caches.match(event.request);
     })
   );
@@ -98,47 +107,52 @@ self.addEventListener('message', (event) => {
 
 // === 背景推播接收與通知點擊處理 ===
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
-  let data;
+  let data = {};
   try {
-    data = event.data.json();
+    const payload = event.data && event.data.json();
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) data = payload;
   } catch {
-    data = { title: '日記提醒', body: '有一個記事提醒到時間了。按一下開啟日記。' };
+    // Show the generic notification even if the payload is missing or invalid.
   }
 
-  // 忽略過期通知，避免手機離線太久後收到已不合時的提醒。
-  if (data.expiresAt && Date.now() > Number(data.expiresAt)) return;
+  // Expired pushes must still produce a visible notification, without opening the stale reminder.
+  const expiresAt = Number(data.expiresAt);
+  if (data.expiresAt != null && Number.isFinite(expiresAt) && Date.now() >= expiresAt) data = {};
+  const reminderId = typeof data.reminderId === 'string' ? data.reminderId : null;
 
-  event.waitUntil(self.registration.showNotification(data.title || '日記提醒', {
-    body: data.body || '有一個記事提醒到時間了。按一下開啟日記。',
+  event.waitUntil(self.registration.showNotification('日記提醒', {
+    body: '請開啟日記查看。',
     icon: './icon-v2-192.png',
     badge: './icon-v2-192.png',
-    tag: data.tag || `diary-reminder-${data.reminderId || 'generic'}`,
-    data: { url: data.url || './', reminderId: data.reminderId || null },
+    tag: `diary-reminder-${reminderId || 'generic'}`,
+    data: { url: typeof data.url === 'string' ? data.url : './', reminderId },
     renotify: true,
   }));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const fallback = new URL('./', self.registration.scope).href;
-  let target = fallback;
+  const scope = new URL(self.registration.scope);
+  let target = new URL(scope.href);
+  const reminderId = typeof event.notification.data?.reminderId === 'string'
+    ? event.notification.data.reminderId : null;
   try {
-    const candidate = new URL(event.notification.data?.url || fallback, self.location.origin);
-    const scope = new URL(self.registration.scope);
-    if (candidate.origin === scope.origin && candidate.pathname.startsWith(scope.pathname)) target = candidate.href;
+    const candidate = new URL(event.notification.data?.url || scope.href, scope);
+    if (candidate.origin === scope.origin && candidate.pathname.startsWith(scope.pathname)
+        && !candidate.username && !candidate.password) target = candidate;
   } catch {
     // Keep the same-origin app URL fallback.
   }
+  if (reminderId) target.searchParams.set('reminder', reminderId);
 
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin
-      && new URL(client.url).pathname.startsWith(new URL(self.registration.scope).pathname));
+    const existing = windows.find((client) => new URL(client.url).origin === scope.origin
+      && new URL(client.url).pathname.startsWith(scope.pathname));
     if (existing) {
-      if ('navigate' in existing) await existing.navigate(target);
+      existing.postMessage({ type: 'DIARY_REMINDER_CLICK', reminderId });
       return existing.focus();
     }
-    return self.clients.openWindow(target);
+    return self.clients.openWindow(target.href);
   })());
 });
