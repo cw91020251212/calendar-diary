@@ -1,0 +1,17 @@
+{
+  "name": "calendar-diary-reminders-draft",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "test": "node --test",
+    "dry-run": "wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "@mmmike/web-push": "1.5.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.165.0"
+  }
+}

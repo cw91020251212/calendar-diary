@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "calendar-diary-reminders",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-19",
+  "workers_dev": true,
+  "vars": {
+    "VAPID_PUBLIC_KEY": "BEGychvQThU8irP0u7RqYjs9C7sDLKdlnbPFzQ6ZJkPbiRgHEGLBtMLwLoceQTsVNRqq6d7G86XU0EKkYc9GHbk",
+    "VAPID_SUBJECT": "https://cw91020251212.github.io/calendar-diary/"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "calendar-diary-reminders",
+      "database_id": "08a9a6e8-638d-403c-92e4-0f5900fbb9c4",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *"]
+  }
+}

@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#667eea">
     <title>日曆記事本</title>
     <!-- ✅ 單一檔 index.html 版本（已包含左右撥月份修正） -->
-    <link rel="manifest" href="manifest.webmanifest?v=20260724v3">
+    <link rel="manifest" href="manifest.webmanifest?v=20261119v1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1451,7 +1451,7 @@
                         <strong>即影</strong>：即刻開相機影相加入（唔使預先存相）。<br>
                         <strong>加圖</strong>：由相簿/檔案揀相加入（可多張）。<br>
                         <strong>加檔</strong>：加入附件（PDF/文件/錄音/任何檔案）。<br>
-                        <strong>提提我</strong>：選擇提醒時刻、下載日曆檔，再加入手機行事曆；通知由手機行事曆負責。<br>
+                        <strong>提提我</strong>：選擇提醒時刻，設定背景推播提醒（App 關閉亦可運作），或下載日曆檔到手機行事曆。<br>
                         <strong>移動/複製</strong>：搬去第二日，或複製多份到其他日子。
                     </div>
                 </div>
@@ -1702,19 +1702,20 @@
     <div class="modal-overlay" id="reminderTimeModal" onclick="backOrClose('reminderTimeModal', event)">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">設定手機行事曆提醒</div>
+                <div class="modal-title">設定提醒</div>
                 <button class="icon-btn" onclick="backOrClose('reminderTimeModal')" title="關閉"><i data-lucide="x" style="width:28px;height:28px;"></i></button>
             </div>
             <div class="modal-body">
                 <div style="font-size:14px; color:var(--text-light); margin-bottom:12px;">提醒日期：<strong id="calendarReminderDate"></strong></div>
                 <label for="calendarReminderTimeInput" style="display:block; font-weight:800; margin-bottom:8px;">提醒時間（手機當地時間）</label>
                 <input id="calendarReminderTimeInput" type="time" value="09:00" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-main); font-size:18px;">
-                <div style="font-size:13px; color:var(--text-light); line-height:1.6; margin-top:12px;">
-                    會下載一個行事曆檔，請在手機行事曆中確認「加入」。加入後由手機行事曆於指定時間提醒；App 關閉亦可運作，不需伺服器或付費服務。通知仍受手機行事曆的通知權限和設定影響。
+                <div id="reminderPushStatus" style="font-size:13px; color:var(--text-light); line-height:1.6; margin-top:12px;">
+                    背景提醒會在指定時間由系統通知推送（需開啟通知權限）；App 關閉亦可運作。通知受網絡、省電、勿擾等設定影響，不保證精確到秒。
                 </div>
                 <div style="display:flex; gap:12px; margin-top:18px;">
                     <button class="action-btn" style="flex:1;" onclick="backOrClose('reminderTimeModal')">取消</button>
-                    <button class="action-btn primary" style="flex:1;" onclick="confirmCalendarReminder()">下載日曆檔</button>
+                    <button class="action-btn" style="flex:1;" onclick="downloadIcsFile()">下載日曆檔</button>
+                    <button class="action-btn primary" style="flex:1;" onclick="confirmCalendarReminder()">設定提醒</button>
                 </div>
             </div>
         </div>
@@ -8718,7 +8719,158 @@ function toggleHighlighter() {
             return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
         }
 
+                // === 背景提醒推送服務（Cloudflare Worker + Web Push） ===
+        const PUSH_API_BASE = 'https://calendar-diary-reminders.buspulse-hk.workers.dev';
+        const PUSH_DEVICE_TOKEN_KEY = 'diary_push_device_token_v1';
+        const PUSH_ENABLED_KEY = 'diary_push_enabled_v1';
+
+        function bytesToBase64Url(bytes) {
+            let binary = '';
+            for (const byte of bytes) binary += String.fromCharCode(byte);
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+        }
+
+        function base64UrlToBytes(value) {
+            const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
+            const binary = atob(padded);
+            return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        }
+
+        function getPushDeviceToken() {
+            let token = localStorage.getItem(PUSH_DEVICE_TOKEN_KEY);
+            if (!token) {
+                const bytes = crypto.getRandomValues(new Uint8Array(32));
+                token = bytesToBase64Url(bytes);
+                localStorage.setItem(PUSH_DEVICE_TOKEN_KEY, token);
+            }
+            return token;
+        }
+
+        async function pushApi(path, { method = 'GET', body } = {}) {
+            const headers = new Headers({ 'Accept': 'application/json' });
+            if (method !== 'GET') {
+                headers.set('Content-Type', 'application/json');
+                headers.set('Authorization', `Bearer ${getPushDeviceToken()}`);
+            }
+            const response = await fetch(`${PUSH_API_BASE}${path}`, {
+                method, headers,
+                body: body === undefined ? undefined : JSON.stringify(body),
+                cache: 'no-store', credentials: 'omit',
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || `提醒服務錯誤（${response.status}）`);
+            return result;
+        }
+
+        async function ensurePushPermission() {
+            if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+                throw new Error('這個瀏覽器不支援背景推播；請用支援通知的瀏覽器以 HTTPS 開啟。');
+            }
+            let permission = Notification.permission;
+            if (permission === 'default') permission = await Notification.requestPermission();
+            if (permission !== 'granted') throw new Error('尚未允許顯示通知。');
+            return navigator.serviceWorker.ready;
+        }
+
+        async function enableReminderPush() {
+            const registration = await ensurePushPermission();
+            const { vapidPublicKey } = await pushApi('/v1/config');
+            if (!vapidPublicKey) throw new Error('背景提醒服務尚未完成設定。');
+            const applicationServerKey = base64UrlToBytes(vapidPublicKey);
+            let subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey,
+                });
+            }
+            await pushApi('/v1/subscribe', {
+                method: 'POST',
+                body: { subscription: subscription.toJSON() },
+            });
+            localStorage.setItem(PUSH_ENABLED_KEY, '1');
+            return { enabled: true };
+        }
+
+        async function scheduleReminderPush(id, dueAt) {
+            await enableReminderPush();
+            return pushApi('/v1/reminders', {
+                method: 'POST',
+                body: { id, dueAt: Number(dueAt) },
+            });
+        }
+
+        async function cancelReminderPush(id) {
+            return pushApi('/v1/reminders/cancel', {
+                method: 'POST',
+                body: { id },
+            });
+        }
+
+        async function disableReminderPush() {
+            try {
+                await pushApi('/v1/unsubscribe', { method: 'POST', body: {} });
+            } catch (_) {}
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) await subscription.unsubscribe();
+            localStorage.removeItem(PUSH_DEVICE_TOKEN_KEY);
+            localStorage.removeItem(PUSH_ENABLED_KEY);
+        }
+
         function confirmCalendarReminder() {
+            const dateStr = String(editingDateStr || '');
+            const timeInput = document.getElementById('calendarReminderTimeInput');
+            const time = String(timeInput && timeInput.value || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{2}:\d{2}$/.test(time)) {
+                alert('請選擇有效的日期和提醒時間。');
+                return;
+            }
+
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const [hour, minute] = time.split(':').map(Number);
+            const startAt = new Date(year, month - 1, day, hour, minute, 0, 0);
+            if (hour > 23 || minute > 59 || startAt.getFullYear() !== year || startAt.getMonth() !== month - 1 || startAt.getDate() !== day || startAt.getHours() !== hour || startAt.getMinutes() !== minute) {
+                alert('這個日期或時間無效，請重新選擇。');
+                return;
+            }
+            if (startAt.getTime() <= Date.now()) {
+                alert('所選的提醒時間已經過去，請選擇未來的時間。');
+                return;
+            }
+
+            const dueAt = startAt.getTime();
+            const text = getEditorPlainText().trim() || '日曆事項';
+            const tagName = tagNames[selectedColor] || '事項';
+            const firstLine = (text.split('\n').map(s => s.trim()).find(Boolean) || '提醒').slice(0, 80);
+            const summary = `【${tagName}】${firstLine}`;
+            const reminderId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+                ? window.crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+            const statusEl = document.getElementById('reminderPushStatus');
+            const originalText = statusEl ? statusEl.textContent : '';
+            if (statusEl) statusEl.textContent = '正在設定背景提醒，請稍候…';
+
+            scheduleReminderPush(reminderId, dueAt).then(() => {
+                try {
+                    localStorage.setItem(LOCAL_REMINDER_DEFAULT_TIME_KEY, time);
+                    rememberLocalReminder(dateStr, summary.slice(0, 18), time);
+                    const reminderMap = JSON.parse(localStorage.getItem('diary_reminder_id_map_v1') || '{}');
+                    reminderMap[reminderId] = { date: dateStr, time, title: summary.slice(0, 18), createdAt: Date.now() };
+                    localStorage.setItem('diary_reminder_id_map_v1', JSON.stringify(reminderMap));
+                    refreshStatusBar(null);
+                } catch (_) {}
+                backOrClose('reminderTimeModal');
+                if (statusEl) statusEl.textContent = originalText;
+                setTimeout(() => { alert('⏰ 背景提醒已設定！到時間會由系統通知推送。\n\n注意：通知受網絡、省電、勿擾等設定影響，不保證精確到秒。'); }, 300);
+            }).catch((err) => {
+                if (statusEl) statusEl.textContent = originalText;
+                alert('背景提醒設定失敗：' + (err.message || err) + '\n\n你可以改用「下載日曆檔」方式提醒。');
+            });
+        }
+
+        function downloadIcsFile() {
             const dateStr = String(editingDateStr || '');
             const timeInput = document.getElementById('calendarReminderTimeInput');
             const time = String(timeInput && timeInput.value || '').trim();
@@ -8780,7 +8932,6 @@ function toggleHighlighter() {
             document.body.removeChild(link);
             setTimeout(() => URL.revokeObjectURL(url), 60000);
 
-            // 只記錄已產生日曆檔；是否成功加入由手機行事曆，App 無法代為確認。
             try {
                 localStorage.setItem(LOCAL_REMINDER_DEFAULT_TIME_KEY, time);
                 rememberLocalReminder(dateStr, `【${tagName}】${firstLine.slice(0, 18)}`, time);
@@ -8788,9 +8939,10 @@ function toggleHighlighter() {
             } catch (_) {}
 
             backOrClose('reminderTimeModal');
-            setTimeout(() => { alert('⏰ 日曆提醒檔已下載。請在手機行事曆選擇「加入」，並確認行事曆通知已開啟；加入後由手機行事曆於指定時間提醒。'); }, 500);
+            setTimeout(() => { alert('⏰ 日曆提醒檔已下載。請在手機行事曆選擇「加入」。'); }, 500);
         }
 
+        
         function formatBytes(bytes) {
             const b = Number(bytes || 0);
             if (b < 1024) return b + ' B';
@@ -9949,7 +10101,7 @@ function handleImageUpload(event) {
             } catch (_) {}
             if ('serviceWorker' in navigator) {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js?v=20260724v7', { scope: './' });
+                    const registration = await navigator.serviceWorker.register('sw.js?v=20261119v1', { scope: './' });
                     try { await registration.update(); } catch (_) {}
                     try {
                         // 如果有 waiting SW，要求佢立即生效
@@ -9962,6 +10114,25 @@ function handleImageUpload(event) {
                     console.error('Service Worker 註冊失敗:', error);
                 }
             }
+        }
+
+        async function handleReminderDeepLink() {
+            try {
+                const url = new URL(window.location.href);
+                const reminderId = url.searchParams.get('reminder');
+                if (!reminderId) return;
+                // 從本機映射找日期
+                const reminderMap = JSON.parse(localStorage.getItem('diary_reminder_id_map_v1') || '{}');
+                const info = reminderMap[reminderId];
+                if (info && info.date) {
+                    // 開啟對應日期的記事
+                    editingDateStr = info.date;
+                    openDayEntry(info.date);
+                }
+                // 清除 URL 參數
+                url.searchParams.delete('reminder');
+                window.history.replaceState({}, document.title, url.toString());
+            } catch (e) { console.error('handleReminderDeepLink error:', e); }
         }
 
         async function tryConsumeSharedPayload() {
@@ -10124,6 +10295,7 @@ function handleImageUpload(event) {
             setTimeout(() => {
                 registerServiceWorker().catch(e => console.error(e));
                 tryConsumeSharedPayload().catch(e => console.error(e));
+                handleReminderDeepLink().catch(e => console.error(e));
             }, 0);
         };
     </script>
