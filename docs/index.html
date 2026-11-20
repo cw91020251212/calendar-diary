@@ -2005,6 +2005,7 @@
                         <a href="terms.html" target="_blank" rel="noopener" style="color:#2563eb; font-weight:bold;">《服務條款》</a>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 12px; color: var(--text-light); line-height: 1.5;">為了讓自動同步沿用你選擇的 Google 帳戶，首次使用會向 Google 要求 OpenID 基本帳戶識別權限。識別碼只保存在此瀏覽器；不保存 Gmail 地址或存取權杖。</div>
                         <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" title="按下後會載入 Google 服務並開始同步"><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
                         <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" onclick="cloudAction('restore')" title="按下後會載入 Google 服務並開始還原"><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
                         <button id="cloudSwitchAccountBtn" class="action-btn" style="background: #f7fafc; color: #2d3748; border: 1px solid var(--outline);" onclick="cloudAction('switchAccount')"><i data-lucide="users"></i> 選擇／切換 Google 帳戶</button>
@@ -3233,8 +3234,26 @@
 
         const CLIENT_ID = '821513038783-uhr5flbnurvsgoh9vbekovl29e049m3s.apps.googleusercontent.com';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-        const SCOPES = 'https://www.googleapis.com/auth/drive.appdata'; 
+        const SCOPES = 'https://www.googleapis.com/auth/drive.appdata openid';
         let tokenClient;
+        const CLOUD_ACCOUNT_SUBJECT_KEY = 'diary_google_account_sub_v1';
+        const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
+
+        function getSavedGoogleAccountSubject() {
+            try { return localStorage.getItem(CLOUD_ACCOUNT_SUBJECT_KEY) || ''; } catch (_) { return ''; }
+        }
+
+        async function fetchGoogleAccountSubject(accessToken) {
+            const response = await fetch(GOOGLE_USERINFO_URL, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            if (!response.ok) throw new Error(`Google 帳戶識別失敗 (${response.status})`);
+            const userInfo = await response.json();
+            if (!userInfo || typeof userInfo.sub !== 'string' || !userInfo.sub) {
+                throw new Error('Google 未回傳帳戶識別碼');
+            }
+            return userInfo.sub;
+        }
 
         // Google Drive 只喺用家真正按雲端備份時先載入，避免拖慢開機。
         let __googleApiLoadPromise = null;
@@ -3337,16 +3356,23 @@
             if (action === 'logout') {
                 const token = gapi.client.getToken();
                 if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
+                try { localStorage.removeItem(CLOUD_ACCOUNT_SUBJECT_KEY); } catch (_) {}
                 document.getElementById('cloudLogoutBtn').style.display = 'none';
                 setCloudBackupStatus('已登出此日曆 App 的 Google 授權。你仍可按「選擇／切換 Google 帳戶」重新連接。', 'info');
                 alert('已成功登出 Google 帳戶。');
                 return true;
             }
+            const automatic = !!window.__cloudSilentMode && action !== 'switchAccount';
+            const savedAccountSubject = getSavedGoogleAccountSubject();
+            if (automatic && !savedAccountSubject) {
+                setCloudAutoSyncStatus('ℹ️ 請先手動選擇一次 Google 帳戶，之後才可靜默自動同步。', false);
+                return false;
+            }
+            let usingSavedAccountHint = !!savedAccountSubject && action !== 'switchAccount';
             const token = gapi.client.getToken();
             if (token === null || action === 'switchAccount') {
-                const automatic = !!window.__cloudSilentMode && action !== 'switchAccount';
                 return await new Promise(resolve => {
-                    let triedAccountPicker = action === 'switchAccount';
+                    let triedAccountPicker = action === 'switchAccount' || !usingSavedAccountHint;
                     let finished = false;
                     const finish = value => {
                         if (finished) return;
@@ -3358,6 +3384,7 @@
                             // 背景自動同步絕不打開登入／同意視窗；需要重新登入時留給用家手動處理。
                             if (!automatic && !triedAccountPicker) {
                                 triedAccountPicker = true;
+                                usingSavedAccountHint = false;
                                 try { tokenClient.requestAccessToken({ prompt: 'select_account' }); }
                                 catch (e) {
                                     console.error(e);
@@ -3380,9 +3407,46 @@
                         try {
                             gapi.client.setToken(resp);
                             document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                            let authorizedAccountSubject = '';
+                            try {
+                                authorizedAccountSubject = await fetchGoogleAccountSubject(resp.access_token);
+                            } catch (identityError) {
+                                console.warn('Could not read Google account subject:', identityError);
+                            }
+                            if (usingSavedAccountHint && (!authorizedAccountSubject || authorizedAccountSubject !== savedAccountSubject)) {
+                                gapi.client.setToken('');
+                                if (!automatic && !triedAccountPicker) {
+                                    triedAccountPicker = true;
+                                    usingSavedAccountHint = false;
+                                    try { tokenClient.requestAccessToken({ prompt: 'select_account' }); }
+                                    catch (selectionError) {
+                                        console.error(selectionError);
+                                        setCloudBackupStatus('帳戶無法靜默連接，亦無法開啟 Google 帳戶選擇。這次沒有執行備份。', 'error');
+                                        finish(false);
+                                    }
+                                    return;
+                                }
+                                if (automatic) {
+                                    setCloudAutoSyncStatus('⚠️ 無法確認授權帳戶是你上次選擇的帳戶，今次自動上傳已略過。請手動選擇帳戶。', true);
+                                } else {
+                                    setCloudBackupStatus('無法確認 Google 帳戶，這次沒有執行備份。請重新選擇帳戶。', 'error');
+                                }
+                                finish(false);
+                                return;
+                            }
+                            let accountSubjectSaved = automatic;
+                            if (!automatic && authorizedAccountSubject) {
+                                try {
+                                    localStorage.setItem(CLOUD_ACCOUNT_SUBJECT_KEY, authorizedAccountSubject);
+                                    accountSubjectSaved = getSavedGoogleAccountSubject() === authorizedAccountSubject;
+                                } catch (_) {}
+                            } else if (!automatic) {
+                                try { localStorage.removeItem(CLOUD_ACCOUNT_SUBJECT_KEY); } catch (_) {}
+                            }
                             if (action === 'switchAccount') {
-                                setCloudBackupStatus('Google 帳戶已連接；這一步尚未備份，請按「同步上傳至 Google 雲端」。', 'info');
-                                showToast('已選擇 Google 帳戶，可以按同步上傳備份。', 'success');
+                                const identityNote = accountSubjectSaved ? '' : '但此瀏覽器未能記住帳戶，日後自動同步需重新選擇。';
+                                setCloudBackupStatus(`Google 帳戶已連接${identityNote}；這一步尚未備份，請按「同步上傳至 Google 雲端」。`, accountSubjectSaved ? 'info' : 'error');
+                                showToast(accountSubjectSaved ? '已選擇 Google 帳戶，可以按同步上傳備份。' : '已連接帳戶，但未能記住帳戶識別。', accountSubjectSaved ? 'success' : 'error');
                                 finish(true);
                                 return;
                             }
@@ -3399,9 +3463,10 @@
                         }
                     };
                     try {
-                        // 背景只准靜默授權；使用者主動切換時明確顯示帳戶選擇器。
-                        const prompt = automatic ? 'none' : action === 'switchAccount' ? 'select_account' : '';
-                        tokenClient.requestAccessToken({ prompt });
+                        // 已記住帳戶先靜默嘗試；首次使用／主動切換才直接選帳戶，手動靜默失敗時再退回選擇器。
+                        const requestConfig = { prompt: usingSavedAccountHint ? 'none' : 'select_account' };
+                        if (usingSavedAccountHint) requestConfig.login_hint = savedAccountSubject;
+                        tokenClient.requestAccessToken(requestConfig);
                     } catch (e) {
                         console.error(e);
                         if (automatic) {

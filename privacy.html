@@ -29,7 +29,7 @@
       <ul>
         <li><b>你輸入的內容</b>：文字記事、你加入的相片（以壓縮後的資料格式儲存）、標籤與天氣狀態等。</li>
         <li><b>本機設定</b>：主題、顏色標籤名稱、底色狀態名稱、教學是否已閱讀等。</li>
-        <li><b>Google 登入授權</b>（可選）：如你啟用雲端同步，Google 會向你顯示授權畫面；本應用程式只會取得用於 Drive AppData 的存取權。</li>
+        <li><b>Google 雲端同步及帳戶識別</b>（可選）：除 Drive AppData 權限外，首次使用亦會要求 OpenID 基本帳戶識別權限。使用者選好帳戶後，網頁會從 Google UserInfo 讀取該帳戶的 <code>sub</code> 識別碼，只保存在此瀏覽器，用來讓日後授權沿用同一帳戶；不讀取 Gmail 地址，也不會把識別碼送到本應用程式伺服器或寫入 Drive。存取權杖只在頁面記憶體中使用，不會保存到本機儲存空間。</li>
         <li><b>手機推播（可選）</b>：只有你主動啟用通知後，日曆記事的通知標題、首段摘要、日期時間、隨機提醒識別碼和推播訂閱資料才會傳送至本應用程式的 Cloudflare Worker／D1，用於安排和發送通知。圖片及附件不會傳送。</li>
       </ul>
 
@@ -41,9 +41,10 @@
       </ul>
 
       <h2>4. Google Drive 權限說明</h2>
-      <p>本應用程式使用 Google Drive 權限範圍：<code>https://www.googleapis.com/auth/drive.appdata</code>。</p>
+      <p>本應用程式使用以下 Google 權限範圍：<code>https://www.googleapis.com/auth/drive.appdata</code> 及 <code>openid</code>。</p>
       <ul>
-        <li>此權限只允許存取你 Drive 的「應用程式資料夾（AppData）」— 一般在 Drive 介面不可見。</li>
+        <li>Drive AppData 權限只允許存取你 Drive 的「應用程式資料夾（AppData）」— 一般在 Drive 介面不可見。</li>
+        <li><code>openid</code> 只用來取得所選 Google 帳戶的 <code>sub</code> 識別碼，供此瀏覽器記住帳戶提示。自動授權時，識別碼會以 <code>login_hint</code> 傳給 Google，不會傳給本應用程式伺服器；登出會刪除本機識別碼。</li>
         <li>本應用程式會建立/更新一個備份檔：<code>diary_sync_backup.json</code>。</li>
         <li>不會讀取或修改你 Drive 內其他檔案。</li>
       </ul>
