@@ -3313,7 +3313,7 @@
             await __googleApiLoadPromise;
         }
 
-        async function cloudAction(action) {
+        async function cloudAction(action, retriedExpiredToken = false) {
             try {
                 // 如果用家主動撳同步，就優先處理；背景預載計時器可取消，避免重覆載入。
                 try { if (__startupGoogleWarmupTimer) clearTimeout(__startupGoogleWarmupTimer); } catch (_) {}
@@ -3324,58 +3324,92 @@
                 console.error(e);
                 setCloudButtonsReady(true, 'Google 服務載入失敗，按下可重試');
                 showToast('Google 服務暫時未能載入，請檢查網絡後再試。', 'error');
-                return;
+                return false;
             }
             if (!window.gapi || !gapi.client || !gapi.client.drive || !tokenClient) {
                 showToast('Google 服務仍在準備中，請稍後再試。', 'error');
-                return;
+                return false;
             }
             if (action === 'logout') {
                 const token = gapi.client.getToken();
                 if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
                 document.getElementById('cloudLogoutBtn').style.display = 'none';
                 alert('已成功登出 Google 帳戶。');
-                return;
+                return true;
             }
             const token = gapi.client.getToken();
             if (token === null) {
-
-                try {
-                    // 先嘗試「唔彈視窗」靜默取 token；如果失敗先再彈 consent（Android/Chrome 通常比較順）
-                    let triedInteractive = false;
-                    tokenClient.callback = async (resp) => {
-                        // 靜默失敗（常見：interaction_required / login_required）就升級做互動授權
+                const automatic = !!window.__cloudSilentMode;
+                return await new Promise(resolve => {
+                    let triedAccountPicker = false;
+                    let finished = false;
+                    const finish = value => {
+                        if (finished) return;
+                        finished = true;
+                        resolve(value);
+                    };
+                    tokenClient.callback = async resp => {
                         if (resp && resp.error) {
-                            if (!triedInteractive) {
-                                triedInteractive = true;
-                                try { tokenClient.requestAccessToken({ prompt: 'consent' }); } catch (e2) { console.error(e2); alert('無法開啟 Google 授權視窗。'); }
+                            // 背景自動同步絕不打開登入／同意視窗；需要重新登入時留給用家手動處理。
+                            if (!automatic && !triedAccountPicker) {
+                                triedAccountPicker = true;
+                                try { tokenClient.requestAccessToken({ prompt: 'select_account' }); }
+                                catch (e) {
+                                    console.error(e);
+                                    showToast('無法開啟 Google 帳戶選擇，請稍後再試。', 'error');
+                                    finish(false);
+                                }
                                 return;
                             }
-                            setCloudButtonsReady(true, 'Google 授權失敗，按下可重試');
-                            alert('Google 授權失敗：' + resp.error);
+                            setCloudButtonsReady(true, 'Google 授權需要更新；按「同步上傳」重新登入');
+                            if (automatic) {
+                                setCloudAutoSyncStatus('⚠️ Google 需要重新登入，今次自動上傳已略過。請手動按「同步上傳」選擇帳戶；背景不會彈登入視窗。', true);
+                            } else {
+                                showToast('Google 授權失敗：' + resp.error, 'error');
+                            }
+                            finish(false);
                             return;
                         }
-                        // ✅ 把 GIS token 設到 gapi client
-                        gapi.client.setToken(resp);
-                        document.getElementById('cloudLogoutBtn').style.display = 'flex';
-                        if (action === 'backup') await doCloudBackup();
-                        if (action === 'restore') await doCloudRestore();
+                        try {
+                            gapi.client.setToken(resp);
+                            document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                            if (action === 'backup') {
+                                finish(await doCloudBackup() !== false);
+                                return;
+                            }
+                            if (action === 'restore') await doCloudRestore();
+                            finish(true);
+                        } catch (e) {
+                            console.error(e);
+                            setCloudButtonsReady(true, 'Google 操作失敗，按下可重試');
+                            finish(false);
+                        }
                     };
                     try {
-                        tokenClient.requestAccessToken({ prompt: '' });
+                        // 自動同步指定 none：Google 不得顯示登入或同意畫面；手動同步才可互動。
+                        tokenClient.requestAccessToken({ prompt: automatic ? 'none' : '' });
                     } catch (e) {
                         console.error(e);
-                        alert('無法開啟 Google 授權流程，請稍後再試。');
+                        if (automatic) {
+                            setCloudAutoSyncStatus('⚠️ 無法靜默連接 Google，今次自動上傳已略過。請手動按「同步上傳」重新登入；背景不會彈登入視窗。', true);
+                        } else {
+                            showToast('無法開啟 Google 授權流程，請稍後再試。', 'error');
+                        }
+                        finish(false);
                     }
-                } catch (e) {
-                    console.error(e);
-                    alert('無法開啟 Google 授權視窗。\n\n常見原因：\n1) Google Cloud Console 未加入此網域到「Authorized JavaScript origins」\n2) 瀏覽器阻擋第三方 Cookie / 彈出式視窗\n\n請先確定已加入：' + window.location.origin);
-                }
+                });
             } else {
                 document.getElementById('cloudLogoutBtn').style.display = 'flex';
-                if (action === 'backup') await doCloudBackup();
-                if (action === 'restore') await doCloudRestore();
+                if (action === 'backup') {
+                    const backedUp = await doCloudBackup();
+                    if (backedUp === false && !retriedExpiredToken && gapi.client.getToken() === null) {
+                        return await cloudAction(action, true);
+                    }
+                    return backedUp;
+                }
+                if (action === 'restore') { await doCloudRestore(); return true; }
             }
+            return true;
         }
 
         
@@ -3536,7 +3570,7 @@ async function cloudConfirmDangerousOverwrite(result, localSummary, cloudSummary
 
         async function doCloudBackup() {
             const dirtyToken = (() => { try { return localStorage.getItem(CLOUD_DIRTY_KEY) || ''; } catch (_) { return ''; } })();
-            if (window.__cloudSilentMode && !cloudNeedsSync()) return;
+            if (window.__cloudSilentMode && !cloudNeedsSync()) return true;
             const btn = document.getElementById('cloudBackupBtn'); const orig = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
             try {
@@ -3584,7 +3618,7 @@ try {
         if (suspicious && window.__cloudSilentMode) {
             setCloudMiniStatus('☁️ 已暫停：疑似空白/縮水（請手動確認）');
             try { localStorage.setItem(LAST_CLOUD_FAIL_KEY, String(Date.now())); refreshStatusBar('error'); } catch (_) {}
-            return;
+            return false;
         }
 
         // 手動同步遇到風險：要求輸入「清空」先可繼續
@@ -3592,7 +3626,7 @@ try {
             const ok = await cloudConfirmDangerousOverwrite(suspicious, localSummary, cloudSummary);
             if (!ok) {
                 showToast('已取消上傳（建議先還原雲端或揀舊版本）', 'error');
-                return;
+                return false;
             }
         }
 
@@ -3644,8 +3678,13 @@ try {
                 } else {
                     showToast('☁️ 已同步到 Google 雲端', 'success');
                 }
+                return true;
             } catch (err) {
                 console.error(err);
+                const httpStatus = Number(err && (err.status || (err.result && err.result.error && err.result.error.code)));
+                if (httpStatus === 401) {
+                    try { gapi.client.setToken(''); } catch (_) {}
+                }
                 const msg = (err && err.result && err.result.error && err.result.error.message) ? err.result.error.message : (err && err.message ? err.message : String(err));
                 setCloudMiniStatus('☁️ 同步失敗');
 
@@ -3660,6 +3699,7 @@ try {
                 } else {
                     showToast('同步失敗：' + msg, 'error');
                 }
+                return false;
             } finally { btn.innerHTML = orig; lucide.createIcons(); }
         }
 
@@ -4273,8 +4313,9 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
                 setCloudAutoSyncStatus('⏳ 自動同步中...（有變更先上傳；每 5 分鐘檢查）');
                 // ✅ 自動同步：全程靜默（唔會彈出遮住畫面嘅提示）
                 window.__cloudSilentMode = true;
-                // 用 backup 行為：如未登入會自動引導授權
-                await cloudAction('backup');
+                // 用 backup 行為：背景只嘗試無提示授權，唔會彈互動登入。
+                const synced = await cloudAction('backup');
+                if (synced === false) return;
                 window.__cloudSilentMode = false;
                 const now = new Date();
                 const hh = String(now.getHours()).padStart(2, '0');
