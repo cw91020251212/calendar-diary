@@ -2007,7 +2007,11 @@
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <button id="cloudBackupBtn" class="action-btn" style="background: #4285F4; color: white; border: none;" onclick="cloudAction('backup')" title="按下後會載入 Google 服務並開始同步"><i data-lucide="cloud-upload"></i> 同步上傳至 Google 雲端</button>
                         <button id="cloudRestoreBtn" class="action-btn" style="background: #ffffff; color: #4285F4; border: 1px solid var(--outline);" onclick="cloudAction('restore')" title="按下後會載入 Google 服務並開始還原"><i data-lucide="cloud-download"></i> 從雲端還原至本機</button>
+                        <button id="cloudSwitchAccountBtn" class="action-btn" style="background: #f7fafc; color: #2d3748; border: 1px solid var(--outline);" onclick="cloudAction('switchAccount')"><i data-lucide="users"></i> 選擇／切換 Google 帳戶</button>
                         <button id="cloudLogoutBtn" class="action-btn" style="background: #fff5f5; color: #e53e3e; border: 1px dashed var(--outline); display: none;" onclick="cloudAction('logout')"><i data-lucide="log-out"></i> 登出 Google 帳戶</button>
+                    </div>
+                    <div id="cloudBackupStatus" role="status" aria-live="polite" style="margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(66,133,244,0.07); color: var(--text-light); font-size: 13px; line-height: 1.5;">
+                        尚未有雲端備份結果。
                     </div>
 
                     <!-- ✅ 提示：雲端並非 100% 成功，失敗時請改用本機備份 -->
@@ -3334,14 +3338,15 @@
                 const token = gapi.client.getToken();
                 if (token !== null) { google.accounts.oauth2.revoke(token.access_token); gapi.client.setToken(''); }
                 document.getElementById('cloudLogoutBtn').style.display = 'none';
+                setCloudBackupStatus('已登出此日曆 App 的 Google 授權。你仍可按「選擇／切換 Google 帳戶」重新連接。', 'info');
                 alert('已成功登出 Google 帳戶。');
                 return true;
             }
             const token = gapi.client.getToken();
-            if (token === null) {
-                const automatic = !!window.__cloudSilentMode;
+            if (token === null || action === 'switchAccount') {
+                const automatic = !!window.__cloudSilentMode && action !== 'switchAccount';
                 return await new Promise(resolve => {
-                    let triedAccountPicker = false;
+                    let triedAccountPicker = action === 'switchAccount';
                     let finished = false;
                     const finish = value => {
                         if (finished) return;
@@ -3356,6 +3361,7 @@
                                 try { tokenClient.requestAccessToken({ prompt: 'select_account' }); }
                                 catch (e) {
                                     console.error(e);
+                                    setCloudBackupStatus('無法開啟 Google 帳戶選擇，這次沒有執行備份。', 'error');
                                     showToast('無法開啟 Google 帳戶選擇，請稍後再試。', 'error');
                                     finish(false);
                                 }
@@ -3365,6 +3371,7 @@
                             if (automatic) {
                                 setCloudAutoSyncStatus('⚠️ Google 需要重新登入，今次自動上傳已略過。請手動按「同步上傳」選擇帳戶；背景不會彈登入視窗。', true);
                             } else {
+                                setCloudBackupStatus(action === 'switchAccount' ? '未能切換 Google 帳戶，尚未執行備份。' : 'Google 授權未完成，這次沒有執行備份。', 'error');
                                 showToast('Google 授權失敗：' + resp.error, 'error');
                             }
                             finish(false);
@@ -3373,6 +3380,12 @@
                         try {
                             gapi.client.setToken(resp);
                             document.getElementById('cloudLogoutBtn').style.display = 'flex';
+                            if (action === 'switchAccount') {
+                                setCloudBackupStatus('Google 帳戶已連接；這一步尚未備份，請按「同步上傳至 Google 雲端」。', 'info');
+                                showToast('已選擇 Google 帳戶，可以按同步上傳備份。', 'success');
+                                finish(true);
+                                return;
+                            }
                             if (action === 'backup') {
                                 finish(await doCloudBackup() !== false);
                                 return;
@@ -3386,13 +3399,15 @@
                         }
                     };
                     try {
-                        // 自動同步指定 none：Google 不得顯示登入或同意畫面；手動同步才可互動。
-                        tokenClient.requestAccessToken({ prompt: automatic ? 'none' : '' });
+                        // 背景只准靜默授權；使用者主動切換時明確顯示帳戶選擇器。
+                        const prompt = automatic ? 'none' : action === 'switchAccount' ? 'select_account' : '';
+                        tokenClient.requestAccessToken({ prompt });
                     } catch (e) {
                         console.error(e);
                         if (automatic) {
                             setCloudAutoSyncStatus('⚠️ 無法靜默連接 Google，今次自動上傳已略過。請手動按「同步上傳」重新登入；背景不會彈登入視窗。', true);
                         } else {
+                            setCloudBackupStatus(action === 'switchAccount' ? '無法開啟 Google 帳戶選擇，尚未執行備份。' : '無法完成 Google 授權，尚未執行備份。', 'error');
                             showToast('無法開啟 Google 授權流程，請稍後再試。', 'error');
                         }
                         finish(false);
@@ -3571,6 +3586,7 @@ async function cloudConfirmDangerousOverwrite(result, localSummary, cloudSummary
         async function doCloudBackup() {
             const dirtyToken = (() => { try { return localStorage.getItem(CLOUD_DIRTY_KEY) || ''; } catch (_) { return ''; } })();
             if (window.__cloudSilentMode && !cloudNeedsSync()) return true;
+            setCloudBackupStatus(window.__cloudSilentMode ? '自動備份進行中…' : '正在上傳至 Google Drive…');
             const btn = document.getElementById('cloudBackupBtn'); const orig = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader" class="spin"></i> 正在上傳至雲端...'; lucide.createIcons();
             try {
@@ -3617,6 +3633,7 @@ try {
         // 自動同步（靜默）遇到風險：直接停止（避免無人睇住都覆蓋錯）
         if (suspicious && window.__cloudSilentMode) {
             setCloudMiniStatus('☁️ 已暫停：疑似空白/縮水（請手動確認）');
+            setCloudBackupStatus('自動備份已暫停：偵測到本機資料與雲端差異過大，請手動確認。', 'error');
             try { localStorage.setItem(LAST_CLOUD_FAIL_KEY, String(Date.now())); refreshStatusBar('error'); } catch (_) {}
             return false;
         }
@@ -3625,6 +3642,7 @@ try {
         if (suspicious) {
             const ok = await cloudConfirmDangerousOverwrite(suspicious, localSummary, cloudSummary);
             if (!ok) {
+                setCloudBackupStatus('已取消上傳，雲端資料未被覆蓋。', 'info');
                 showToast('已取消上傳（建議先還原雲端或揀舊版本）', 'error');
                 return false;
             }
@@ -3662,6 +3680,7 @@ try {
                 const hh = String(now.getHours()).padStart(2, '0');
                 const mm = String(now.getMinutes()).padStart(2, '0');
                 const ss = String(now.getSeconds()).padStart(2, '0');
+                setCloudBackupStatus(`${window.__cloudSilentMode ? '自動備份成功' : '備份成功'}：${now.toLocaleString()}`, 'success');
                 setCloudMiniStatus(`☁️ 已同步 ${hh}:${mm}:${ss}`);
 
                 // 📌 記錄「上次雲端同步」時間並刷新底欄
@@ -3686,6 +3705,7 @@ try {
                     try { gapi.client.setToken(''); } catch (_) {}
                 }
                 const msg = (err && err.result && err.result.error && err.result.error.message) ? err.result.error.message : (err && err.message ? err.message : String(err));
+                setCloudBackupStatus(`${window.__cloudSilentMode ? '自動備份未成功' : '備份未成功'}：${msg}`, 'error');
                 setCloudMiniStatus('☁️ 同步失敗');
 
                 // 📌 記錄失敗時間：用作底部狀態欄紅字提示（建議即刻本機備份）
@@ -4000,6 +4020,13 @@ const response = await gapi.client.drive.files.get({ fileId: targetFile.id, alt:
             if (!text) return;
             const isError = String(text).includes('失敗') || String(text).includes('❌');
             showToast(text, isError ? 'error' : 'success');
+        }
+        function setCloudBackupStatus(text, state = 'info') {
+            const el = document.getElementById('cloudBackupStatus');
+            if (!el) return;
+            el.textContent = text;
+            el.style.color = state === 'error' ? '#c53030' : state === 'success' ? '#2f855a' : 'var(--text-main)';
+            el.style.background = state === 'error' ? 'rgba(239,68,68,0.08)' : state === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(66,133,244,0.07)';
         }
 
         // =========================
@@ -10321,7 +10348,18 @@ function handleImageUpload(event) {
             await closeEditor();
         }
         
-        function openBackupModal() { openModal('backupModal'); }
+        function openBackupModal() {
+            const cloudTs = Number(localStorage.getItem(LAST_CLOUD_SYNC_KEY) || 0);
+            const failTs = Number(localStorage.getItem(LAST_CLOUD_FAIL_KEY) || 0);
+            if (failTs > cloudTs) {
+                setCloudBackupStatus(`最近一次雲端上傳未成功。上次成功備份：${cloudTs ? new Date(cloudTs).toLocaleString() : '沒有成功記錄'}。`, 'error');
+            } else if (cloudTs) {
+                setCloudBackupStatus(`上次成功備份：${new Date(cloudTs).toLocaleString()}。`, 'success');
+            } else {
+                setCloudBackupStatus('尚未有成功的雲端備份記錄。', 'info');
+            }
+            openModal('backupModal');
+        }
 
         // ✅ 由右下角「+」展開嘅調色：先收起 FAB，再轉顏色
         function cycleThemeFromFab() {
